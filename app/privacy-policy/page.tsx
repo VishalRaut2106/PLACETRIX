@@ -256,9 +256,7 @@ export default function PrivacyPolicyPage() {
 
       <main
         className={cn(
-          "relative mx-auto w-full max-w-4xl grow",
-          "sm:before:absolute sm:before:-inset-y-14 sm:before:-left-px sm:before:w-px sm:before:bg-border",
-          "sm:after:absolute sm:after:-inset-y-14 sm:after:-right-px sm:after:w-px sm:after:bg-border"
+          "relative mx-auto w-full max-w-4xl grow"
         )}
       >
         {/* ── Editorial Hero ─────────────────────────────────────── */}

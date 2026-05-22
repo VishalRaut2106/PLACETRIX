@@ -102,7 +102,7 @@ const resources = [
   },
   {
     title: "Help Center",
-    href: "#",
+    href: "/help-center",
   },
   {
     title: "FAQs",
