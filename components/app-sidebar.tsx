@@ -1,7 +1,7 @@
 "use client"
-import PlaceTrixLogo from "@/assets/placetrix.svg"
+import Image from "next/image";
+import PlaceTrixLogo from "@/assets/placetrix.svg";
 import * as React from "react"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   Icon, IconBell, IconBriefcase, IconBuildingSkyscraper, IconChartBar,

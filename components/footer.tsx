@@ -11,12 +11,7 @@ import {
 export function Footer() {
   return (
     <footer className="relative">
-      <div
-        className={cn(
-          "mx-auto max-w-5xl",
-          "dark:bg-[radial-gradient(35%_80%_at_25%_0%,--theme(--color-foreground/.04),transparent)]",
-        )}
-      >
+      <div className="mx-auto max-w-5xl">
         <div className="grid max-w-5xl grid-cols-6 gap-6 p-4">
           <div className="col-span-6 flex flex-col gap-4 pt-5 md:col-span-4">
             <a className="font-bold" href="#">
@@ -33,7 +28,11 @@ export function Footer() {
                   size="icon-sm"
                   variant="outline"
                 >
-                  <a href={item.link} target="_blank">
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {item.icon}
                   </a>
                 </Button>
@@ -72,7 +71,7 @@ export function Footer() {
         <div className="absolute inset-x-0 h-px w-full bg-border" />
         <div className="flex max-w-4xl flex-col justify-between gap-2 py-4">
           <p className="text-center font-light text-muted-foreground text-sm">
-            &copy; {new Date().getFullYear()},  360 View Tech, All rights reserved
+            &copy; {new Date().getFullYear()}, 360 View Tech, All rights reserved
           </p>
         </div>
       </div>
@@ -115,7 +114,6 @@ const socialLinks = [
     icon: <LinkedinIcon />,
     link: "https://www.linkedin.com/company/360-view-tech/",
   },
-
   {
     icon: <InstagramIcon />,
     link: "https://www.instagram.com/360viewtech/",
