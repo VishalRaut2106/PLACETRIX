@@ -616,7 +616,7 @@ function FeatureCard({
       fillOpacity={glowEnabled ? 0.08 : 0}
       coneSpread={glowEnabled ? 14 : 0}
     >
-      <article className="h-full rounded-3xl bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-0.5 dark:bg-white/[0.03] md:p-7">
+      <article className="h-full rounded-3xl bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 dark:bg-white/[0.03] md:p-7">
         <div className="flex h-full flex-col">
           <div className="mb-5 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
@@ -747,7 +747,7 @@ function TestimonialCard({
       fillOpacity={glowEnabled ? 0.08 : 0}
       coneSpread={glowEnabled ? 14 : 0}
     >
-      <figure className="h-full rounded-3xl bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-0.5 dark:bg-white/[0.03] md:p-7">
+      <figure className="h-full rounded-3xl bg-white/95 p-6 backdrop-blur-sm transition-all duration-300 dark:bg-white/[0.03] md:p-7">
         <div className="flex h-full flex-col">
           <div className="mb-5 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
