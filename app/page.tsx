@@ -30,7 +30,6 @@ import type { UserProfile } from "@/lib/supabase/profile";
 import { getUserProfileAction } from "@/lib/supabase/profile";
 import { buildStorageUrl } from "@/lib/storage";
 import BorderGlow from "@/components/BorderGlow";
-import LightRays from "@/components/LightRays";
 
 const Galaxy = dynamic(() => import("@/components/Galaxy"), {
   ssr: false,
@@ -97,7 +96,6 @@ function Logo() {
 
 function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
-  const mounted = useMounted();
 
   const handleToggle = React.useCallback(() => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -107,20 +105,6 @@ function ThemeToggle() {
     "size-8 text-foreground [&_svg]:size-4.5",
     NAV_BUTTON
   );
-
-  if (!mounted) {
-    return (
-      <Button
-        aria-label="Toggle theme"
-        size="icon"
-        variant="outline"
-        className={toggleClassName}
-      >
-        <SunIcon className="opacity-0" />
-        <span className="sr-only">Toggle theme</span>
-      </Button>
-    );
-  }
 
   return (
     <Button
@@ -192,8 +176,10 @@ function AuthButtons({
 
 function MobileNav({
   user,
+  isLoading,
 }: {
   user: UserProfile | null;
+  isLoading?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
 
@@ -261,7 +247,15 @@ function MobileNav({
                   <ThemeToggle />
                 </div>
 
-                {user ? (
+                {isLoading ? (
+                  <div className="mb-3 flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.03] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                    <div className="size-10 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-4 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10" />
+                      <div className="h-3 w-32 animate-pulse rounded bg-black/10 dark:bg-white/10" />
+                    </div>
+                  </div>
+                ) : user ? (
                   <Link
                     href="/dashboard"
                     onClick={closeMenu}
@@ -331,9 +325,10 @@ function MobileNav({
 
 interface HeaderVisualProps {
   user: UserProfile | null;
+  isLoading?: boolean;
 }
 
-function HeaderVisual({ user }: HeaderVisualProps) {
+function HeaderVisual({ user, isLoading }: HeaderVisualProps) {
   const scrolled = useScrolled(10);
 
   return (
@@ -370,10 +365,16 @@ function HeaderVisual({ user }: HeaderVisualProps) {
 
             <div className="hidden items-center gap-2 md:flex">
               <ThemeToggle />
-              {user ? <UserAvatar user={user} /> : <AuthButtons size="sm" />}
+              {isLoading ? (
+                <div className="size-8 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
+              ) : user ? (
+                <UserAvatar user={user} />
+              ) : (
+                <AuthButtons size="sm" />
+              )}
             </div>
 
-            <MobileNav user={user} />
+            <MobileNav user={user} isLoading={isLoading} />
           </nav>
         </div>
       </div>
@@ -389,6 +390,8 @@ function HeaderShell({
   initialUser = null,
 }: HeaderShellProps) {
   const [user, setUser] = React.useState<UserProfile | null>(initialUser);
+  const [isFetching, setIsFetching] = React.useState(false);
+  const mounted = useMounted();
 
   React.useEffect(() => {
     let cancelled = false;
@@ -399,22 +402,28 @@ function HeaderShell({
     }
 
     const hasAuthCookie =
-      typeof document !== "undefined" && document.cookie.includes("auth-token");
+      typeof document !== "undefined" && (document.cookie.includes("auth-token") || document.cookie.includes("sb-"));
 
     if (!hasAuthCookie) return;
 
+    setIsFetching(true);
     getUserProfileAction()
       .then((data) => {
         if (!cancelled && data) setUser(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsFetching(false);
+      });
 
     return () => {
       cancelled = true;
     };
   }, [initialUser]);
 
-  return <HeaderVisual user={user} />;
+  const isLoading = !mounted || isFetching;
+
+  return <HeaderVisual user={user} isLoading={isLoading} />;
 }
 
 function HeroSection() {
@@ -827,24 +836,32 @@ function TestimonialsSection() {
 }
 
 function CTASection() {
+  const { resolvedTheme } = useTheme();
+  const mounted = useMounted();
+
+  const showGalaxy = mounted && resolvedTheme === "dark";
+
   return (
     <section className="w-full bg-white pb-16 text-zinc-950 dark:bg-black dark:text-white md:pb-24">
       <div className={CONTENT}>
         <div className="relative overflow-hidden rounded-2xl border border-zinc-300/80 px-8 py-16 text-center dark:border-white/10 dark:bg-white/[0.02] md:px-16 md:py-20">
-          <div className="absolute inset-0 z-0 hidden opacity-40 dark:opacity-70 lg:block">
-            <Galaxy
-              density={0.7}
-              glowIntensity={0.2}
-              saturation={0}
-              hueShift={140}
-              mouseInteraction={false}
-              twinkleIntensity={0}
-              rotationSpeed={0.02}
-              autoCenterRepulsion={0}
-              starSpeed={0.2}
-              speed={0.5}
-            />
-          </div>
+          {showGalaxy && (
+            <div className="absolute inset-0 z-0 hidden opacity-40 dark:opacity-70 lg:block">
+              <Galaxy
+                density={0.7}
+                glowIntensity={0.2}
+                saturation={0}
+                hueShift={140}
+                mouseInteraction={false}
+                twinkleIntensity={0}
+                rotationSpeed={0.02}
+                autoCenterRepulsion={0}
+                starSpeed={0.2}
+                speed={0.5}
+              />
+            </div>
+          )}
+
           <div className="pointer-events-none absolute inset-0 z-10 bg-white/70 dark:bg-black/45" />
 
           <div className="relative z-20">
