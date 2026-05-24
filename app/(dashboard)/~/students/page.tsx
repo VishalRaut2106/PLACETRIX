@@ -123,7 +123,9 @@ export default async function StudentsPage(props: {
     university_prn: s.university_prn,
     institute_verified: s.institute_verified,
     cgpa: s.cgpa,
-    profile_image_path: s.profile_image_path,
+    profile_image_path: s.profile_image_path
+      ? supabase.storage.from("avatars").getPublicUrl(s.profile_image_path).data.publicUrl
+      : null,
     created_at: s.created_at,
   }))
 
