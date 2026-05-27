@@ -185,7 +185,18 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
   }
 
   if (user) {
-    // Optimization: Check for profile data in user_metadata first (JWT claims)
+    // Try to fetch the fresh profile from the database first to ensure consistency (e.g. avatar/name updates)
+    const { data: profile, error: dbError } = await supabase
+      .from("profiles")
+      .select("id, display_name, email, account_type, avatar_path, username")
+      .eq("id", user.sub)
+      .single();
+
+    if (!dbError && profile) {
+      return profile as UserProfile;
+    }
+
+    // Fallback: If DB is unreachable, use user_metadata from JWT claims
     const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
     if (meta.display_name && meta.account_type) {
       return {
@@ -198,18 +209,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
       };
     }
 
-    // Fallback: If metadata is absent or stale, fetch from DB
-    const { data: profile, error: dbError } = await supabase
-      .from("profiles")
-      .select("id, display_name, email, account_type, avatar_path, username")
-      .eq("id", user.sub)
-      .single();
-
-    if (dbError || !profile) {
-      return profileFromAuthUser(user as any);
-    }
-
-    return profile as UserProfile;
+    return profileFromAuthUser(user as any);
   }
 
   // ── Step 2 & 3: Handle definitive revocation (e.g. 401) ─────────────────

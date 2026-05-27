@@ -1,25 +1,29 @@
 "use client"
 
-import { useState, useTransition, useEffect, useCallback, useRef } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { UserProfile } from "@/lib/supabase/profile"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput,
   ComboboxItem, ComboboxList,
 } from "@/components/ui/combobox"
-import { FloatingSaveBar } from "@/components/ui/floating-save-bar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Upload, Plus, Minus, Mail, Globe, Phone, Loader2, Camera,
-  CheckCircle2, XCircle, AtSign,
+  CheckCircle2, XCircle, AtSign, Pencil, X, Info,
+  Building, MapPin, Phone as PhoneIcon, Users, BookOpen, Share2, CheckCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -49,6 +53,7 @@ const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type SectionId = "account" | "basic" | "contact" | "admin" | "courses" | "social"
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "unchanged"
 
 interface Props {
@@ -65,6 +70,33 @@ function RequiredMark() {
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
   return <p className="text-xs text-destructive mt-1">{message}</p>
+}
+
+function ReadonlyField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium">{value?.trim() ? value : <span className="text-muted-foreground font-normal">—</span>}</p>
+    </div>
+  )
+}
+
+function SectionComplete() {
+  return (
+    <Badge variant="secondary" className="h-8 px-3 gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+      <CheckCircle className="h-3.5 w-3.5" />
+      Complete
+    </Badge>
+  )
+}
+
+function SectionIncomplete() {
+  return (
+    <Badge variant="outline" className="h-8 px-3 gap-1.5 text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+      <Info className="h-3.5 w-3.5" />
+      Not filled
+    </Badge>
+  )
 }
 
 function getStorageUrl(
@@ -99,7 +131,12 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [isDirty, setIsDirty] = useState(false)
+
+  const isFirstTime = !initialData?.profile_updated
+  const [editingSection, setEditingSection] = useState<SectionId | null>(
+    isFirstTime ? "basic" : null
+  )
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   // ── Username ──────────────────────────────────────────────────────────────
   const [username, setUsername] = useState(userProfile.username ?? "")
@@ -115,7 +152,7 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  // ── Institute fields ──────────────────────────────────────────────────────
+  // ── Basic fields ──────────────────────────────────────────────────────────
   const [instituteName, setInstituteName] = useState(initialData?.institute_name ?? "")
   const [instituteCode, setInstituteCode] = useState(initialData?.institute_code ?? "")
   const [establishedYear, setEstablishedYear] = useState(
@@ -127,55 +164,42 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
   const [stateVal, setStateVal] = useState(initialData?.state ?? "")
   const [pincode, setPincode] = useState(initialData?.pincode ?? "")
   const [country, setCountry] = useState(initialData?.country ?? "India")
+
+  // ── Contact fields ────────────────────────────────────────────────────────
   const [instPhone, setInstPhone] = useState(initialData?.phone_number ?? "")
   const [instEmail, setInstEmail] = useState(initialData?.email ?? "")
   const [websiteUrl, setWebsiteUrl] = useState(initialData?.website_url ?? "")
+
+  // ── Admin fields ──────────────────────────────────────────────────────────
   const [principalName, setPrincipalName] = useState(initialData?.principal_name ?? "")
   const [principalEmail, setPrincipalEmail] = useState(initialData?.principal_email ?? "")
   const [principalPhone, setPrincipalPhone] = useState(initialData?.principal_phone ?? "")
+
+  // ── Courses ───────────────────────────────────────────────────────────────
   const [courses, setCourses] = useState<string[]>(
     initialData?.courses?.length ? initialData.courses : [""]
   )
+
+  // ── Social links ──────────────────────────────────────────────────────────
   const [socialLinks, setSocialLinks] = useState<string[]>(
     initialData?.social_links?.length ? initialData.social_links : [""]
   )
+
+  // ── Errors ────────────────────────────────────────────────────────────────
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // ── Dirty tracking ────────────────────────────────────────────────────────
-
-  const markDirty = useCallback(
-    <T,>(setter: React.Dispatch<React.SetStateAction<T>>) =>
-      (value: T | ((prev: T) => T)) => {
-        setter(value as any)
-        setIsDirty(true)
-      },
-    []
-  )
-
-  const handleInstituteName = markDirty(setInstituteName)
-  const handleInstituteCode = markDirty(setInstituteCode)
-  const handleEstablishedYear = markDirty(setEstablishedYear)
-  const handleAffiliation = markDirty(setAffiliation)
-  const handleAddress = markDirty(setAddress)
-  const handleCity = markDirty(setCity)
-  const handleStateVal = markDirty(setStateVal)
-  const handlePincode = markDirty(setPincode)
-  const handleCountry = markDirty(setCountry)
-  const handleInstPhone = markDirty(setInstPhone)
-  const handleInstEmail = markDirty(setInstEmail)
-  const handleWebsiteUrl = markDirty(setWebsiteUrl)
-  const handlePrincipalName = markDirty(setPrincipalName)
-  const handlePrincipalEmail = markDirty(setPrincipalEmail)
-  const handlePrincipalPhone = markDirty(setPrincipalPhone)
-  const handleCourses = markDirty(setCourses)
-  const handleSocialLinks = markDirty(setSocialLinks)
+  // ── Section completeness (from server data) ───────────────────────────────
+  const basicComplete = !!(initialData?.institute_name && initialData?.affiliation && initialData?.city)
+  const contactComplete = !!(initialData?.phone_number && initialData?.email)
+  const adminComplete = !!(initialData?.principal_name && initialData?.principal_email)
+  const coursesComplete = !!(initialData?.courses?.some((c: string) => c.trim()))
+  const socialComplete = !!(initialData?.social_links?.some((l: string) => l.trim()))
 
   // ── Username debounce ─────────────────────────────────────────────────────
 
   function handleUsernameChange(value: string) {
     const trimmed = value.trim()
     setUsername(trimmed)
-    setIsDirty(true)
     if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current)
     if (!trimmed) { setUsernameStatus("idle"); return }
     if (trimmed === initialUsername.current) { setUsernameStatus("unchanged"); return }
@@ -195,15 +219,253 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
     return () => { if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current) }
   }, [])
 
-  // ── Warn on unsaved changes ───────────────────────────────────────────────
+  // ── Section open/close ────────────────────────────────────────────────────
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = "" }
+  function openSection(section: SectionId) {
+    if (editingSection && editingSection !== section) {
+      cancelSection(editingSection)
     }
-    window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
-  }, [isDirty])
+    setErrors({})
+    setEditingSection(section)
+  }
+
+  function cancelSection(section: SectionId) {
+    setErrors({})
+    if (section === "account") {
+      setUsername(userProfile.username ?? "")
+      setUsernameStatus("idle")
+    } else if (section === "basic") {
+      setInstituteName(initialData?.institute_name ?? "")
+      setInstituteCode(initialData?.institute_code ?? "")
+      setEstablishedYear(initialData?.established_year ? String(initialData.established_year) : "")
+      setAffiliation(initialData?.affiliation ?? "")
+      setAddress(initialData?.address ?? "")
+      setCity(initialData?.city ?? "")
+      setStateVal(initialData?.state ?? "")
+      setPincode(initialData?.pincode ?? "")
+      setCountry(initialData?.country ?? "India")
+    } else if (section === "contact") {
+      setInstPhone(initialData?.phone_number ?? "")
+      setInstEmail(initialData?.email ?? "")
+      setWebsiteUrl(initialData?.website_url ?? "")
+    } else if (section === "admin") {
+      setPrincipalName(initialData?.principal_name ?? "")
+      setPrincipalEmail(initialData?.principal_email ?? "")
+      setPrincipalPhone(initialData?.principal_phone ?? "")
+    } else if (section === "courses") {
+      setCourses(initialData?.courses?.length ? initialData.courses : [""])
+    } else if (section === "social") {
+      setSocialLinks(initialData?.social_links?.length ? initialData.social_links : [""])
+    }
+    setEditingSection(null)
+  }
+
+  // ── Course management ─────────────────────────────────────────────────────
+
+  function addCourse() { setCourses((prev) => [...prev, ""]) }
+  function handleCourseChange(index: number, value: string) {
+    setCourses((prev) => { const u = [...prev]; u[index] = value; return u })
+  }
+  function removeCourse(index: number) {
+    setCourses((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // ── Social link management ────────────────────────────────────────────────
+
+  function addSocialLink() { setSocialLinks((prev) => [...prev, ""]) }
+  function handleSocialLinkChange(index: number, value: string) {
+    setSocialLinks((prev) => { const u = [...prev]; u[index] = value; return u })
+  }
+  function removeSocialLink(index: number) {
+    setSocialLinks((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  function validateAccount() {
+    const e: Record<string, string> = {}
+    if (username && !USERNAME_REGEX.test(username)) e.username = "3–20 characters: letters, numbers, and underscores only."
+    if (usernameStatus === "taken") e.username = "This username is already taken."
+    if (usernameStatus === "checking") e.username = "Please wait for username availability check."
+    return e
+  }
+
+  function validateBasic() {
+    const e: Record<string, string> = {}
+    if (!instituteName.trim()) e.instituteName = "College name is required."
+    if (!affiliation) e.affiliation = "Affiliation is required."
+    if (!address.trim()) e.address = "Address is required."
+    if (!city.trim()) e.city = "City is required."
+    if (!stateVal) e.state = "State is required."
+    if (!pincode.trim()) e.pincode = "Pincode is required."
+    else if (!/^[0-9]{6}$/.test(pincode)) e.pincode = "Must be exactly 6 digits."
+    if (!country) e.country = "Country is required."
+    return e
+  }
+
+  function validateContact() {
+    const e: Record<string, string> = {}
+    if (!instPhone.trim()) e.instPhone = "Contact number is required."
+    if (!instEmail.trim()) e.instEmail = "Email address is required."
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(instEmail)) e.instEmail = "Enter a valid email address."
+    return e
+  }
+
+  function validateAdmin() {
+    const e: Record<string, string> = {}
+    if (!principalName.trim()) e.principalName = "Principal name is required."
+    if (!principalEmail.trim()) e.principalEmail = "Principal email is required."
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(principalEmail)) e.principalEmail = "Enter a valid email address."
+    if (!principalPhone.trim()) e.principalPhone = "Principal phone is required."
+    return e
+  }
+
+  // ── Per-section save ──────────────────────────────────────────────────────
+
+  function handleSaveSection(section: SectionId) {
+    let newErrors: Record<string, string> = {}
+    if (section === "account") newErrors = validateAccount()
+    else if (section === "basic") newErrors = validateBasic()
+    else if (section === "contact") newErrors = validateContact()
+    else if (section === "admin") newErrors = validateAdmin()
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error("Please fix the validation errors before saving.")
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        if (section === "account") {
+          const trimmedUsername = username.trim() || null
+          if (trimmedUsername !== (userProfile.username ?? null)) {
+            const { error } = await supabase.from("profiles").update({ username: trimmedUsername }).eq("id", userProfile.id)
+            if (error) {
+              if (error.code === "23505") {
+                setErrors({ username: "This username is already taken." })
+                setUsernameStatus("taken")
+              } else {
+                toast.error("Failed to update username. Please try again.")
+              }
+              return
+            }
+            await supabase.auth.updateUser({ data: { username: trimmedUsername } })
+            if (trimmedUsername) {
+              initialUsername.current = trimmedUsername
+              setUsernameStatus("unchanged")
+            }
+          }
+          toast.success("Account settings saved!")
+        }
+
+        else if (section === "basic") {
+          const payload = {
+            profile_id: userProfile.id,
+            institute_name: instituteName.trim() || null,
+            institute_code: instituteCode.trim() || null,
+            established_year: establishedYear ? Number(establishedYear) : null,
+            affiliation: affiliation || null,
+            address: address.trim() || null,
+            city: city.trim() || null,
+            state: stateVal || null,
+            pincode: pincode.trim() || null,
+            country: country || null,
+            profile_updated: true,
+          }
+          const { error } = await supabase
+            .from("institute_profiles")
+            .upsert(payload, { onConflict: "profile_id" })
+          if (error) throw error
+          const newDisplayName = instituteName.trim() || userProfile.display_name
+          await supabase.from("profiles").update({ display_name: newDisplayName }).eq("id", userProfile.id)
+          await supabase.auth.updateUser({ data: { display_name: newDisplayName } })
+          toast.success("Basic information saved!")
+        }
+
+        else if (section === "contact") {
+          const { error } = await supabase
+            .from("institute_profiles")
+            .update({
+              phone_number: instPhone.trim() || null,
+              email: instEmail.trim() || null,
+              website_url: websiteUrl.trim() || null,
+              profile_updated: true,
+            })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116") {
+              toast.error("Please save Basic Information first.")
+              return
+            }
+            throw error
+          }
+          toast.success("Contact information saved!")
+        }
+
+        else if (section === "admin") {
+          const { error } = await supabase
+            .from("institute_profiles")
+            .update({
+              principal_name: principalName.trim() || null,
+              principal_email: principalEmail.trim() || null,
+              principal_phone: principalPhone.trim() || null,
+              profile_updated: true,
+            })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116") {
+              toast.error("Please save Basic Information first.")
+              return
+            }
+            throw error
+          }
+          toast.success("Administrative contacts saved!")
+        }
+
+
+        else if (section === "courses") {
+          const filteredCourses = courses.filter((c) => c.trim())
+          const { error } = await supabase
+            .from("institute_profiles")
+            .update({ courses: filteredCourses, profile_updated: true })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116" || filteredCourses.length === 0) {
+              toast.error("Please save Basic Information first before adding courses.")
+              return
+            }
+            throw error
+          }
+          // If no row was matched, the update silently no-ops — check by re-fetching
+          toast.success("Courses updated!")
+        }
+
+        else if (section === "social") {
+          const filteredLinks = socialLinks.filter((l) => l.trim())
+          const { error } = await supabase
+            .from("institute_profiles")
+            .update({ social_links: filteredLinks, profile_updated: true })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116") {
+              toast.error("Please save Basic Information first before adding social links.")
+              return
+            }
+            throw error
+          }
+          toast.success("Social links updated!")
+        }
+
+        setErrors({})
+        setEditingSection(null)
+        router.refresh()
+      } catch (err: any) {
+        console.error("Save error:", err)
+        toast.error(err?.message || "Failed to save. Please try again.")
+      }
+    })
+  }
 
   // ── Logo upload ───────────────────────────────────────────────────────────
 
@@ -223,9 +485,7 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
     setIsUploadingLogo(true)
     try {
       const oldPath = storedLogoPath.current
-      if (oldPath) {
-        await supabase.storage.from("avatars").remove([oldPath])
-      }
+      if (oldPath) await supabase.storage.from("avatars").remove([oldPath])
       const ext = file.name.split(".").pop() ?? "jpg"
       const timestamp = Date.now()
       const newPath = `institutes/${userProfile.id}/logo/${timestamp}.${ext}`
@@ -236,19 +496,16 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
       const { error: dbError } = await supabase
         .from("institute_profiles")
         .update({ logo_path: newPath })
-        .eq("profile_id", userProfile.id);
+        .eq("profile_id", userProfile.id)
       if (dbError) throw dbError
-
-      // Sync with global profiles table and Auth metadata
       await supabase.from("profiles").update({ avatar_path: newPath }).eq("id", userProfile.id)
       await supabase.auth.updateUser({ data: { avatar_path: newPath } })
-
       storedLogoPath.current = newPath
       const newPublicUrl = getStorageUrl(supabase, "avatars", newPath)
       setLogoSrc(`${newPublicUrl}?v=${timestamp}`)
       URL.revokeObjectURL(blobUrl)
       toast.success("Logo updated!")
-      router.refresh() // Update sidebar/layout
+      router.refresh()
     } catch (err) {
       console.error(err)
       toast.error("Failed to upload logo. Please try again.")
@@ -260,175 +517,10 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
     }
   }
 
-  // ── Course management ─────────────────────────────────────────────────────
-
-  function addCourse() { handleCourses((prev) => [...prev, ""]) }
-
-  function handleCourseChange(index: number, value: string) {
-    handleCourses((prev) => { const u = [...prev]; u[index] = value; return u })
-  }
-
-  function removeCourse(index: number) {
-    handleCourses((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // ── Social links ──────────────────────────────────────────────────────────
-
-  function addSocialLink() { handleSocialLinks((prev) => [...prev, ""]) }
-
-  function handleSocialLinkChange(index: number, value: string) {
-    handleSocialLinks((prev) => { const u = [...prev]; u[index] = value; return u })
-  }
-
-  function removeSocialLink(index: number) {
-    handleSocialLinks((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // ── Validation ────────────────────────────────────────────────────────────
-
-  function validate(): Record<string, string> {
-    const e: Record<string, string> = {}
-    if (username && !USERNAME_REGEX.test(username))
-      e.username = "3–20 characters: letters, numbers, and underscores only."
-    if (usernameStatus === "taken") e.username = "This username is already taken."
-    if (usernameStatus === "checking") e.username = "Please wait for username availability check."
-    if (!instituteName.trim()) e.instituteName = "College name is required."
-    if (!affiliation) e.affiliation = "Affiliation is required."
-    if (!address.trim()) e.address = "Address is required."
-    if (!city.trim()) e.city = "City is required."
-    if (!stateVal) e.state = "State is required."
-    if (!pincode.trim()) e.pincode = "Pincode is required."
-    else if (!/^[0-9]{6}$/.test(pincode)) e.pincode = "Must be exactly 6 digits."
-    if (!country) e.country = "Country is required."
-    if (!instPhone.trim()) e.instPhone = "Contact number is required."
-    if (!instEmail.trim()) e.instEmail = "Email address is required."
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(instEmail)) e.instEmail = "Enter a valid email address."
-    if (!principalName.trim()) e.principalName = "Principal name is required."
-    if (!principalEmail.trim()) e.principalEmail = "Principal email is required."
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(principalEmail)) e.principalEmail = "Enter a valid email address."
-    if (!principalPhone.trim()) e.principalPhone = "Principal phone is required."
-    return e
-  }
-
-  // ── Discard ───────────────────────────────────────────────────────────────
-
-  function handleDiscard() {
-    setUsername(userProfile.username ?? "")
-    setUsernameStatus("idle")
-    setInstituteName(initialData?.institute_name ?? "")
-    setInstituteCode(initialData?.institute_code ?? "")
-    setEstablishedYear(initialData?.established_year ? String(initialData.established_year) : "")
-    setAffiliation(initialData?.affiliation ?? "")
-    setAddress(initialData?.address ?? "")
-    setCity(initialData?.city ?? "")
-    setStateVal(initialData?.state ?? "")
-    setPincode(initialData?.pincode ?? "")
-    setCountry(initialData?.country ?? "India")
-    setInstPhone(initialData?.phone_number ?? "")
-    setInstEmail(initialData?.email ?? "")
-    setWebsiteUrl(initialData?.website_url ?? "")
-    setPrincipalName(initialData?.principal_name ?? "")
-    setPrincipalEmail(initialData?.principal_email ?? "")
-    setPrincipalPhone(initialData?.principal_phone ?? "")
-    setCourses(initialData?.courses?.length ? initialData.courses : [""])
-    setSocialLinks(initialData?.social_links?.length ? initialData.social_links : [""])
-    setErrors({})
-    setIsDirty(false)
-    toast.info("Changes discarded.")
-  }
-
-  // ── Save ──────────────────────────────────────────────────────────────────
-
-  function handleSave() {
-    const newErrors = validate()
-    setErrors(newErrors)
-    if (Object.keys(newErrors).length > 0) {
-      toast.error("Please fix the validation errors before saving.")
-      return
-    }
-
-    startTransition(async () => {
-      const trimmedUsername = username.trim() || null
-
-      // 1. Update main `profiles` table (username only)
-      if (trimmedUsername !== (userProfile.username ?? null)) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ username: trimmedUsername })
-          .eq("id", userProfile.id)
-
-        if (profileError) {
-          if (profileError.code === "23505") {
-            setErrors((prev) => ({ ...prev, username: "This username is already taken." }))
-            setUsernameStatus("taken")
-          } else {
-            toast.error("Failed to update account settings. Please try again.")
-          }
-          return
-        }
-      }
-
-      // 2. Prepare payload for `institute_profiles`
-      const payload = {
-        profile_id: userProfile.id,
-        institute_name: instituteName.trim() || null,
-        institute_code: instituteCode.trim() || null,
-        established_year: establishedYear ? Number(establishedYear) : null,
-        affiliation: affiliation || null,
-        address: address.trim() || null,
-        city: city.trim() || null,
-        state: stateVal || null,
-        pincode: pincode.trim() || null,
-        country: country || null,
-        phone_number: instPhone.trim() || null,
-        email: instEmail.trim() || null,
-        website_url: websiteUrl.trim() || null,
-        principal_name: principalName.trim() || null,
-        principal_email: principalEmail.trim() || null,
-        principal_phone: principalPhone.trim() || null,
-        courses: courses.filter((c) => c.trim()),
-        social_links: socialLinks.filter((l) => l.trim()),
-        profile_updated: true,
-      }
-
-      // 3. Save Institute Profile
-      const { error } = initialData
-        ? await supabase.from("institute_profiles").update(payload).eq("profile_id", userProfile.id)
-        : await supabase.from("institute_profiles").insert(payload)
-
-      if (error) {
-        console.error("Supabase Save Error:", error)
-        toast.error(error.message || "Failed to save profile. Please try again.")
-      } else {
-        // Sync with global profiles table and Auth metadata
-        const newDisplayName = instituteName.trim() || userProfile.display_name
-
-        await supabase.from("profiles").update({ 
-          display_name: newDisplayName,
-          username: trimmedUsername,
-        }).eq("id", userProfile.id)
-
-        await supabase.auth.updateUser({
-          data: { 
-            display_name: newDisplayName,
-            username: trimmedUsername 
-          }
-        })
-
-        toast.success("Profile saved successfully!")
-        setIsDirty(false)
-        if (trimmedUsername) {
-          initialUsername.current = trimmedUsername
-          setUsernameStatus("unchanged")
-        }
-        router.refresh() // Update sidebar/layout
-      }
-    })
-  }
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   const usernameMsg = usernameStatusMessage(usernameStatus)
+  const editing = (s: SectionId) => editingSection === s
 
   return (
     <div className="min-h-screen w-full">
@@ -443,52 +535,98 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
 
       <div className="px-4 py-6 md:px-8 md:py-8 space-y-6">
 
-        {/* Account Settings (Username) */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Settings</CardTitle>
-            <CardDescription>Your unique username identifies your institution on the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-sm space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <div className="relative">
-                <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  placeholder="your_institution"
-                  className={cn(
-                    "pl-9 pr-9",
-                    !!initialUsername.current && "cursor-not-allowed opacity-60",
-                    errors.username && "border-destructive focus-visible:ring-destructive"
-                  )}
-                  value={username}
-                  maxLength={20}
-                  readOnly={!!initialUsername.current}
-                  disabled={!!initialUsername.current}
-                  onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
-                  autoComplete="username"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {initialUsername.current ? null : <UsernameStatusIcon status={usernameStatus} />}
-                </span>
-              </div>
-              {initialUsername.current ? (
-                <p className="text-xs text-muted-foreground">Username cannot be changed once set.</p>
-              ) : errors.username ? (
-                <FieldError message={errors.username} />
-              ) : usernameMsg ? (
-                <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  3–20 characters · letters, numbers, and underscores only · cannot be changed after saving
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Onboarding Banner */}
+        {isFirstTime && !bannerDismissed && (
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary">Welcome! Let's set up your institution profile</AlertTitle>
+            <AlertDescription className="mt-1 flex items-start justify-between gap-4">
+              <span className="text-muted-foreground text-sm">
+                Click <strong>Edit</strong> on each section to fill in your institution details.
+                Start with <strong>Basic Information</strong>, then proceed to Contact, Administrative Contacts, and Courses.
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-6 w-6"
+                onClick={() => setBannerDismissed(true)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-        {/* Logo */}
+        {/* Account Settings — only shown if username not yet set */}
+        {!initialUsername.current ? (
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+              <div>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>Your unique username identifies your institution on the platform</CardDescription>
+              </div>
+              {!editing("account") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("account")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {editing("account") ? (
+                <div className="max-w-sm space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      placeholder="your_institution"
+                      className={cn(
+                        "pl-9 pr-9",
+                        errors.username && "border-destructive focus-visible:ring-destructive"
+                      )}
+                      value={username}
+                      maxLength={20}
+                      onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
+                      autoComplete="username"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <UsernameStatusIcon status={usernameStatus} />
+                    </span>
+                  </div>
+                  {errors.username ? (
+                    <p className="text-xs text-destructive">{errors.username}</p>
+                  ) : usernameMsg ? (
+                    <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      3–20 characters · letters, numbers, and underscores only · cannot be changed after saving
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="max-w-sm">
+                  <p className="text-xs text-muted-foreground mb-1">Username</p>
+                  <p className="text-sm font-medium text-muted-foreground italic">Not set yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Set your username — it cannot be changed once saved</p>
+                </div>
+              )}
+            </CardContent>
+            {editing("account") && (
+              <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="ghost" size="sm" onClick={() => cancelSection("account")} disabled={isPending}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={() => handleSaveSection("account")} disabled={isPending}>
+                  {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  Save
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        ) : null}
+
+        {/* College Logo — always interactive */}
         <Card>
           <CardHeader>
             <CardTitle>College Logo</CardTitle>
@@ -541,283 +679,483 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
 
         {/* Basic Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Essential details about your institution</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Basic Information</CardTitle>
+              <CardDescription>Essential details about your institution</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("basic") && (basicComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("basic") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("basic")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>College Name<RequiredMark /></Label>
-                <Input
-                  placeholder="Enter college name"
-                  value={instituteName}
-                  onChange={(e) => handleInstituteName(e.target.value)}
-                />
-                <FieldError message={errors.instituteName} />
-              </div>
-              <div className="space-y-2">
-                <Label>College Code</Label>
-                <Input
-                  placeholder="College code (optional)"
-                  value={instituteCode}
-                  onChange={(e) => handleInstituteCode(e.target.value)}
-                />
-              </div>
-            </div>
+          <CardContent>
+            {editing("basic") ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>College Name<RequiredMark /></Label>
+                    <Input
+                      placeholder="Enter college name"
+                      value={instituteName}
+                      onChange={(e) => setInstituteName(e.target.value)}
+                    />
+                    <FieldError message={errors.instituteName} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>College Code</Label>
+                    <Input
+                      placeholder="College code (optional)"
+                      value={instituteCode}
+                      onChange={(e) => setInstituteCode(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Established Year</Label>
-                <Input
-                  placeholder="e.g. 1990"
-                  type="number"
-                  min={1800}
-                  max={2026}
-                  value={establishedYear}
-                  onChange={(e) => handleEstablishedYear(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Affiliation<RequiredMark /></Label>
-                <Combobox items={AFFILIATION_OPTIONS} value={affiliation} onValueChange={(v) => handleAffiliation(v || "")}>
-                  <ComboboxInput placeholder="Select affiliation" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No affiliation found.</ComboboxEmpty>
-                    <ComboboxList>
-                      {AFFILIATION_OPTIONS.map((item) => (
-                        <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                <FieldError message={errors.affiliation} />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Established Year</Label>
+                    <Input
+                      placeholder="e.g. 1990"
+                      type="number"
+                      min={1800}
+                      max={2026}
+                      value={establishedYear}
+                      onChange={(e) => setEstablishedYear(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Affiliation<RequiredMark /></Label>
+                    <Combobox items={AFFILIATION_OPTIONS} value={affiliation} onValueChange={(v) => setAffiliation(v || "")}>
+                      <ComboboxInput placeholder="Select affiliation" />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No affiliation found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {AFFILIATION_OPTIONS.map((item) => (
+                            <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    <FieldError message={errors.affiliation} />
+                  </div>
+                </div>
 
-            <Separator />
+                <Separator />
 
-            <div className="space-y-2">
-              <Label>Address<RequiredMark /></Label>
-              <Textarea
-                placeholder="Complete address"
-                rows={3}
-                value={address}
-                onChange={(e) => handleAddress(e.target.value)}
-              />
-              <FieldError message={errors.address} />
-            </div>
+                <div className="space-y-2">
+                  <Label>Address<RequiredMark /></Label>
+                  <Textarea
+                    placeholder="Complete address"
+                    rows={3}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
+                  <FieldError message={errors.address} />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>City<RequiredMark /></Label>
-                <Input placeholder="City" value={city} onChange={(e) => handleCity(e.target.value)} />
-                <FieldError message={errors.city} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>City<RequiredMark /></Label>
+                    <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+                    <FieldError message={errors.city} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>State<RequiredMark /></Label>
+                    <Combobox items={STATE_OPTIONS} value={stateVal} onValueChange={(v) => setStateVal(v || "")}>
+                      <ComboboxInput placeholder="Select state" />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No state found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {STATE_OPTIONS.map((item) => (
+                            <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    <FieldError message={errors.state} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pincode<RequiredMark /></Label>
+                    <Input
+                      placeholder="6-digit pincode"
+                      maxLength={6}
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <FieldError message={errors.pincode} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Country<RequiredMark /></Label>
+                  <Combobox items={COUNTRY_OPTIONS} value={country} onValueChange={(v) => setCountry(v || "India")}>
+                    <ComboboxInput placeholder="Select country" />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No country found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {COUNTRY_OPTIONS.map((item) => (
+                          <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
+                        ))}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                  <FieldError message={errors.country} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>State<RequiredMark /></Label>
-                <Combobox items={STATE_OPTIONS} value={stateVal} onValueChange={(v) => handleStateVal(v || "")}>
-                  <ComboboxInput placeholder="Select state" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No state found.</ComboboxEmpty>
-                    <ComboboxList>
-                      {STATE_OPTIONS.map((item) => (
-                        <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
-                      ))}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                <FieldError message={errors.state} />
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                  <ReadonlyField label="College Name" value={instituteName} />
+                  <ReadonlyField label="College Code" value={instituteCode} />
+                  <ReadonlyField label="Established Year" value={establishedYear} />
+                  <ReadonlyField label="Affiliation" value={affiliation} />
+                </div>
+                {(address || city || stateVal) && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                      {address && (
+                        <div className="sm:col-span-2 space-y-0.5">
+                          <p className="text-xs text-muted-foreground">Address</p>
+                          <p className="text-sm font-medium">{address}</p>
+                        </div>
+                      )}
+                      <ReadonlyField label="City" value={city} />
+                      <ReadonlyField label="State" value={stateVal} />
+                      <ReadonlyField label="Pincode" value={pincode} />
+                      <ReadonlyField label="Country" value={country} />
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label>Pincode<RequiredMark /></Label>
-                <Input
-                  placeholder="6-digit pincode"
-                  maxLength={6}
-                  value={pincode}
-                  onChange={(e) => handlePincode(e.target.value.replace(/\D/g, ""))}
-                />
-                <FieldError message={errors.pincode} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Country<RequiredMark /></Label>
-              <Combobox items={COUNTRY_OPTIONS} value={country} onValueChange={(v) => handleCountry(v || "India")}>
-                <ComboboxInput placeholder="Select country" />
-                <ComboboxContent>
-                  <ComboboxEmpty>No country found.</ComboboxEmpty>
-                  <ComboboxList>
-                    {COUNTRY_OPTIONS.map((item) => (
-                      <ComboboxItem key={item} value={item}>{item}</ComboboxItem>
-                    ))}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
-              <FieldError message={errors.country} />
-            </div>
-
+            )}
           </CardContent>
+
+          {editing("basic") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("basic")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("basic")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Contact Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-            <CardDescription>Primary contact details for the institution</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Contact Information</CardTitle>
+              <CardDescription>Primary contact details for the institution</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("contact") && (contactComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("contact") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("contact")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                  Contact Number<RequiredMark />
-                </Label>
-                <Input
-                  placeholder="Institution contact number"
-                  type="tel"
-                  value={instPhone}
-                  onChange={(e) => handleInstPhone(e.target.value)}
-                />
-                <FieldError message={errors.instPhone} />
+          <CardContent>
+            {editing("contact") ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      Contact Number<RequiredMark />
+                    </Label>
+                    <Input
+                      placeholder="Institution contact number"
+                      type="tel"
+                      value={instPhone}
+                      onChange={(e) => setInstPhone(e.target.value)}
+                    />
+                    <FieldError message={errors.instPhone} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                      Email Address<RequiredMark />
+                    </Label>
+                    <Input
+                      placeholder="college@example.com"
+                      type="email"
+                      value={instEmail}
+                      onChange={(e) => setInstEmail(e.target.value)}
+                    />
+                    <FieldError message={errors.instEmail} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                    Website URL
+                  </Label>
+                  <Input
+                    placeholder="https://www.yourcollege.edu"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                  Email Address<RequiredMark />
-                </Label>
-                <Input
-                  placeholder="college@example.com"
-                  type="email"
-                  value={instEmail}
-                  onChange={(e) => handleInstEmail(e.target.value)}
-                />
-                <FieldError message={errors.instEmail} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <ReadonlyField label="Contact Number" value={instPhone} />
+                <ReadonlyField label="Email Address" value={instEmail} />
+                <ReadonlyField label="Website" value={websiteUrl} />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                Website URL
-              </Label>
-              <Input
-                placeholder="https://www.yourcollege.edu"
-                type="url"
-                value={websiteUrl}
-                onChange={(e) => handleWebsiteUrl(e.target.value)}
-              />
-            </div>
-
+            )}
           </CardContent>
+
+          {editing("contact") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("contact")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("contact")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Administrative Contacts */}
         <Card>
-          <CardHeader>
-            <CardTitle>Administrative Contacts</CardTitle>
-            <CardDescription>Key personnel contact information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm font-medium">Principal Details</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Name<RequiredMark /></Label>
-                <Input
-                  placeholder="Principal name"
-                  value={principalName}
-                  onChange={(e) => handlePrincipalName(e.target.value)}
-                />
-                <FieldError message={errors.principalName} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email<RequiredMark /></Label>
-                <Input
-                  placeholder="principal@example.com"
-                  type="email"
-                  value={principalEmail}
-                  onChange={(e) => handlePrincipalEmail(e.target.value)}
-                />
-                <FieldError message={errors.principalEmail} />
-              </div>
-              <div className="space-y-2">
-                <Label>Contact Number<RequiredMark /></Label>
-                <Input
-                  placeholder="Contact number"
-                  type="tel"
-                  value={principalPhone}
-                  onChange={(e) => handlePrincipalPhone(e.target.value)}
-                />
-                <FieldError message={errors.principalPhone} />
-              </div>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Administrative Contacts</CardTitle>
+              <CardDescription>Key personnel contact information</CardDescription>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("admin") && (adminComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("admin") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("admin")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {editing("admin") ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Principal Details</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Name<RequiredMark /></Label>
+                    <Input
+                      placeholder="Principal name"
+                      value={principalName}
+                      onChange={(e) => setPrincipalName(e.target.value)}
+                    />
+                    <FieldError message={errors.principalName} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email<RequiredMark /></Label>
+                    <Input
+                      placeholder="principal@example.com"
+                      type="email"
+                      value={principalEmail}
+                      onChange={(e) => setPrincipalEmail(e.target.value)}
+                    />
+                    <FieldError message={errors.principalEmail} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Contact Number<RequiredMark /></Label>
+                    <Input
+                      placeholder="Contact number"
+                      type="tel"
+                      value={principalPhone}
+                      onChange={(e) => setPrincipalPhone(e.target.value)}
+                    />
+                    <FieldError message={errors.principalPhone} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-3">Principal</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
+                  <ReadonlyField label="Name" value={principalName} />
+                  <ReadonlyField label="Email" value={principalEmail} />
+                  <ReadonlyField label="Phone" value={principalPhone} />
+                </div>
+              </div>
+            )}
           </CardContent>
+
+          {editing("admin") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("admin")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("admin")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Courses Offered */}
         <Card>
-          <CardHeader>
-            <CardTitle>Courses Offered</CardTitle>
-            <CardDescription>Departments / courses available at your institution</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Courses Offered</CardTitle>
+              <CardDescription>Departments / courses available at your institution</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("courses") && (coursesComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("courses") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("courses")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {courses.map((course, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  placeholder="e.g. Computer Science"
-                  value={course}
-                  onChange={(e) => handleCourseChange(index, e.target.value)}
-                />
-                {courses.length > 1 && (
-                  <Button variant="ghost" size="icon" type="button" onClick={() => removeCourse(index)}>
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={addCourse} type="button">
-              <Plus className="h-4 w-4 mr-2" />Add course
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Social Links */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Social Media &amp; Links</CardTitle>
-            <CardDescription>Connect your institution's social presence</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {socialLinks.map((link, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={link}
-                  onChange={(e) => handleSocialLinkChange(index, e.target.value)}
-                  placeholder="https://facebook.com/yourcollegepage"
-                  type="url"
-                />
-                <Button variant="ghost" size="icon" type="button" onClick={() => removeSocialLink(index)}>
-                  <Minus className="h-4 w-4" />
+          <CardContent>
+            {editing("courses") ? (
+              <div className="space-y-3">
+                {courses.map((course, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      placeholder="e.g. Computer Science"
+                      value={course}
+                      onChange={(e) => handleCourseChange(index, e.target.value)}
+                    />
+                    {courses.length > 1 && (
+                      <Button variant="ghost" size="icon" type="button" onClick={() => removeCourse(index)}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addCourse} type="button">
+                  <Plus className="h-4 w-4 mr-2" />Add course
                 </Button>
               </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={addSocialLink} type="button">
-              <Plus className="h-4 w-4 mr-2" />Add link
-            </Button>
+            ) : (
+              <div>
+                {courses.filter(c => c.trim()).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {courses.filter(c => c.trim()).map((course, i) => (
+                      <Badge key={i} variant="secondary">{course}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No courses added yet. Click Edit to add courses offered by your institution.</p>
+                )}
+              </div>
+            )}
           </CardContent>
+
+          {editing("courses") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("courses")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("courses")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
+
+        {/* Social Media & Links */}
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Social Media &amp; Links</CardTitle>
+              <CardDescription>Connect your institution's social presence</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("social") && (socialComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("social") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("social")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {editing("social") ? (
+              <div className="space-y-3">
+                {socialLinks.map((link, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      value={link}
+                      onChange={(e) => handleSocialLinkChange(index, e.target.value)}
+                      placeholder="https://facebook.com/yourcollegepage"
+                      type="url"
+                    />
+                    <Button variant="ghost" size="icon" type="button" onClick={() => removeSocialLink(index)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addSocialLink} type="button">
+                  <Plus className="h-4 w-4 mr-2" />Add link
+                </Button>
+              </div>
+            ) : (
+              <div>
+                {socialLinks.filter(l => l.trim()).length > 0 ? (
+                  <div className="space-y-1">
+                    {socialLinks.filter(l => l.trim()).map((link, i) => (
+                      <a
+                        key={i}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-sm text-primary hover:underline truncate"
+                      >
+                        {link}
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No social links added yet.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+
+          {editing("social") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("social")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("social")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
       </div>
-
-      <FloatingSaveBar
-        isDirty={isDirty}
-        isPending={isPending}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-        message="You have unsaved changes"
-      />
     </div>
   )
 }

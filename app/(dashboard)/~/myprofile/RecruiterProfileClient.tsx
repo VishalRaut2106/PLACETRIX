@@ -5,16 +5,27 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { UserProfile } from "@/lib/supabase/profile"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FloatingSaveBar } from "@/components/ui/floating-save-bar"
-import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/components/ui/combobox"
-import { Upload, Loader2, Camera, CheckCircle2, XCircle, AtSign } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import {
+  Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
+} from "@/components/ui/combobox"
+import {
+  Upload, Loader2, Camera, CheckCircle2, XCircle, AtSign,
+  Pencil, X, CheckCircle, Info, Building2, MapPin, User,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const INDUSTRY_OPTIONS = [
   "Information Technology", "Software Development", "Finance & Banking", "Healthcare",
@@ -38,12 +49,17 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024
 const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type SectionId = "account" | "company" | "headquarters" | "recruiter"
 type UsernameStatus = "idle" | "checking" | "available" | "taken" | "invalid" | "unchanged"
 
 interface Props {
   userProfile: UserProfile
   initialData: Record<string, any> | null
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function RequiredMark() {
   return <span className="text-destructive ml-0.5">*</span>
@@ -52,6 +68,33 @@ function RequiredMark() {
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
   return <p className="text-xs text-destructive mt-1">{message}</p>
+}
+
+function ReadonlyField({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium">{value?.trim() ? value : <span className="text-muted-foreground font-normal">—</span>}</p>
+    </div>
+  )
+}
+
+function SectionComplete() {
+  return (
+    <Badge variant="secondary" className="h-8 px-3 gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+      <CheckCircle className="h-3.5 w-3.5" />
+      Complete
+    </Badge>
+  )
+}
+
+function SectionIncomplete() {
+  return (
+    <Badge variant="outline" className="h-8 px-3 gap-1.5 text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+      <Info className="h-3.5 w-3.5" />
+      Not filled
+    </Badge>
+  )
 }
 
 function getStorageUrl(supabase: ReturnType<typeof createClient>, bucket: string, path: string | null): string | null {
@@ -76,19 +119,26 @@ function usernameStatusMessage(status: UsernameStatus): { text: string; classNam
   return null
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function RecruiterProfileClient({ userProfile, initialData }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [isDirty, setIsDirty] = useState(false)
 
-  // Username
+  const isFirstTime = !initialData?.profile_updated
+  const [editingSection, setEditingSection] = useState<SectionId | null>(
+    isFirstTime ? "company" : null
+  )
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  // ── Username ──────────────────────────────────────────────────────────────
   const [username, setUsername] = useState(userProfile.username ?? "")
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>("idle")
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initialUsername = useRef(userProfile.username ?? "")
 
-  // Logo
+  // ── Logo ──────────────────────────────────────────────────────────────────
   const storedLogoPath = useRef<string | null>(initialData?.company_logo_path ?? null)
   const [logoSrc, setLogoSrc] = useState<string | null>(() =>
     getStorageUrl(supabase, "avatars", storedLogoPath.current)
@@ -96,48 +146,37 @@ export function RecruiterProfileClient({ userProfile, initialData }: Props) {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  // Company fields
+  // ── Company fields ────────────────────────────────────────────────────────
   const [companyName, setCompanyName] = useState(initialData?.company_name ?? "")
   const [industry, setIndustry] = useState(initialData?.industry ?? "")
   const [companySize, setCompanySize] = useState(initialData?.company_size ?? "")
   const [companyWebsite, setCompanyWebsite] = useState(initialData?.company_website ?? "")
   const [companyDescription, setCompanyDescription] = useState(initialData?.company_description ?? "")
+
+  // ── Headquarters fields ───────────────────────────────────────────────────
   const [hqCity, setHqCity] = useState(initialData?.headquarters_city ?? "")
   const [hqState, setHqState] = useState(initialData?.headquarters_state ?? "")
   const [hqCountry, setHqCountry] = useState(initialData?.headquarters_country ?? "India")
+
+  // ── Recruiter fields ──────────────────────────────────────────────────────
   const [designation, setDesignation] = useState(initialData?.designation ?? "")
   const [department, setDepartment] = useState(initialData?.department ?? "")
   const [phoneNumber, setPhoneNumber] = useState(initialData?.phone_number ?? "")
   const [linkedinUrl, setLinkedinUrl] = useState(initialData?.linkedin_url ?? "")
+
+  // ── Errors ────────────────────────────────────────────────────────────────
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const markDirty = useCallback(
-    <T,>(setter: React.Dispatch<React.SetStateAction<T>>) =>
-      (value: T | ((prev: T) => T)) => {
-        setter(value as any)
-        setIsDirty(true)
-      },
-    []
-  )
+  // ── Section completeness ──────────────────────────────────────────────────
+  const companyComplete = !!(initialData?.company_name && initialData?.industry && initialData?.company_size)
+  const hqComplete = !!(initialData?.headquarters_city || initialData?.headquarters_state)
+  const recruiterComplete = !!(initialData?.designation && initialData?.phone_number)
 
-  const handleCompanyName = markDirty(setCompanyName)
-  const handleIndustry = markDirty(setIndustry)
-  const handleCompanySize = markDirty(setCompanySize)
-  const handleCompanyWebsite = markDirty(setCompanyWebsite)
-  const handleCompanyDescription = markDirty(setCompanyDescription)
-  const handleHqCity = markDirty(setHqCity)
-  const handleHqState = markDirty(setHqState)
-  const handleHqCountry = markDirty(setHqCountry)
-  const handleDesignation = markDirty(setDesignation)
-  const handleDepartment = markDirty(setDepartment)
-  const handlePhoneNumber = markDirty(setPhoneNumber)
-  const handleLinkedinUrl = markDirty(setLinkedinUrl)
+  // ── Username debounce ─────────────────────────────────────────────────────
 
-  // Username debounce
   function handleUsernameChange(value: string) {
     const trimmed = value.trim()
     setUsername(trimmed)
-    setIsDirty(true)
     if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current)
     if (!trimmed) { setUsernameStatus("idle"); return }
     if (trimmed === initialUsername.current) { setUsernameStatus("unchanged"); return }
@@ -157,15 +196,180 @@ export function RecruiterProfileClient({ userProfile, initialData }: Props) {
     return () => { if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current) }
   }, [])
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = "" }
-    }
-    window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
-  }, [isDirty])
+  // ── Section open/close ────────────────────────────────────────────────────
 
-  // Logo upload
+  function openSection(section: SectionId) {
+    // Cancel any active section first (discard unsaved changes)
+    if (editingSection && editingSection !== section) {
+      cancelSection(editingSection)
+    }
+    setErrors({})
+    setEditingSection(section)
+  }
+
+  function cancelSection(section: SectionId) {
+    setErrors({})
+    if (section === "account") {
+      setUsername(userProfile.username ?? "")
+      setUsernameStatus("idle")
+    } else if (section === "company") {
+      setCompanyName(initialData?.company_name ?? "")
+      setIndustry(initialData?.industry ?? "")
+      setCompanySize(initialData?.company_size ?? "")
+      setCompanyWebsite(initialData?.company_website ?? "")
+      setCompanyDescription(initialData?.company_description ?? "")
+    } else if (section === "headquarters") {
+      setHqCity(initialData?.headquarters_city ?? "")
+      setHqState(initialData?.headquarters_state ?? "")
+      setHqCountry(initialData?.headquarters_country ?? "India")
+    } else if (section === "recruiter") {
+      setDesignation(initialData?.designation ?? "")
+      setDepartment(initialData?.department ?? "")
+      setPhoneNumber(initialData?.phone_number ?? "")
+      setLinkedinUrl(initialData?.linkedin_url ?? "")
+    }
+    setEditingSection(null)
+  }
+
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  function validateAccount() {
+    const e: Record<string, string> = {}
+    if (username && !USERNAME_REGEX.test(username)) e.username = "3–20 characters: letters, numbers, and underscores only."
+    if (usernameStatus === "taken") e.username = "This username is already taken."
+    if (usernameStatus === "checking") e.username = "Please wait for username availability check."
+    return e
+  }
+
+  function validateCompany() {
+    const e: Record<string, string> = {}
+    if (!companyName.trim()) e.companyName = "Company name is required."
+    if (!industry) e.industry = "Industry is required."
+    if (!companySize) e.companySize = "Company size is required."
+    return e
+  }
+
+  function validateRecruiter() {
+    const e: Record<string, string> = {}
+    if (!designation.trim()) e.designation = "Your designation is required."
+    if (!phoneNumber.trim()) e.phoneNumber = "Contact number is required."
+    return e
+  }
+
+  // ── Per-section save ──────────────────────────────────────────────────────
+
+  function handleSaveSection(section: SectionId) {
+    let newErrors: Record<string, string> = {}
+    if (section === "account") newErrors = validateAccount()
+    else if (section === "company") newErrors = validateCompany()
+    else if (section === "recruiter") newErrors = validateRecruiter()
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      toast.error("Please fix the validation errors before saving.")
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        if (section === "account") {
+          const trimmedUsername = username.trim() || null
+          if (trimmedUsername !== (userProfile.username ?? null)) {
+            const { error } = await supabase
+              .from("profiles")
+              .update({ username: trimmedUsername })
+              .eq("id", userProfile.id)
+            if (error) {
+              if (error.code === "23505") {
+                setErrors({ username: "This username is already taken." })
+                setUsernameStatus("taken")
+              } else {
+                toast.error("Failed to update username. Please try again.")
+              }
+              return
+            }
+            await supabase.auth.updateUser({ data: { username: trimmedUsername } })
+            if (trimmedUsername) {
+              initialUsername.current = trimmedUsername
+              setUsernameStatus("unchanged")
+            }
+          }
+          toast.success("Account settings saved!")
+        }
+
+        else if (section === "company") {
+          const payload = {
+            profile_id: userProfile.id,
+            company_name: companyName.trim() || null,
+            industry: industry || null,
+            company_size: companySize || null,
+            company_website: companyWebsite.trim() || null,
+            company_description: companyDescription.trim() || null,
+            profile_updated: true,
+          }
+          const { error } = await supabase
+            .from("recruiter_profiles")
+            .upsert(payload, { onConflict: "profile_id" })
+          if (error) throw error
+          const newDisplayName = companyName.trim() || userProfile.display_name
+          await supabase.from("profiles").update({ display_name: newDisplayName }).eq("id", userProfile.id)
+          await supabase.auth.updateUser({ data: { display_name: newDisplayName } })
+          toast.success("Company information saved!")
+        }
+
+        else if (section === "headquarters") {
+          const { error } = await supabase
+            .from("recruiter_profiles")
+            .update({
+              headquarters_city: hqCity.trim() || null,
+              headquarters_state: hqState || null,
+              headquarters_country: hqCountry || null,
+              profile_updated: true,
+            })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116") {
+              toast.error("Please save Company Information first.")
+              return
+            }
+            throw error
+          }
+          toast.success("Headquarters information saved!")
+        }
+
+        else if (section === "recruiter") {
+          const { error } = await supabase
+            .from("recruiter_profiles")
+            .update({
+              designation: designation.trim() || null,
+              department: department.trim() || null,
+              phone_number: phoneNumber.trim() || null,
+              linkedin_url: linkedinUrl.trim() || null,
+              profile_updated: true,
+            })
+            .eq("profile_id", userProfile.id)
+          if (error) {
+            if (error.code === "PGRST116") {
+              toast.error("Please save Company Information first.")
+              return
+            }
+            throw error
+          }
+          toast.success("Recruiter details saved!")
+        }
+
+        setErrors({})
+        setEditingSection(null)
+        router.refresh()
+      } catch (err: any) {
+        console.error("Save error:", err)
+        toast.error(err?.message || "Failed to save. Please try again.")
+      }
+    })
+  }
+
+  // ── Logo upload ───────────────────────────────────────────────────────────
+
   async function handleLogoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -203,110 +407,15 @@ export function RecruiterProfileClient({ userProfile, initialData }: Props) {
     }
   }
 
-  // Validation
-  function validate(): Record<string, string> {
-    const e: Record<string, string> = {}
-    if (username && !USERNAME_REGEX.test(username)) e.username = "3–20 characters: letters, numbers, and underscores only."
-    if (usernameStatus === "taken") e.username = "This username is already taken."
-    if (usernameStatus === "checking") e.username = "Please wait for username availability check."
-    if (!companyName.trim()) e.companyName = "Company name is required."
-    if (!industry) e.industry = "Industry is required."
-    if (!companySize) e.companySize = "Company size is required."
-    if (!designation.trim()) e.designation = "Your designation is required."
-    if (!phoneNumber.trim()) e.phoneNumber = "Contact number is required."
-    return e
-  }
-
-  // Discard
-  function handleDiscard() {
-    setUsername(userProfile.username ?? "")
-    setUsernameStatus("idle")
-    setCompanyName(initialData?.company_name ?? "")
-    setIndustry(initialData?.industry ?? "")
-    setCompanySize(initialData?.company_size ?? "")
-    setCompanyWebsite(initialData?.company_website ?? "")
-    setCompanyDescription(initialData?.company_description ?? "")
-    setHqCity(initialData?.headquarters_city ?? "")
-    setHqState(initialData?.headquarters_state ?? "")
-    setHqCountry(initialData?.headquarters_country ?? "India")
-    setDesignation(initialData?.designation ?? "")
-    setDepartment(initialData?.department ?? "")
-    setPhoneNumber(initialData?.phone_number ?? "")
-    setLinkedinUrl(initialData?.linkedin_url ?? "")
-    setErrors({})
-    setIsDirty(false)
-    toast.info("Changes discarded.")
-  }
-
-  // Save
-  function handleSave() {
-    const newErrors = validate()
-    setErrors(newErrors)
-    if (Object.keys(newErrors).length > 0) {
-      toast.error("Please fix the validation errors before saving.")
-      return
-    }
-
-    startTransition(async () => {
-      const trimmedUsername = username.trim() || null
-
-      if (trimmedUsername !== (userProfile.username ?? null)) {
-        const { error: profileError } = await supabase.from("profiles").update({ username: trimmedUsername }).eq("id", userProfile.id)
-        if (profileError) {
-          if (profileError.code === "23505") {
-            setErrors(prev => ({ ...prev, username: "This username is already taken." }))
-            setUsernameStatus("taken")
-          } else {
-            toast.error("Failed to update account settings.")
-          }
-          return
-        }
-      }
-
-      const payload = {
-        profile_id: userProfile.id,
-        company_name: companyName.trim(),
-        company_website: companyWebsite.trim() || null,
-        industry: industry || null,
-        company_size: companySize || null,
-        company_description: companyDescription.trim() || null,
-        headquarters_city: hqCity.trim() || null,
-        headquarters_state: hqState || null,
-        headquarters_country: hqCountry || null,
-        designation: designation.trim() || null,
-        department: department.trim() || null,
-        phone_number: phoneNumber.trim() || null,
-        linkedin_url: linkedinUrl.trim() || null,
-        profile_updated: true,
-      }
-
-      const { error } = initialData
-        ? await supabase.from("recruiter_profiles").update(payload).eq("profile_id", userProfile.id)
-        : await supabase.from("recruiter_profiles").insert(payload)
-
-      if (error) {
-        console.error("Save Error:", error)
-        toast.error(error.message || "Failed to save profile.")
-      } else {
-        const newDisplayName = companyName.trim() || userProfile.display_name
-        await supabase.from("profiles").update({ display_name: newDisplayName, username: trimmedUsername }).eq("id", userProfile.id)
-        await supabase.auth.updateUser({ data: { display_name: newDisplayName, username: trimmedUsername } })
-        toast.success("Profile saved successfully!")
-        setIsDirty(false)
-        if (trimmedUsername) {
-          initialUsername.current = trimmedUsername
-          setUsernameStatus("unchanged")
-        }
-        router.refresh()
-      }
-    })
-  }
+  // ── Render ────────────────────────────────────────────────────────────────
 
   const usernameMsg = usernameStatusMessage(usernameStatus)
   const initials = companyName ? companyName.slice(0, 2).toUpperCase() : userProfile.email[0]?.toUpperCase() ?? "?"
+  const editing = (s: SectionId) => editingSection === s
 
   return (
     <div className="min-h-screen w-full">
+      {/* Page Header */}
       <div className="px-4 pt-8 pb-0 md:px-8">
         <div className="space-y-0.5">
           <h1 className="text-xl font-semibold tracking-tight">My Profile</h1>
@@ -316,45 +425,94 @@ export function RecruiterProfileClient({ userProfile, initialData }: Props) {
 
       <div className="px-4 py-6 md:px-8 md:py-8 space-y-6">
 
-        {/* Account Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Settings</CardTitle>
-            <CardDescription>Your unique username identifies you on the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-sm space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <div className="relative">
-                <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  placeholder="your_company"
-                  className={cn("pl-9 pr-9", !!initialUsername.current && "cursor-not-allowed opacity-60", errors.username && "border-destructive")}
-                  value={username}
-                  maxLength={20}
-                  readOnly={!!initialUsername.current}
-                  disabled={!!initialUsername.current}
-                  onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {initialUsername.current ? null : <UsernameStatusIcon status={usernameStatus} />}
-                </span>
-              </div>
-              {initialUsername.current ? (
-                <p className="text-xs text-muted-foreground">Username cannot be changed once set.</p>
-              ) : errors.username ? (
-                <FieldError message={errors.username} />
-              ) : usernameMsg ? (
-                <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">3–20 characters · letters, numbers, and underscores only</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Onboarding Banner */}
+        {isFirstTime && !bannerDismissed && (
+          <Alert className="border-primary/30 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-primary">Welcome! Let's set up your recruiter profile</AlertTitle>
+            <AlertDescription className="mt-1 flex items-start justify-between gap-4">
+              <span className="text-muted-foreground text-sm">
+                Click <strong>Edit</strong> on each section below to fill in your details.
+                Start with <strong>Company Information</strong>, then work your way down.
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-6 w-6"
+                onClick={() => setBannerDismissed(true)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-        {/* Company Logo */}
+        {/* Account Settings */}
+        {!initialUsername.current ? (
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+              <div>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>Your unique username identifies you on the platform</CardDescription>
+              </div>
+              {!editing("account") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("account")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {editing("account") ? (
+                <div className="max-w-sm space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      placeholder="your_company"
+                      className={cn("pl-9 pr-9", errors.username && "border-destructive")}
+                      value={username}
+                      maxLength={20}
+                      onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <UsernameStatusIcon status={usernameStatus} />
+                    </span>
+                  </div>
+                  {errors.username ? (
+                    <FieldError message={errors.username} />
+                  ) : usernameMsg ? (
+                    <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      3–20 characters · letters, numbers, and underscores only · cannot be changed after saving
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="max-w-sm">
+                  <p className="text-xs text-muted-foreground mb-1">Username</p>
+                  <p className="text-sm font-medium text-muted-foreground italic">Not set yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Set your username — it cannot be changed once saved</p>
+                </div>
+              )}
+            </CardContent>
+            {editing("account") && (
+              <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="ghost" size="sm" onClick={() => cancelSection("account")} disabled={isPending}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={() => handleSaveSection("account")} disabled={isPending}>
+                  {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  Save
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+        ) : null}
+
+        {/* Company Logo — always interactive */}
         <Card>
           <CardHeader>
             <CardTitle>Company Logo</CardTitle>
@@ -377,145 +535,268 @@ export function RecruiterProfileClient({ userProfile, initialData }: Props) {
                 </button>
                 <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleLogoFileChange} />
               </div>
-              <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={isUploadingLogo}>
-                <Upload className="mr-2 h-4 w-4" />{isUploadingLogo ? "Uploading…" : "Upload Logo"}
-              </Button>
+              <div className="space-y-1">
+                <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={isUploadingLogo}>
+                  <Upload className="mr-2 h-4 w-4" />{isUploadingLogo ? "Uploading…" : "Upload Logo"}
+                </Button>
+                <p className="text-xs text-muted-foreground">Square image recommended · max 2 MB</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Company Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Company Information</CardTitle>
-            <CardDescription>Details about your organization</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Company Information</CardTitle>
+              <CardDescription>Details about your organization</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("company") && (companyComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("company") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("company")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name<RequiredMark /></Label>
-                <Input id="companyName" value={companyName} onChange={(e) => handleCompanyName(e.target.value)} className={errors.companyName ? "border-destructive" : ""} />
-                <FieldError message={errors.companyName} />
+
+          <CardContent>
+            {editing("company") ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Company Name<RequiredMark /></Label>
+                    <Input
+                      id="companyName"
+                      placeholder="e.g. Acme Corp"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className={errors.companyName ? "border-destructive" : ""}
+                    />
+                    <FieldError message={errors.companyName} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Industry<RequiredMark /></Label>
+                    <Combobox items={INDUSTRY_OPTIONS} value={industry} onValueChange={(v) => setIndustry(v || "")}>
+                      <ComboboxInput placeholder="Select industry" className={errors.industry ? "border-destructive" : ""} />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No results</ComboboxEmpty>
+                        <ComboboxList>
+                          {INDUSTRY_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    <FieldError message={errors.industry} />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Company Size<RequiredMark /></Label>
+                    <Combobox items={COMPANY_SIZE_OPTIONS} value={companySize} onValueChange={(v) => setCompanySize(v || "")}>
+                      <ComboboxInput placeholder="Select size" className={errors.companySize ? "border-destructive" : ""} />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No results</ComboboxEmpty>
+                        <ComboboxList>
+                          {COMPANY_SIZE_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o} employees</ComboboxItem>)}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    <FieldError message={errors.companySize} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="companyWebsite">Company Website</Label>
+                    <Input id="companyWebsite" placeholder="https://example.com" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyDescription">Company Description</Label>
+                  <Textarea id="companyDescription" rows={3} placeholder="Brief description of your company" value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Industry<RequiredMark /></Label>
-                <Combobox items={INDUSTRY_OPTIONS} value={industry} onValueChange={(v) => handleIndustry(v || "")}>
-                  <ComboboxInput placeholder="Select industry" className={errors.industry ? "border-destructive" : ""} />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No results</ComboboxEmpty>
-                    <ComboboxList>
-                      {INDUSTRY_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                <FieldError message={errors.industry} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <ReadonlyField label="Company Name" value={companyName} />
+                <ReadonlyField label="Industry" value={industry} />
+                <ReadonlyField label="Company Size" value={companySize ? `${companySize} employees` : null} />
+                <ReadonlyField label="Website" value={companyWebsite} />
+                {companyDescription && (
+                  <div className="sm:col-span-2 space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Description</p>
+                    <p className="text-sm font-medium">{companyDescription}</p>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Company Size<RequiredMark /></Label>
-                <Combobox items={COMPANY_SIZE_OPTIONS} value={companySize} onValueChange={(v) => handleCompanySize(v || "")}>
-                  <ComboboxInput placeholder="Select size" className={errors.companySize ? "border-destructive" : ""} />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No results</ComboboxEmpty>
-                    <ComboboxList>
-                      {COMPANY_SIZE_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o} employees</ComboboxItem>)}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                <FieldError message={errors.companySize} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="companyWebsite">Company Website</Label>
-                <Input id="companyWebsite" placeholder="https://example.com" value={companyWebsite} onChange={(e) => handleCompanyWebsite(e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyDescription">Company Description</Label>
-              <Textarea id="companyDescription" rows={3} placeholder="Brief description of your company" value={companyDescription} onChange={(e) => handleCompanyDescription(e.target.value)} />
-            </div>
+            )}
           </CardContent>
+
+          {editing("company") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("company")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("company")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Headquarters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Headquarters</CardTitle>
-            <CardDescription>Company location details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="hqCity">City</Label>
-                <Input id="hqCity" value={hqCity} onChange={(e) => handleHqCity(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>State</Label>
-                <Combobox items={STATE_OPTIONS} value={hqState} onValueChange={(v) => handleHqState(v || "")}>
-                  <ComboboxInput placeholder="Select state" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No results</ComboboxEmpty>
-                    <ComboboxList>
-                      {STATE_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              </div>
-              <div className="space-y-2">
-                <Label>Country</Label>
-                <Combobox items={COUNTRY_OPTIONS} value={hqCountry} onValueChange={(v) => handleHqCountry(v || "India")}>
-                  <ComboboxInput placeholder="Select country" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>No results</ComboboxEmpty>
-                    <ComboboxList>
-                      {COUNTRY_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              </div>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Headquarters</CardTitle>
+              <CardDescription>Company location details</CardDescription>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("headquarters") && (hqComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("headquarters") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("headquarters")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {editing("headquarters") ? (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="hqCity">City</Label>
+                  <Input id="hqCity" placeholder="e.g. Mumbai" value={hqCity} onChange={(e) => setHqCity(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>State</Label>
+                  <Combobox items={STATE_OPTIONS} value={hqState} onValueChange={(v) => setHqState(v || "")}>
+                    <ComboboxInput placeholder="Select state" />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No results</ComboboxEmpty>
+                      <ComboboxList>
+                        {STATE_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+                <div className="space-y-2">
+                  <Label>Country</Label>
+                  <Combobox items={COUNTRY_OPTIONS} value={hqCountry} onValueChange={(v) => setHqCountry(v || "India")}>
+                    <ComboboxInput placeholder="Select country" />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No results</ComboboxEmpty>
+                      <ComboboxList>
+                        {COUNTRY_OPTIONS.map((o) => <ComboboxItem key={o} value={o}>{o}</ComboboxItem>)}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
+                <ReadonlyField label="City" value={hqCity} />
+                <ReadonlyField label="State" value={hqState} />
+                <ReadonlyField label="Country" value={hqCountry} />
+              </div>
+            )}
           </CardContent>
+
+          {editing("headquarters") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("headquarters")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("headquarters")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
         </Card>
 
         {/* Recruiter Details */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recruiter Details</CardTitle>
-            <CardDescription>Your personal details as a recruiter</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Recruiter Details</CardTitle>
+              <CardDescription>Your personal details as a recruiter</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!editing("recruiter") && (recruiterComplete ? <SectionComplete /> : <SectionIncomplete />)}
+              {!editing("recruiter") && (
+                <Button variant="outline" size="sm" onClick={() => openSection("recruiter")}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="designation">Designation<RequiredMark /></Label>
-                <Input id="designation" placeholder="e.g. HR Manager" value={designation} onChange={(e) => handleDesignation(e.target.value)} className={errors.designation ? "border-destructive" : ""} />
-                <FieldError message={errors.designation} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input id="department" placeholder="e.g. Human Resources" value={department} onChange={(e) => handleDepartment(e.target.value)} />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Contact Number<RequiredMark /></Label>
-                <Input id="phoneNumber" placeholder="10-digit number" value={phoneNumber} onChange={(e) => handlePhoneNumber(e.target.value)} className={errors.phoneNumber ? "border-destructive" : ""} />
-                <FieldError message={errors.phoneNumber} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="linkedinUrl">LinkedIn Profile</Label>
-                <Input id="linkedinUrl" placeholder="https://linkedin.com/in/..." value={linkedinUrl} onChange={(e) => handleLinkedinUrl(e.target.value)} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <FloatingSaveBar
-        isDirty={isDirty}
-        isPending={isPending}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-      />
+          <CardContent>
+            {editing("recruiter") ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="designation">Designation<RequiredMark /></Label>
+                    <Input
+                      id="designation"
+                      placeholder="e.g. HR Manager"
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      className={errors.designation ? "border-destructive" : ""}
+                    />
+                    <FieldError message={errors.designation} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input id="department" placeholder="e.g. Human Resources" value={department} onChange={(e) => setDepartment(e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Contact Number<RequiredMark /></Label>
+                    <Input
+                      id="phoneNumber"
+                      placeholder="10-digit number"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className={errors.phoneNumber ? "border-destructive" : ""}
+                    />
+                    <FieldError message={errors.phoneNumber} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedinUrl">LinkedIn Profile</Label>
+                    <Input id="linkedinUrl" placeholder="https://linkedin.com/in/..." value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <ReadonlyField label="Designation" value={designation} />
+                <ReadonlyField label="Department" value={department} />
+                <ReadonlyField label="Contact Number" value={phoneNumber} />
+                <ReadonlyField label="LinkedIn" value={linkedinUrl} />
+              </div>
+            )}
+          </CardContent>
+
+          {editing("recruiter") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("recruiter")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("recruiter")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save Changes
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
+
+      </div>
     </div>
   )
 }
