@@ -1,219 +1,382 @@
-// /* eslint-disable @typescript-eslint/no-explicit-any */
-// // app/~/events/page.tsx
+// app/~/events/page.tsx
 
-// import { createClient } from "@/lib/supabase/server"
-// import { getUserProfile } from "@/lib/supabase/profile"
-// import { CandidateEventsClient } from "@/app/(dashboard)/~/events/CandidateEventsClient"
-// import { UnderDevelopment } from "@/components/under-development"
-// import { deriveStatus, type CandidateEvent } from "./_types"
+import { createClient } from "@/lib/supabase/server"
+import { getUserProfile } from "@/lib/supabase/profile"
+import { CandidateEventsClient } from "./CandidateEventsClient"
+import { InstituteEventsClient } from "./InstituteEventsClient"
+import { UnderDevelopment } from "@/components/under-development"
+import {
+  deriveStatus,
+  deriveInstituteEventStatus,
+  type CandidateEvent,
+  type InstituteEvent,
+} from "./_types"
 
-// export const metadata = {
-//   title: "Events",
-//   description: "Campus & Training Events",
-// }
+export const metadata = {
+  title: "Events",
+  description: "Manage and discover events",
+}
 
-// // ─── Candidate Data Fetching ─────────────────────────────────────────────────
-// async function fetchCandidateEvents(
-//   userId: string,
-//   now: string,
-//   page: number,
-//   size: number,
-//   search: string,
-//   tab: string
-// ): Promise<{
-//   events: CandidateEvent[]
-//   count: number
-//   tabCounts: { all: number; live: number; upcoming: number; past: number }
-// }> {
-//   const supabase = await createClient()
+// ─── Candidate data ───────────────────────────────────────────────────────────
 
-//   // 1. Resolve candidate's institute
-//   const { data: candidateProfile } = await supabase
-//     .from("candidate_profiles")
-//     .select("institute_id")
-//     .eq("profile_id", userId)
-//     .maybeSingle()
+async function fetchCandidateEvents(
+  userId: string,
+  nowStr: string,
+  page: number,
+  size: number,
+  search: string,
+  tab: string
+): Promise<{
+  events: CandidateEvent[]
+  count: number
+  tabCounts: { all: number; live: number; upcoming: number; past: number }
+}> {
+  const supabase = (await createClient()) as any
 
-//   if (!candidateProfile?.institute_id) {
-//     return { events: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0 } }
-//   }
+  // 1. Resolve the candidate's institute
+  const { data: candidateProfile } = await supabase
+    .from("candidate_profiles")
+    .select("institute_id")
+    .eq("profile_id", userId)
+    .maybeSingle()
 
-//   const searchFilter = (q: any) => {
-//     if (search.trim()) {
-//       const s = search.trim()
-//       return q.or(`title.ilike.%${s}%,description.ilike.%${s}%,speaker.ilike.%${s}%`)
-//     }
-//     return q
-//   }
+  if (!candidateProfile?.institute_id) {
+    return { events: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0 } }
+  }
 
-//   // 2. Tab Counters parallel queries
-//   const allCountQuery = searchFilter(
-//     supabase
-//       .from("events")
-//       .select("id", { count: "exact", head: true })
-//       .eq("status", "published")
-//       .eq("institute_id", candidateProfile.institute_id)
-//   )
+  // 2. Fetch candidate's registrations
+  const { data: registrations } = await supabase
+    .from("event_registrations")
+    .select("event_id, registered_at")
+    .eq("candidate_id", userId)
 
-//   const liveCountQuery = searchFilter(
-//     supabase
-//       .from("events")
-//       .select("id", { count: "exact", head: true })
-//       .eq("status", "published")
-//       .eq("institute_id", candidateProfile.institute_id)
-//       .lte("start_time", now)
-//       .gt("end_time", now)
-//   )
+  const registeredEventMap = new Map<string, string>()
+  if (registrations) {
+    registrations.forEach((r: any) => registeredEventMap.set(r.event_id, r.registered_at))
+  }
 
-//   const upcomingCountQuery = searchFilter(
-//     supabase
-//       .from("events")
-//       .select("id", { count: "exact", head: true })
-//       .eq("status", "published")
-//       .eq("institute_id", candidateProfile.institute_id)
-//       .gt("start_time", now)
-//   )
+  const searchFilter = (q: any) => {
+    if (search.trim()) {
+      const s = search.trim()
+      return q.or(`title.ilike.%${s}%,description.ilike.%${s}%,speaker.ilike.%${s}%`)
+    }
+    return q
+  }
 
-//   const pastCountQuery = searchFilter(
-//     supabase
-//       .from("events")
-//       .select("id", { count: "exact", head: true })
-//       .eq("status", "published")
-//       .eq("institute_id", candidateProfile.institute_id)
-//       .lt("end_time", now)
-//   )
+  // 3. Count parallel queries for each tab matching the search term
+  const allCountQuery = searchFilter(
+    supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("institute_id", candidateProfile.institute_id)
+  )
 
-//   const [allRes, liveRes, upcomingRes, pastRes] = await Promise.all([
-//     allCountQuery,
-//     liveCountQuery,
-//     upcomingCountQuery,
-//     pastCountQuery,
-//   ])
+  const liveCountQuery = searchFilter(
+    supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("institute_id", candidateProfile.institute_id)
+      .lte("start_time", nowStr)
+      .gte("end_time", nowStr)
+  )
 
-//   const tabCounts = {
-//     all: allRes.count ?? 0,
-//     live: liveRes.count ?? 0,
-//     upcoming: upcomingRes.count ?? 0,
-//     past: pastRes.count ?? 0,
-//   }
+  const upcomingCountQuery = searchFilter(
+    supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("institute_id", candidateProfile.institute_id)
+      .gt("start_time", nowStr)
+  )
 
-//   // 3. Paginated Main Query
-//   const activeTab = ["all", "live", "upcoming", "past"].includes(tab) ? tab : "all"
+  const pastCountQuery = searchFilter(
+    supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("institute_id", candidateProfile.institute_id)
+      .lt("end_time", nowStr)
+  )
 
-//   let query = supabase
-//     .from("events")
-//     .select(
-//       `
-//       id, title, description, speaker, start_time, end_time, venue, meeting_link, event_type,
-//       event_registrations!left (registered_at)
-//     `,
-//       { count: "exact" }
-//     )
-//     .eq("status", "published")
-//     .eq("institute_id", candidateProfile.institute_id)
-//     .eq("event_registrations.student_id", userId)
+  const [countAllRes, countLiveRes, countUpcomingRes, countPastRes] = await Promise.all([
+    allCountQuery,
+    liveCountQuery,
+    upcomingCountQuery,
+    pastCountQuery,
+  ])
 
-//   if (activeTab === "live") {
-//     query = query.lte("start_time", now).gt("end_time", now)
-//   } else if (activeTab === "upcoming") {
-//     query = query.gt("start_time", now)
-//   } else if (activeTab === "past") {
-//     query = query.lt("end_time", now)
-//   }
+  const tabCounts = {
+    all: countAllRes.count ?? 0,
+    live: countLiveRes.count ?? 0,
+    upcoming: countUpcomingRes.count ?? 0,
+    past: countPastRes.count ?? 0,
+  }
 
-//   query = searchFilter(query)
+  // 4. Main Paginated query
+  const activeTab = ["all", "live", "upcoming", "past"].includes(tab) ? tab : "all"
 
-//   // Order criteria matching active status timeline layouts
-//   if (activeTab === "live" || activeTab === "upcoming") {
-//     query = query.order("start_time", { ascending: true })
-//   } else {
-//     query = query.order("start_time", { ascending: false })
-//   }
+  let query = supabase
+    .from("events")
+    .select("*", { count: "exact" })
+    .eq("status", "published")
+    .eq("institute_id", candidateProfile.institute_id)
 
-//   const from = (page - 1) * size
-//   const to = page * size - 1
-//   const { data: rawEvents, count, error } = await query.range(from, to)
+  if (activeTab === "live") {
+    query = query
+      .lte("start_time", nowStr)
+      .gte("end_time", nowStr)
+  } else if (activeTab === "upcoming") {
+    query = query.gt("start_time", nowStr)
+  } else if (activeTab === "past") {
+    query = query.lt("end_time", nowStr)
+  }
 
-//   if (error) {
-//     console.error("Error fetching events:", error)
-//     return { events: [], count: 0, tabCounts }
-//   }
+  query = searchFilter(query)
+  if (activeTab === "live") {
+    query = query
+      .order("end_time", { ascending: true })
+      .order("start_time", { ascending: false })
+  } else if (activeTab === "upcoming") {
+    query = query
+      .order("start_time", { ascending: true })
+      .order("end_time", { ascending: true })
+  } else if (activeTab === "past") {
+    query = query
+      .order("end_time", { ascending: false })
+      .order("start_time", { ascending: false })
+  } else {
+    // "all" tab
+    query = query
+      .order("start_time", { ascending: false })
+      .order("title", { ascending: true })
+  }
 
-//   const events = (rawEvents ?? []).map((e: any): CandidateEvent => {
-//     const registration = e.event_registrations?.[0]
-//     return {
-//       id: e.id,
-//       title: e.title,
-//       description: e.description ?? undefined,
-//       speaker: e.speaker ?? undefined,
-//       start_time: e.start_time,
-//       end_time: e.end_time,
-//       venue: e.venue ?? undefined,
-//       meeting_link: e.meeting_link ?? undefined,
-//       event_type: e.event_type ?? "workshop",
-//       is_registered: !!registration,
-//       registered_at: registration?.registered_at ?? undefined,
-//       derived_status: deriveStatus(e.start_time, e.end_time, new Date(now)),
-//     }
-//   })
+  const from = (page - 1) * size
+  const to = page * size - 1
 
-//   return { events, count: count ?? 0, tabCounts }
-// }
+  const { data: rawEvents, count, error } = await query.range(from, to)
 
-// export default async function EventsPage(props: {
-//   searchParams: Promise<SearchParams>
-// }) {
-//   const profile = await getUserProfile()
-//   if (!profile) return null
+  if (error) {
+    console.error("Error fetching candidate events:", error)
+    return { events: [], count: 0, tabCounts }
+  }
 
-//   const params = await props.searchParams
-//   const page = Math.max(1, parseInt(params.page || "1", 10))
-//   const size = Math.max(1, parseInt(params.size || "10", 10))
-//   const search = params.search || ""
-//   const tab = params.tab || ""
+  const events = (rawEvents ?? []).map((e: any): CandidateEvent => {
+    return {
+      id: e.id,
+      title: e.title,
+      description: e.description ?? null,
+      speaker: e.speaker ?? null,
+      start_time: e.start_time,
+      end_time: e.end_time,
+      venue: e.venue ?? null,
+      meeting_link: e.meeting_link ?? null,
+      event_type: e.event_type,
+      is_registered: registeredEventMap.has(e.id),
+      registered_at: registeredEventMap.get(e.id) ?? null,
+      derived_status: deriveStatus(
+        e.start_time,
+        e.end_time,
+        new Date(nowStr)
+      ),
+    }
+  })
 
-//   const nowStr = new Date().toISOString()
+  return { events, count: count ?? 0, tabCounts }
+}
 
-//   if (profile.account_type === "candidate") {
-//     const { events, count, tabCounts } = await fetchCandidateEvents(
-//       profile.id,
-//       nowStr,
-//       page,
-//       size,
-//       search,
-//       tab
-//     )
-//     return (
-//       <CandidateEventsClient
-//         events={events}
-//         serverNow={nowStr}
-//         initialPage={page}
-//         initialPageSize={size}
-//         initialSearch={search}
-//         initialTab={tab || "all"}
-//         totalCount={count}
-//         tabCounts={tabCounts}
-//       />
-//     )
-//   }
+// ─── Institute data ───────────────────────────────────────────────────────────
 
-//   // Fallback profile hooks for Institute if you expand it later
-//   return <UnderDevelopment />
-// }
+async function fetchInstituteEvents(
+  userId: string,
+  nowStr: string,
+  page: number,
+  size: number,
+  search: string,
+  tab: string
+): Promise<{
+  events: InstituteEvent[]
+  count: number
+  tabCounts: { all: number; live: number; upcoming: number; past: number; drafts: number }
+}> {
+  const supabase = (await createClient()) as any
 
-// interface SearchParams {
-//   page?: string
-//   size?: string
-//   search?: string
-//   tab?: string
-// }
+  const searchFilter = (q: any) => {
+    if (search.trim()) {
+      const s = search.trim()
+      return q.or(`title.ilike.%${s}%,description.ilike.%${s}%,speaker.ilike.%${s}%`)
+    }
+    return q
+  }
 
+  // 1. Count parallel queries for each tab matching the search term
+  const [countAllRes, countDraftsRes, countLiveRes, countUpcomingRes, countPastRes] = await Promise.all([
+    searchFilter(supabase.from("events").select("id", { count: "exact", head: true }).eq("institute_id", userId)),
+    searchFilter(supabase.from("events").select("id", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "draft")),
+    searchFilter(supabase.from("events").select("id", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").lte("start_time", nowStr).gte("end_time", nowStr)),
+    searchFilter(supabase.from("events").select("id", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").gt("start_time", nowStr)),
+    searchFilter(supabase.from("events").select("id", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").lt("end_time", nowStr)),
+  ])
 
+  const tabCounts = {
+    all: countAllRes.count ?? 0,
+    drafts: countDraftsRes.count ?? 0,
+    live: countLiveRes.count ?? 0,
+    upcoming: countUpcomingRes.count ?? 0,
+    past: countPastRes.count ?? 0,
+  }
 
+  // 2. Main Paginated query
+  let query = supabase
+    .from("events")
+    .select("*, event_registrations(count)", { count: "exact" })
+    .eq("institute_id", userId)
 
-//remove this when working on actual code.
-import { UnderDevelopment } from "@/components/under-development";
+  const activeTab = ["all", "live", "upcoming", "past", "drafts"].includes(tab) ? tab : "all"
 
-export default function EventsPage() {
-  return <UnderDevelopment />;
+  if (activeTab === "drafts") {
+    query = query.eq("status", "draft")
+  } else if (activeTab === "live") {
+    query = query
+      .eq("status", "published")
+      .lte("start_time", nowStr)
+      .gte("end_time", nowStr)
+  } else if (activeTab === "upcoming") {
+    query = query.eq("status", "published").gt("start_time", nowStr)
+  } else if (activeTab === "past") {
+    query = query.eq("status", "published").lt("end_time", nowStr)
+  }
+
+  query = searchFilter(query)
+  if (activeTab === "all") {
+    query = query
+      .order("start_time", { ascending: false })
+      .order("title", { ascending: true })
+  } else if (activeTab === "drafts") {
+    query = query.order("title", { ascending: true })
+  } else if (activeTab === "live") {
+    query = query
+      .order("end_time", { ascending: true })
+      .order("start_time", { ascending: false })
+  } else if (activeTab === "upcoming") {
+    query = query
+      .order("start_time", { ascending: true })
+      .order("end_time", { ascending: true })
+  } else if (activeTab === "past") {
+    query = query
+      .order("end_time", { ascending: false })
+      .order("start_time", { ascending: false })
+  }
+
+  const from = (page - 1) * size
+  const to = page * size - 1
+
+  const { data: rawEvents, count, error } = await query.range(from, to)
+
+  if (error) {
+    console.error("Error fetching institute events:", error)
+    return { events: [], count: 0, tabCounts }
+  }
+
+  const events = (rawEvents ?? []).map((e: any): InstituteEvent => {
+    // Supabase returns count as an array of objects e.g. [{count: 5}]
+    const regCount = e.event_registrations?.[0]?.count ?? 0
+    
+    return {
+      id: e.id,
+      title: e.title,
+      description: e.description ?? null,
+      speaker: e.speaker ?? null,
+      start_time: e.start_time,
+      end_time: e.end_time,
+      venue: e.venue ?? null,
+      meeting_link: e.meeting_link ?? null,
+      event_type: e.event_type,
+      status: e.status as "draft" | "published",
+      registration_count: regCount,
+      derived_status: deriveInstituteEventStatus(
+        e.status,
+        e.start_time,
+        e.end_time,
+        new Date(nowStr)
+      )
+    }
+  })
+
+  return { events, count: count ?? 0, tabCounts }
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+interface SearchParams {
+  page?: string
+  size?: string
+  search?: string
+  tab?: string
+}
+
+export default async function EventsPage(props: {
+  searchParams: Promise<SearchParams>
+}) {
+  const profile = await getUserProfile()
+  if (!profile) return null
+
+  const params = await props.searchParams
+  const page = Math.max(1, parseInt(params.page || "1", 10))
+  const size = Math.max(1, parseInt(params.size || "10", 10))
+  const search = params.search || ""
+  const tab = params.tab || ""
+
+  const nowStr = new Date().toISOString()
+
+  if (profile.account_type === "candidate") {
+    const { events, count, tabCounts } = await fetchCandidateEvents(
+      profile.id,
+      nowStr,
+      page,
+      size,
+      search,
+      tab
+    )
+    return (
+      <CandidateEventsClient
+        events={events}
+        serverNow={nowStr}
+        initialPage={page}
+        initialPageSize={size}
+        initialSearch={search}
+        initialTab={tab || "all"}
+        totalCount={count}
+        tabCounts={tabCounts}
+      />
+    )
+  }
+
+  if (profile.account_type === "institute") {
+    const { events, count, tabCounts } = await fetchInstituteEvents(
+      profile.id,
+      nowStr,
+      page,
+      size,
+      search,
+      tab
+    )
+    return (
+      <InstituteEventsClient
+        events={events}
+        serverNow={nowStr}
+        initialPage={page}
+        initialPageSize={size}
+        initialSearch={search}
+        initialTab={tab || "all"}
+        totalCount={count}
+        tabCounts={tabCounts}
+      />
+    )
+  }
+
+  // Recruiter, admin, etc. — feature not yet available
+  return <UnderDevelopment />
 }

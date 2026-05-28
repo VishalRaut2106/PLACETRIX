@@ -64,7 +64,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
     { title: "My Applications", url: "/~/applications", icon: IconClipboardList },
     { title: "Tests", url: "/~/tests", icon: IconChartBar },
     { title: "Events", url: "/~/events", icon: IconCalendarEvent },
-    { title: "Courses", url: "/~/courses", icon: IconBook, badge: "Coming Soon" },
+    { title: "Courses", url: "/~/courses", icon: IconBook, badge: "Upcoming" },
     { title: "Logic Lab", url: "/~/logiclab", icon: IconCode, badge: "Beta" },
     {
       title: "Tools",
@@ -81,6 +81,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
     { title: "Students", url: "/~/students", icon: IconSchool },
     { title: "Drives", url: "/~/drives", icon: IconFolder },
     { title: "Tests", url: "/~/tests", icon: IconChartBar },
+    { title: "Events", url: "/~/events", icon: IconCalendarEvent },
     { title: "LogicLab", url: "/~/logiclab", icon: IconCode, badge: "Beta" },
     { title: "Reports", url: "/~/reports", icon: IconReport },
     { title: "Recruiters", url: "/~/recruiters", icon: IconBriefcase },
@@ -314,7 +315,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
 
 function getBadgeStyles(badge: string) {
   const normalized = badge.toLowerCase().trim()
-  if (normalized === "coming soon") {
+  if (normalized === "upcoming") {
     return "bg-amber-500/10 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 border border-amber-500/10 dark:border-amber-500/20"
   }
   if (normalized === "beta") {
