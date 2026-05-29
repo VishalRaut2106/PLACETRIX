@@ -46,7 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
+import { cn } from "@/lib/utils"
 // Robust memory usage display formatter
 const formatMemory = (memKbOrMb: number | string | undefined | null, isAlreadyMb = false) => {
   if (memKbOrMb === undefined || memKbOrMb === null) return "—"
@@ -247,19 +247,34 @@ export function ProblemIDEClient({
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement)
+      setTimeout(() => {
+        setIsFullScreen(!!document.fullscreenElement)
+      }, 50)
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
+    
+    // If mounted while browser is already in fullscreen (e.g. client-side navigation)
+    if (document.fullscreenElement) {
+      setIsFullScreen(true)
+    }
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange)
+    }
   }, [])
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
-      ideContainerRef.current?.requestFullscreen().catch((err) => {
+      setIsFullScreen(true)
+      document.documentElement.requestFullscreen().catch((err) => {
+        setIsFullScreen(false)
         toast.error("Error attempting to enable fullscreen mode: " + err.message)
       })
     } else {
-      document.exitFullscreen()
+      setIsFullScreen(false)
+      document.exitFullscreen().catch(() => {})
     }
   }
 
@@ -1554,7 +1569,13 @@ export function ProblemIDEClient({
   );
 
   return (
-    <div ref={ideContainerRef} className="flex flex-col h-[100dvh] w-full min-h-0 bg-zinc-100 dark:bg-zinc-950 text-foreground overflow-hidden">
+    <div 
+      ref={ideContainerRef} 
+      className={cn(
+        "flex flex-col w-full min-h-0 bg-zinc-100 dark:bg-zinc-950 text-foreground overflow-hidden",
+        isFullScreen ? "fixed inset-0 z-[9990] h-[100dvh]" : "h-[100dvh] relative"
+      )}
+    >
       {topNavbarContent}
       <div className="flex-1 p-2 min-h-0 overflow-hidden">
         {ideLayout === "standard" && (
@@ -1629,70 +1650,85 @@ export function ProblemIDEClient({
       </div>
 
       {/* PROBLEM LIST DRAWER */}
-      <Sheet open={isProblemListOpen} onOpenChange={setIsProblemListOpen} modal={false}>
-        <SheetContent side="left" className="w-[400px] p-0 flex flex-col sm:max-w-none border-r border-border/60">
-          <SheetHeader className="p-4 border-b border-border/60 text-left">
-            <SheetTitle className="font-bold text-lg flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <IconList className="h-5 w-5" /> Problem List
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground tracking-wide font-normal">
-                {problemList.filter(p => p.isSolved).length}/{problemList.length} Solved
-              </span>
-            </SheetTitle>
-          </SheetHeader>
-          
-          <div className="p-3 border-b border-border/60">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search questions" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-muted/50 border border-border/60 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-              />
-            </div>
+      {/* PROBLEM LIST OVERLAY */}
+      {isProblemListOpen && (
+        <div 
+          className="absolute inset-0 bg-black/50 z-[90] animate-in fade-in duration-200"
+          onClick={() => setIsProblemListOpen(false)}
+        />
+      )}
+      
+      {/* PROBLEM LIST DRAWER */}
+      <div 
+        className={cn(
+          "absolute top-0 bottom-0 left-0 w-[400px] max-w-full bg-card/95 backdrop-blur-xl border-r border-border/60 z-[100] flex flex-col transition-transform duration-300 ease-in-out shadow-2xl",
+          isProblemListOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="p-4 border-b border-border/60 flex items-center justify-between shrink-0">
+          <div className="font-bold text-lg flex items-center gap-2">
+            <IconList className="h-5 w-5" /> Problem List
           </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground tracking-wide font-normal">
+              {problemList.filter(p => p.isSolved).length}/{problemList.length} Solved
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full text-muted-foreground hover:text-foreground" onClick={() => setIsProblemListOpen(false)}>
+              <IconX className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="p-3 border-b border-border/60 shrink-0">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Search questions" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-muted/50 border border-border/60 rounded-md py-1.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+        </div>
 
-          <ScrollArea className="flex-1 w-full min-h-0">
-            <div className="py-2">
-              {isLoadingProblems ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                  <div className="h-6 w-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Loading...</span>
-                </div>
-              ) : filteredProblems.length > 0 ? (
-                filteredProblems.map(p => (
-                  <Link 
-                    href={`/~/logiclab/problems/${p.id}`}
-                    key={p.id}
-                    onClick={() => setIsProblemListOpen(false)}
-                    className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/60 transition-colors ${p.id === problem.id ? 'bg-muted border-l-2 border-emerald-500' : ''}`}
-                  >
-                    <div className="flex items-center gap-3 truncate pr-4">
-                      {p.isSolved ? (
-                        <IconCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                      ) : (
-                        <div className="h-4 w-4 shrink-0" /> // spacer
-                      )}
-                      <span className={`text-sm truncate ${p.id === problem.id ? 'font-bold' : 'font-medium'}`}>
-                        {p.number}. {p.title}
-                      </span>
-                    </div>
-                    <span className={`text-xs font-bold shrink-0 ${p.difficulty === 'Easy' ? 'text-emerald-500' : p.difficulty === 'Medium' ? 'text-amber-500' : 'text-rose-500'}`}>
-                      {p.difficulty === 'Medium' ? 'Med.' : p.difficulty}
+        <ScrollArea className="flex-1 w-full min-h-0">
+          <div className="py-2">
+            {isLoadingProblems ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="h-6 w-6 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Loading...</span>
+              </div>
+            ) : filteredProblems.length > 0 ? (
+              filteredProblems.map(p => (
+                <Link 
+                  href={`/~/logiclab/problems/${p.id}`}
+                  key={p.id}
+                  onClick={() => setIsProblemListOpen(false)}
+                  className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/60 transition-colors ${p.id === problem.id ? 'bg-muted border-l-2 border-emerald-500' : ''}`}
+                >
+                  <div className="flex items-center gap-3 truncate pr-4">
+                    {p.isSolved ? (
+                      <IconCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <div className="h-4 w-4 shrink-0" />
+                    )}
+                    <span className={`text-sm truncate ${p.id === problem.id ? 'font-bold' : 'font-medium'}`}>
+                      {p.number}. {p.title}
                     </span>
-                  </Link>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-sm">
-                  No problems found.
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+                  </div>
+                  <span className={`text-xs font-bold shrink-0 ${p.difficulty === 'Easy' ? 'text-emerald-500' : p.difficulty === 'Medium' ? 'text-amber-500' : 'text-rose-500'}`}>
+                    {p.difficulty === 'Medium' ? 'Med.' : p.difficulty}
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-sm">
+                No problems found.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }
