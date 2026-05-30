@@ -21,6 +21,14 @@ import { cn } from "@/lib/utils";
 import PlaceTrixLogo from "@/assets/placetrix.svg";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { createTicketAction, validateTicketAction } from "./actions";
 import type { UserProfile } from "@/lib/supabase/profile";
 import { getUserProfileAction } from "@/lib/supabase/profile";
 import { buildStorageUrl } from "@/lib/storage";
@@ -269,31 +277,143 @@ function HeroSection() {
   );
 }
 
-function PlaceholderSection() {
+function TicketFormsSection() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isTrackSubmitting, setIsTrackSubmitting] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState("");
+
+  React.useEffect(() => {
+    getUserProfileAction().then((data) => {
+      if (data?.email) setUserEmail(data.email);
+    }).catch(() => {});
+  }, []);
+
+  async function handleCreateTicket(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+
+    try {
+      const ticket = await createTicketAction({ email, title, description });
+      toast.success("Ticket created successfully!");
+      router.push(`/help-center/ticket/${ticket.id}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleTrackTicket(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsTrackSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const ticketId = formData.get("ticketId") as string;
+    
+    if (ticketId) {
+      try {
+        const uuid = await validateTicketAction(ticketId);
+        router.push(`/help-center/ticket/${uuid}`);
+      } catch (err: any) {
+        toast.error(err.message || "Invalid ticket ID.");
+      } finally {
+        setIsTrackSubmitting(false);
+      }
+    } else {
+      setIsTrackSubmitting(false);
+    }
+  }
+
   return (
     <section className={cn("bg-white text-zinc-950 dark:bg-black dark:text-white", SECTION_Y)}>
       <div className={CONTENT}>
-        <article className="rounded-3xl border border-black/10 bg-white/95 p-6 backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] md:p-8 lg:p-10">
-          <div className="flex flex-col items-center py-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-              Coming soon
-            </p>
-            <h2 className="font-cirka mt-2 text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-              Articles and guides are on their way.
-            </h2>
-            <p className="mt-4 max-w-md text-sm leading-7 text-stone-600 dark:text-stone-300 md:text-base md:leading-8">
-              We are building out a full library of documentation and step-by-step guides. Until then, email us for any questions.
-            </p>
-            <div className="mt-8">
-              <Button variant="outline" className={cn("rounded-full", NAV_BUTTON)} asChild>
-                <a href="mailto:360viewtech@gmail.com">
-                  <MailIcon className="size-4" />
-                  360viewtech@gmail.com
-                </a>
-              </Button>
-            </div>
-          </div>
-        </article>
+        <div className="mx-auto w-full">
+          <Tabs defaultValue="create" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1 mb-8">
+              <TabsTrigger value="create" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800">Create Ticket</TabsTrigger>
+              <TabsTrigger value="track" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800">Track Ticket</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="create">
+              <Card className="border border-black/10 bg-white/95 dark:border-white/10 dark:bg-white/[0.03] shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl md:text-2xl">Submit a new request</CardTitle>
+                  <CardDescription className="text-sm">
+                    Fill out the form below and we will get back to you as soon as possible.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateTicket} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        defaultValue={userEmail}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Issue Title</Label>
+                      <Input
+                        id="title"
+                        name="title"
+                        placeholder="Brief summary of the issue"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        placeholder="Please describe your issue in detail..."
+                        className="min-h-[120px]"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full font-medium" disabled={isSubmitting}>
+                      {isSubmitting ? "Submitting..." : "Submit Ticket"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="track">
+              <Card className="border border-black/10 bg-white/95 dark:border-white/10 dark:bg-white/[0.03] shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl md:text-2xl">Track an existing ticket</CardTitle>
+                  <CardDescription className="text-sm">
+                    Enter your secure Ticket ID (UUID) to view and reply to your ticket.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleTrackTicket} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ticketId">Ticket ID</Label>
+                      <Input
+                        id="ticketId"
+                        name="ticketId"
+                        placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full font-medium" disabled={isTrackSubmitting}>
+                      {isTrackSubmitting ? "Searching..." : "Track Ticket"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </section>
   );
@@ -416,7 +536,7 @@ export default function HelpCenterPage() {
       <HeaderShell />
       <main className="flex flex-col">
         <HeroSection />
-        <PlaceholderSection />
+        <TicketFormsSection />
         <CTASection />
       </main>
       <Footer />

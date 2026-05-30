@@ -57,6 +57,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       attempt_answers: {
         Row: {
           answered_at: string
@@ -272,6 +290,106 @@ export type Database = {
           },
         ]
       }
+      coding_problems: {
+        Row: {
+          boilerplates: Json
+          created_at: string
+          created_by: string | null
+          description: string
+          difficulty: string
+          driver_codes: Json
+          id: string
+          memory_limit: number | null
+          tags: string[] | null
+          test_cases: Json
+          time_limit: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          boilerplates?: Json
+          created_at?: string
+          created_by?: string | null
+          description: string
+          difficulty: string
+          driver_codes?: Json
+          id?: string
+          memory_limit?: number | null
+          tags?: string[] | null
+          test_cases?: Json
+          time_limit?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          boilerplates?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          difficulty?: string
+          driver_codes?: Json
+          id?: string
+          memory_limit?: number | null
+          tags?: string[] | null
+          test_cases?: Json
+          time_limit?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coding_submissions: {
+        Row: {
+          code: string
+          created_at: string
+          failed_test_case_info: Json | null
+          id: string
+          language_id: number
+          memory: number | null
+          passed_count: number | null
+          problem_id: string
+          runtime: number | null
+          status: string
+          total_count: number | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          failed_test_case_info?: Json | null
+          id?: string
+          language_id: number
+          memory?: number | null
+          passed_count?: number | null
+          problem_id: string
+          runtime?: number | null
+          status: string
+          total_count?: number | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          failed_test_case_info?: Json | null
+          id?: string
+          language_id?: number
+          memory?: number | null
+          passed_count?: number | null
+          problem_id?: string
+          runtime?: number | null
+          status?: string
+          total_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coding_submissions_problem_id_fkey"
+            columns: ["problem_id"]
+            referencedRelation: "coding_problems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institute_profiles: {
         Row: {
           address: string | null
@@ -352,6 +470,119 @@ export type Database = {
           {
             foreignKeyName: "institute_profiles_profile_id_fkey"
             columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_applications: {
+        Row: {
+          candidate_id: string
+          cover_letter: string | null
+          created_at: string
+          id: string
+          job_id: string
+          resume_url: string | null
+          status: Database["public"]["Enums"]["job_application_status"]
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          cover_letter?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          resume_url?: string | null
+          status?: Database["public"]["Enums"]["job_application_status"]
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          cover_letter?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          resume_url?: string | null
+          status?: Database["public"]["Enums"]["job_application_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_postings: {
+        Row: {
+          application_count: number | null
+          application_deadline: string | null
+          created_at: string
+          description: string | null
+          id: string
+          job_type: Database["public"]["Enums"]["job_type"]
+          location: string | null
+          recruiter_id: string
+          requirements: string | null
+          salary_currency: string | null
+          salary_max: number | null
+          salary_min: number | null
+          skills: string[] | null
+          status: Database["public"]["Enums"]["job_posting_status"]
+          title: string
+          updated_at: string
+          work_mode: Database["public"]["Enums"]["work_mode"]
+        }
+        Insert: {
+          application_count?: number | null
+          application_deadline?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_type?: Database["public"]["Enums"]["job_type"]
+          location?: string | null
+          recruiter_id: string
+          requirements?: string | null
+          salary_currency?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["job_posting_status"]
+          title: string
+          updated_at?: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
+        }
+        Update: {
+          application_count?: number | null
+          application_deadline?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_type?: Database["public"]["Enums"]["job_type"]
+          location?: string | null
+          recruiter_id?: string
+          requirements?: string | null
+          salary_currency?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["job_posting_status"]
+          title?: string
+          updated_at?: string
+          work_mode?: Database["public"]["Enums"]["work_mode"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_postings_recruiter_id_fkey"
+            columns: ["recruiter_id"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -838,6 +1069,89 @@ export type Database = {
           },
         ]
       }
+      ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_type: Database["public"]["Enums"]["ticket_sender_type"]
+          ticket_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_type: Database["public"]["Enums"]["ticket_sender_type"]
+          ticket_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_type?: Database["public"]["Enums"]["ticket_sender_type"]
+          ticket_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_messages_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          created_at: string
+          description: string
+          email: string
+          id: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_number: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          email: string
+          id?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          email?: string
+          id?: string
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_number?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_sessions: {
         Row: {
           created_at: string | null
@@ -1022,6 +1336,7 @@ export type Database = {
           available_from: string | null
           available_until: string | null
           avg_score_pct: number | null
+          created_at: string | null
           description: string | null
           id: string | null
           institute_id: string | null
@@ -1098,8 +1413,19 @@ export type Database = {
         | "submitted"
         | "abandoned"
         | "auto_submitted"
+      job_application_status:
+        | "applied"
+        | "reviewing"
+        | "shortlisted"
+        | "rejected"
+        | "hired"
+      job_posting_status: "draft" | "active" | "paused" | "closed"
+      job_type: "full_time" | "part_time" | "internship" | "contract"
       question_type: "single_correct" | "multiple_correct" | "true_false"
       test_status: "draft" | "published" | "archived"
+      ticket_sender_type: "user" | "support"
+      ticket_status: "open" | "in_progress" | "resolved" | "closed"
+      work_mode: "onsite" | "remote" | "hybrid"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1372,6 +1698,7 @@ export type Database = {
           id: string
           in_progress_size: number
           key: string
+          metadata: Json | null
           owner_id: string | null
           upload_signature: string
           user_metadata: Json | null
@@ -1383,6 +1710,7 @@ export type Database = {
           id: string
           in_progress_size?: number
           key: string
+          metadata?: Json | null
           owner_id?: string | null
           upload_signature: string
           user_metadata?: Json | null
@@ -1394,6 +1722,7 @@ export type Database = {
           id?: string
           in_progress_size?: number
           key?: string
+          metadata?: Json | null
           owner_id?: string | null
           upload_signature?: string
           user_metadata?: Json | null
@@ -1508,6 +1837,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allow_any_operation: {
+        Args: { expected_operations: string[] }
+        Returns: boolean
+      }
+      allow_only_operation: {
+        Args: { expected_operation: string }
+        Returns: boolean
+      }
       can_insert_object: {
         Args: { bucketid: string; metadata: Json; name: string; owner: string }
         Returns: undefined
@@ -1765,8 +2102,20 @@ export const Constants = {
         "abandoned",
         "auto_submitted",
       ],
+      job_application_status: [
+        "applied",
+        "reviewing",
+        "shortlisted",
+        "rejected",
+        "hired",
+      ],
+      job_posting_status: ["draft", "active", "paused", "closed"],
+      job_type: ["full_time", "part_time", "internship", "contract"],
       question_type: ["single_correct", "multiple_correct", "true_false"],
       test_status: ["draft", "published", "archived"],
+      ticket_sender_type: ["user", "support"],
+      ticket_status: ["open", "in_progress", "resolved", "closed"],
+      work_mode: ["onsite", "remote", "hybrid"],
     },
   },
   storage: {
