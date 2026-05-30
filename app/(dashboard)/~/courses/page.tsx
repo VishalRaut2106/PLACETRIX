@@ -1,5 +1,10 @@
-import { UnderDevelopment } from "@/components/under-development";
+import { CandidateCourse } from "./components/CandidateCourse"
+
+export const metadata = {
+  title: "Courses",
+  description: "Placement Skills & Courses",
+}
 
 export default function CoursesPage() {
-  return <UnderDevelopment />;
+  return <CandidateCourse />
 }
