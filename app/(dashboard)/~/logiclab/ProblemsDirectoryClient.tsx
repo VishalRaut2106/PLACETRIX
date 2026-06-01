@@ -17,6 +17,7 @@ import {
   X,
   Flame,
   BookOpen,
+  Activity,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -31,6 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 interface Problem {
@@ -218,6 +224,15 @@ export function ProblemsDirectoryClient({
   const mediumPct = counts.total > 0 ? (solvedMedium / counts.total) * 100 : 0
   const hardPct = counts.total > 0 ? (solvedHard / counts.total) * 100 : 0
 
+  const easyRingPct = counts.easy > 0 ? (solvedEasy / counts.easy) * 100 : 0
+  const mediumRingPct = counts.medium > 0 ? (solvedMedium / counts.medium) * 100 : 0
+  const hardRingPct = counts.hard > 0 ? (solvedHard / counts.hard) * 100 : 0
+
+  const r1 = 34, r2 = 24, r3 = 14;
+  const c1 = 2 * Math.PI * r1;
+  const c2 = 2 * Math.PI * r2;
+  const c3 = 2 * Math.PI * r3;
+
   const formatDate = (dateStr: string) => {
     try {
       const [y, m, d] = dateStr.split("-")
@@ -232,7 +247,7 @@ export function ProblemsDirectoryClient({
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
 
       {/* Page Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">LogicLab</h1>
           <p className="text-sm text-muted-foreground">
@@ -240,293 +255,204 @@ export function ProblemsDirectoryClient({
           </p>
         </div>
 
-        {/* Admin CTA */}
-        {isAdmin && (
-          <Button asChild size="sm" className="w-fit gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white">
-            <Link href="/~/logiclab/admin">
-              <Plus className="h-3.5 w-3.5" />
-              Create Problem
-            </Link>
-          </Button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Admin CTA */}
+          {isAdmin && (
+            <Button asChild size="sm" className="w-fit gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
+              <Link href="/~/logiclab/admin">
+                <Plus className="h-4 w-4" />
+                Create Problem
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* ── Tag Filter Pills — LeetCode style: wrapped, collapsible ── */}
-      {allTags.length > 0 && (
-        <Card className="border-border/70 bg-card p-3">
-          <div
-            className={cn(
-              "flex flex-wrap gap-1.5 transition-all duration-300 overflow-hidden",
-              !tagsExpanded && "max-h-[72px]"
-            )}
-          >
-            {/* All Topics pill */}
-            <button
-              onClick={() => setTagFilter("All")}
+      {/* ── Dashboard Grid: Tags & Stats ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
+        {/* ── Tag Filter Pills — LeetCode style: wrapped, collapsible ── */}
+        {allTags.length > 0 ? (
+          <Card className="border-border/70 bg-card p-3 h-full flex flex-col justify-between">
+            <div
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-[0.98] duration-150",
-                tagFilter === "All"
-                  ? "bg-emerald-500 border-emerald-500 text-black shadow-lg shadow-emerald-500/10"
-                  : "bg-muted/50 dark:bg-muted/30 border-border hover:bg-muted hover:text-foreground text-muted-foreground"
+                "flex flex-wrap gap-1.5 transition-all duration-300 overflow-hidden",
+                !tagsExpanded && "max-h-[140px]"
               )}
             >
-              All Topics
-              <span className={cn(
-                "px-1.5 py-0.5 rounded text-[9px] font-extrabold leading-none transition-colors",
-                tagFilter === "All"
-                  ? "bg-black/10 text-black"
-                  : "bg-muted-foreground/20 text-muted-foreground"
-              )}>
-                {localProblems.length}
-              </span>
-            </button>
-
-            {/* Per-tag pills */}
-            {allTags.map((tag) => {
-              const isActive = tagFilter === tag
-              const count = tagCounts[tag] || 0
-              return (
-                <button
-                  key={tag}
-                  onClick={() => setTagFilter(isActive ? "All" : tag)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-[0.98] duration-150",
-                    isActive
-                      ? "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/30 dark:border-emerald-500/50 text-emerald-600 dark:text-emerald-400 font-bold shadow-md shadow-emerald-500/5"
-                      : "bg-muted/50 dark:bg-muted/30 border-border hover:bg-muted hover:text-foreground text-muted-foreground"
-                  )}
-                >
-                  {tag}
-                  <span className={cn(
-                    "px-1.5 py-0.5 rounded text-[9px] font-bold leading-none transition-colors",
-                    isActive
-                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
-                      : "bg-muted-foreground/20 text-muted-foreground"
-                  )}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Collapse / Show All toggle */}
-          {allTags.length > 8 && (
-            <div className="flex justify-end mt-2 pt-2 border-t border-border/60">
+              {/* All Topics pill */}
               <button
-                onClick={() => setTagsExpanded((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                {tagsExpanded ? (
-                  <>
-                    Collapse
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M12 10L8 6l-4 4" />
-                    </svg>
-                  </>
-                ) : (
-                  <>
-                    Show All ({allTags.length + 1} topics)
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M4 6l4 4 4-4" />
-                    </svg>
-                  </>
+                onClick={() => setTagFilter("All")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold border transition-all cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-[0.98] duration-150",
+                  tagFilter === "All"
+                    ? "bg-emerald-500 border-emerald-500 text-black shadow-lg shadow-emerald-500/10"
+                    : "bg-muted/50 dark:bg-muted/30 border-border hover:bg-muted hover:text-foreground text-muted-foreground"
                 )}
-              </button>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* ── Stats & Activity Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        {/* Streak Card */}
-        <Card className="lg:col-span-3 border-border/70 bg-card p-3 flex flex-col justify-between">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-background border border-input flex items-center justify-center shrink-0">
-                <Flame className="h-4 w-4 text-orange-500" />
-              </div>
-              <div>
-                <span className="text-[9px] text-muted-foreground/70 uppercase tracking-widest font-bold block leading-none">Coding Streak</span>
-                <span className="text-base font-extrabold text-orange-400 tracking-tight block mt-0.5">
-                  {streakStats.currentStreak} {streakStats.currentStreak === 1 ? "Day" : "Days"}
+              >
+                All Topics
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded text-[9px] font-extrabold leading-none transition-colors",
+                  tagFilter === "All"
+                    ? "bg-black/10 text-black"
+                    : "bg-muted-foreground/20 text-muted-foreground"
+                )}>
+                  {localProblems.length}
                 </span>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium mt-1">
-              {streakStats.currentStreak > 0
-                ? "Maintain your momentum by solving problems daily."
-                : "No active streak right now. Solve a challenge today!"}
-            </p>
-          </div>
-          <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[9px] select-none">
-            <span className="text-muted-foreground/70 font-bold uppercase tracking-wider">Longest Streak</span>
-            <span className="text-orange-400 font-extrabold">{streakStats.maxStreak} {streakStats.maxStreak === 1 ? "day" : "days"}</span>
-          </div>
-        </Card>
+              </button>
 
-        {/* Consistency Grid */}
-        <Card className="lg:col-span-5 border-border/70 bg-card p-3 flex flex-col justify-start gap-2.5">
-          <div className="flex items-center justify-between pb-2 border-b border-border/40">
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-1.5">
-                <Code2 className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs font-bold text-foreground/90 tracking-tight uppercase">Coding Consistency</span>
-              </div>
-              <span className="text-[8px] text-muted-foreground/70 font-bold uppercase tracking-wider block ml-5 leading-none">Daily Contribution Grid</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2.5 items-start mt-0.5 overflow-x-auto scrollbar-none">
-            {/* Days of week labels */}
-            <div className="flex flex-col justify-between text-[8px] text-muted-foreground/50 font-extrabold h-[95px] py-[2.5px] pr-0.5 shrink-0 select-none">
-              <span>S</span>
-              <span>M</span>
-              <span>T</span>
-              <span>W</span>
-              <span>T</span>
-              <span>F</span>
-              <span>S</span>
-            </div>
-
-            {/* Grid container with months on top */}
-            <div className="flex-1 flex flex-col gap-1.5 py-0.5">
-              {/* Month labels row */}
-              <div className="flex gap-[3px] text-[8px] h-3.5 text-muted-foreground/70 font-semibold select-none mb-0.5">
-                {visibleMonths.map((m, idx) => (
-                  <div key={idx} className="relative w-[11px] shrink-0">
-                    {m && (
-                      <span className="absolute left-0 top-0 whitespace-nowrap text-[8px] text-muted-foreground/70 font-extrabold tracking-tight">
-                        {m}
-                      </span>
+              {/* Per-tag pills */}
+              {allTags.map((tag) => {
+                const isActive = tagFilter === tag
+                const count = tagCounts[tag] || 0
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setTagFilter(isActive ? "All" : tag)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer whitespace-nowrap hover:scale-[1.02] active:scale-[0.98] duration-150",
+                      isActive
+                        ? "bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/30 dark:border-emerald-500/50 text-emerald-600 dark:text-emerald-400 font-bold shadow-md shadow-emerald-500/5"
+                        : "bg-muted/50 dark:bg-muted/30 border-border hover:bg-muted hover:text-foreground text-muted-foreground"
                     )}
-                  </div>
-                ))}
+                  >
+                    {tag}
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded text-[9px] font-bold leading-none transition-colors",
+                      isActive
+                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
+                        : "bg-muted-foreground/20 text-muted-foreground"
+                    )}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Collapse / Show All toggle */}
+            {allTags.length > 8 && (
+              <div className="flex justify-end mt-2 pt-2 border-t border-border/60">
+                <button
+                  onClick={() => setTagsExpanded((prev) => !prev)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {tagsExpanded ? (
+                    <>
+                      Collapse
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M12 10L8 6l-4 4" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      Show All ({allTags.length + 1} topics)
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M4 6l4 4 4-4" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </Card>
+        ) : <div />}
+
+        {/* ── Apple Fitness Unified Widget (Single Row) ── */}
+        <Card className="p-3 md:p-4 border-border/40 shadow-sm bg-card/40 backdrop-blur-sm relative overflow-hidden w-full h-full flex flex-col justify-center">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -z-10" />
+
+          <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-8 sm:gap-12 md:gap-16 w-full">
+            {/* 1. The Rings */}
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="relative w-[80px] h-[80px] flex items-center justify-center">
+                <svg width="80" height="80" viewBox="0 0 90 90" className="rotate-[-90deg] drop-shadow-md">
+                    <circle cx="45" cy="45" r={r1} stroke="currentColor" className="text-emerald-500/20" strokeWidth="7" fill="none" />
+                    <circle cx="45" cy="45" r={r2} stroke="currentColor" className="text-amber-500/20" strokeWidth="7" fill="none" />
+                    <circle cx="45" cy="45" r={r3} stroke="currentColor" className="text-rose-500/20" strokeWidth="7" fill="none" />
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <circle cx="45" cy="45" r={r1} stroke="currentColor" className="text-emerald-500 drop-shadow-[0_0_4px_rgba(16,185,129,0.5)] transition-all duration-1000 ease-out cursor-help focus:outline-none" strokeWidth="7" fill="none" strokeDasharray={c1} strokeDashoffset={c1 - (easyRingPct / 100) * c1} strokeLinecap="round" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-semibold">Easy: {Math.round(easyRingPct)}% ({solvedEasy}/{counts.easy})</span>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <circle cx="45" cy="45" r={r2} stroke="currentColor" className="text-amber-500 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)] transition-all duration-1000 ease-out cursor-help focus:outline-none" strokeWidth="7" fill="none" strokeDasharray={c2} strokeDashoffset={c2 - (mediumRingPct / 100) * c2} strokeLinecap="round" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-xs font-semibold">Medium: {Math.round(mediumRingPct)}% ({solvedMedium}/{counts.medium})</span>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <circle cx="45" cy="45" r={r3} stroke="currentColor" className="text-rose-500 drop-shadow-[0_0_4px_rgba(243,33,101,0.5)] transition-all duration-1000 ease-out cursor-help focus:outline-none" strokeWidth="7" fill="none" strokeDasharray={c3} strokeDashoffset={c3 - (hardRingPct / 100) * c3} strokeLinecap="round" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-rose-500" />
+                        <span className="text-xs font-semibold">Hard: {Math.round(hardRingPct)}% ({solvedHard}/{counts.hard})</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </svg>
               </div>
 
-              {/* Tighter flex calendar layout */}
-              <div className="flex gap-[3px]">
-                {weeks.map((week, wIdx) => (
+              <div className="flex flex-col gap-1 text-[11px] font-semibold">
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" /> <span className="text-foreground/90">{solvedEasy}/{counts.easy} <span className="hidden sm:inline text-muted-foreground font-normal">Easy</span></span></div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-foreground/90">{solvedMedium}/{counts.medium} <span className="hidden sm:inline text-muted-foreground font-normal">Med</span></span></div>
+                <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500" /> <span className="text-foreground/90">{solvedHard}/{counts.hard} <span className="hidden sm:inline text-muted-foreground font-normal">Hard</span></span></div>
+              </div>
+            </div>
+
+            <div className="w-px h-16 bg-border/50 hidden lg:block shrink-0" />
+
+            {/* 2. The Streak & Actions */}
+            <div className="flex flex-col gap-2.5 shrink-0 min-w-[90px]">
+              <div className="flex flex-col gap-0 text-center sm:text-left">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Current Streak</span>
+                <div className="flex items-baseline gap-1 justify-center sm:justify-start">
+                  <span className="text-3xl font-extrabold text-orange-500 tracking-tighter">{streakStats.currentStreak}</span>
+                  <span className="text-[11px] font-bold text-orange-500/50">Days</span>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline" className="h-7 w-full text-[10px] gap-1.5">
+                <Link href="/~/logiclab/playground">
+                  <Terminal className="h-3 w-3" />
+                  Playground
+                </Link>
+              </Button>
+            </div>
+
+            <div className="w-px h-16 bg-border/50 hidden xl:block shrink-0" />
+
+            {/* 3. The Activity Graph */}
+            <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Recent Activity</span>
+              </div>
+
+              <div className="flex gap-[3px] overflow-x-auto scrollbar-none justify-center sm:justify-end">
+                {weeks.slice(-20).map((week, wIdx) => (
                   <div key={wIdx} className="flex flex-col gap-[3px] shrink-0">
                     {week.map((cell, cIdx) => {
-                      const formattedDate = formatDate(cell.date)
-
-                      const cellColor = cell.status === "solved"
-                        ? "bg-emerald-500/30 border border-emerald-500/50"
-                        : cell.status === "attempted"
-                          ? "bg-amber-500/20 border border-amber-500/35"
-                          : "bg-muted/40 border border-border/20"
-
-                      return (
-                        <div key={cIdx} className="relative group">
-                          <div
-                            className={cn(
-                              "w-[11px] h-[11px] rounded-[2px] transition-all duration-200 hover:scale-125 hover:z-10 cursor-pointer",
-                              cellColor
-                            )}
-                          />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 bg-background border border-border text-[9px] text-foreground/75 px-2 py-0.5 rounded shadow-xl whitespace-nowrap pointer-events-none">
-                            <span className="font-bold text-foreground">{formattedDate}</span>
-                            <span className="block text-muted-foreground text-[8px] mt-0.5">
-                              {cell.count} {cell.count === 1 ? "submission" : "submissions"}
-                              {cell.status === "solved" ? " (Solved)" : cell.status === "attempted" ? " (Attempted)" : ""}
-                            </span>
-                          </div>
-                        </div>
-                      )
+                      const cellColor = cell.status === "solved" ? "bg-emerald-500/70 border border-emerald-500/30" : cell.status === "attempted" ? "bg-amber-500/50" : "bg-muted/40"
+                      return <div key={cIdx} className={cn("w-[11px] h-[11px] shrink-0 rounded-[2px] cursor-pointer hover:scale-125 transition-transform", cellColor)} title={`${formatDate(cell.date)}: ${cell.count} submissions`} />
                     })}
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
-
-          {/* Legend and stats */}
-          <div className="flex items-center justify-between text-[8px] text-muted-foreground/70 font-semibold select-none pt-0.5 border-t border-border/40">
-            <span>Grid spans 84 days</span>
-            <div className="flex items-center gap-1">
-              <span>Less</span>
-              <div className="w-1.5 h-1.5 rounded-[1px] bg-muted/40 border border-border/20" />
-              <div className="w-1.5 h-1.5 rounded-[1px] bg-amber-500/20 border border-amber-500/35" />
-              <div className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500/30 border border-emerald-500/50" />
-              <span>More</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Difficulty Progress Card */}
-        <Card className="lg:col-span-4 border-border/70 bg-card p-3 flex flex-col justify-between">
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[9px] text-muted-foreground/70 uppercase tracking-widest font-bold block leading-none">Difficulty Progress</span>
-                <span className="text-base font-extrabold text-foreground/90 tracking-tight block mt-1">
-                  {counts.solved} <span className="text-xs font-normal text-muted-foreground/70">/ {counts.total} Solved</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Segmented Progress Bar */}
-            <div className="w-full h-1.5 rounded-full bg-muted/60 overflow-hidden flex border border-input mt-1">
-              {solvedEasy > 0 && (
-                <div
-                  className="h-full bg-emerald-500 transition-all duration-500 hover:opacity-90"
-                  style={{ width: `${easyPct}%` }}
-                  title={`Easy Solved: ${solvedEasy}`}
-                />
-              )}
-              {solvedMedium > 0 && (
-                <div
-                  className="h-full bg-amber-500 transition-all duration-500 hover:opacity-90"
-                  style={{ width: `${mediumPct}%` }}
-                  title={`Medium Solved: ${solvedMedium}`}
-                />
-              )}
-              {solvedHard > 0 && (
-                <div
-                  className="h-full bg-rose-500 transition-all duration-500 hover:opacity-90"
-                  style={{ width: `${hardPct}%` }}
-                  title={`Hard Solved: ${solvedHard}`}
-                />
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-1 mt-1 text-[9px] font-bold">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1 w-1 rounded-full bg-emerald-500" />
-                  <span>Easy</span>
-                </div>
-                <span className="block text-[10px] text-foreground/75 font-extrabold ml-2">{solvedEasy} / {counts.easy}</span>
-              </div>
-
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                  <span className="h-1 w-1 rounded-full bg-amber-500" />
-                  <span>Medium</span>
-                </div>
-                <span className="block text-[10px] text-foreground/75 font-extrabold ml-2">{solvedMedium} / {counts.medium}</span>
-              </div>
-
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
-                  <span className="h-1 w-1 rounded-full bg-rose-500" />
-                  <span>Hard</span>
-                </div>
-                <span className="block text-[10px] text-foreground/75 font-extrabold ml-2">{solvedHard} / {counts.hard}</span>
-              </div>
-            </div>
-          </div>
-
-          <Button asChild variant="outline" size="sm" className="mt-3 w-full gap-2">
-            <Link href="/~/logiclab/playground">
-              <Terminal className="h-4 w-4 text-emerald-500" />
-              Launch Code Playground
-            </Link>
-          </Button>
         </Card>
       </div>
+
 
       {/* ── Problems Table ── */}
       <Card className="border-border/70 overflow-hidden p-0">
