@@ -509,14 +509,14 @@ function LoginContent() {
         <p className="text-muted-foreground text-xs text-center">
           By signing in, you agree to our{" "}
           <Link
-            href="/terms"
+            href="/terms-of-service"
             className="underline underline-offset-4 hover:text-primary"
           >
             Terms
           </Link>{" "}
           and{" "}
           <Link
-            href="/privacy"
+            href="/privacy-policy"
             className="underline underline-offset-4 hover:text-primary"
           >
             Privacy Policy
