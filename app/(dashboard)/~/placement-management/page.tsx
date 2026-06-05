@@ -67,6 +67,7 @@ export default async function PlacementManagementPage(props: {
       profile_id,
       course_name,
       passout_year,
+      profile_image_path,
       profiles!inner (
         display_name
       )
@@ -187,6 +188,9 @@ export default async function PlacementManagementPage(props: {
       passout_year: r.passout_year,
       company_name: pt?.company_name ?? null,
       ctc: pt?.ctc ?? null,
+      profile_image_path: r.profile_image_path
+        ? supabase.storage.from("avatars").getPublicUrl(r.profile_image_path).data.publicUrl
+        : null,
     }
   })
 

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Search,
   MoreHorizontal,
@@ -63,6 +63,7 @@ export interface PlacementRecord {
   passout_year: number | null
   company_name: string | null
   ctc: number | null
+  profile_image_path: string | null
 }
 
 type SortColumn = "name" | "course" | "passout" | "company" | "ctc"
@@ -462,6 +463,7 @@ export function PlacementListClient({
                     <TableCell className="overflow-hidden">
                       <div className="flex items-center gap-3 min-w-0">
                         <Avatar className="size-8 shrink-0">
+                          <AvatarImage src={record.profile_image_path || undefined} />
                           <AvatarFallback className="text-[10px]">
                             {record.display_name.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -539,6 +541,7 @@ export function PlacementListClient({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="size-10 shrink-0">
+                      <AvatarImage src={record.profile_image_path || undefined} />
                       <AvatarFallback className="text-xs">
                         {record.display_name.charAt(0).toUpperCase()}
                       </AvatarFallback>
