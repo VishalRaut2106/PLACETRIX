@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useTransition, useRef } from "react"
+import React, { useState, useEffect, useCallback, useTransition, useRef, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import {
@@ -102,6 +102,7 @@ export function ProblemsDirectoryClient({
   problems,
   isAdmin,
   streakStats,
+  activityCalendar,
   initialPage,
   initialPageSize,
   initialSearch,
@@ -118,6 +119,79 @@ export function ProblemsDirectoryClient({
   const [isPending, startTransition] = useTransition()
   const [searchInput, setSearchInput] = useState(initialSearch)
   const isOwnUpdateRef = useRef(false)
+
+  // Align cells into weeks starting on Sunday
+  const alignedWeeks = useMemo(() => {
+    const result: CalendarCell[][] = []
+    let currentWeek: CalendarCell[] = []
+    
+    if (!activityCalendar || activityCalendar.length === 0) return result
+    
+    const firstDay = activityCalendar[0].dayOfWeek
+    for (let i = 0; i < firstDay; i++) {
+      currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
+    }
+    
+    activityCalendar.forEach((cell) => {
+      currentWeek.push(cell)
+      if (cell.dayOfWeek === 6) {
+        result.push(currentWeek)
+        currentWeek = []
+      }
+    })
+    
+    if (currentWeek.length > 0) {
+      const lastDay = currentWeek[currentWeek.length - 1].dayOfWeek
+      for (let i = lastDay + 1; i <= 6; i++) {
+        currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
+      }
+      result.push(currentWeek)
+    }
+    
+    return result.slice(-26)
+  }, [activityCalendar])
+
+  const visibleMonths = useMemo(() => {
+    const list: string[] = []
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+    let lastPushedLabel = ""
+
+    alignedWeeks.forEach((week) => {
+      const monthCounts: Record<string, number> = {}
+      week.forEach((cell) => {
+        if (!cell.date) return
+        const parts = cell.date.split("-")
+        if (parts.length >= 2) {
+          const m = parts[1]
+          monthCounts[m] = (monthCounts[m] || 0) + 1
+        }
+      })
+
+      let maxMonth = ""
+      let maxCount = 0
+      Object.entries(monthCounts).forEach(([m, count]) => {
+        if (count > maxCount) {
+          maxCount = count
+          maxMonth = m
+        }
+      })
+
+      if (!maxMonth) {
+        list.push("")
+        return
+      }
+
+      const label = monthNames[parseInt(maxMonth, 10) - 1] || ""
+      if (label !== lastPushedLabel) {
+        list.push(label)
+        lastPushedLabel = label
+      } else {
+        list.push("")
+      }
+    })
+    return list
+  }, [alignedWeeks])
 
   // Modal deletion state
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null)
@@ -229,60 +303,108 @@ export function ProblemsDirectoryClient({
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Progress */}
-        <Card className="shadow-sm border-border/60">
-          <CardHeader className="pb-2">
+        {/* Card 1: Progress & Difficulty */}
+        <Card className="shadow-sm border-border/60 flex flex-col justify-between">
+          <CardHeader className="pb-0 pt-4 px-5">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2 mb-4">
+          <CardContent className="pb-4 px-5">
+            <div className="flex items-baseline gap-2 mb-2">
               <span className="text-4xl font-bold">{globalStats.solved}</span>
               <span className="text-sm text-muted-foreground font-medium">/ {globalStats.total} solved</span>
             </div>
             <Progress 
               value={globalStats.total > 0 ? (globalStats.solved / globalStats.total) * 100 : 0} 
-              className="h-2 bg-muted [&>div]:bg-emerald-500"
+              className="h-2 bg-muted [&>div]:bg-emerald-500 mb-3"
             />
+            <div className="flex items-center justify-between pt-2 border-t border-border/40">
+              <div className="flex flex-col items-start">
+                <span className="text-emerald-500 font-bold text-lg">{globalStats.easy.solved}</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase">Easy</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-amber-500 font-bold text-lg">{globalStats.medium.solved}</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase">Med</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-rose-500 font-bold text-lg">{globalStats.hard.solved}</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase">Hard</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Card 2: Difficulty */}
-        <Card className="shadow-sm border-border/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Difficulty Breakdown</CardTitle>
+        {/* Card 2: Activity Heat Map */}
+        <Card className="shadow-sm border-border/60 flex flex-col justify-between">
+          <CardHeader className="pb-0 pt-4 px-5">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity Graph</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mt-2 px-2">
-              <div className="flex flex-col items-center">
-                <span className="text-emerald-500 font-bold text-3xl">{globalStats.easy.solved}</span>
-                <span className="text-xs text-muted-foreground font-medium uppercase mt-1">Easy</span>
+          <CardContent className="flex items-center justify-center p-4 pt-2">
+            <div className="flex gap-2 w-full overflow-x-auto scrollbar-none">
+              
+              {/* Day Labels */}
+              <div className="flex flex-col gap-[3px] mt-[16px] shrink-0 text-[10px] leading-[12px] text-muted-foreground/60 font-medium">
+                <div className="h-[12px] flex items-center justify-end" />
+                <div className="h-[12px] flex items-center justify-end">Mon</div>
+                <div className="h-[12px] flex items-center justify-end" />
+                <div className="h-[12px] flex items-center justify-end">Wed</div>
+                <div className="h-[12px] flex items-center justify-end" />
+                <div className="h-[12px] flex items-center justify-end">Fri</div>
+                <div className="h-[12px] flex items-center justify-end" />
               </div>
-              <div className="flex flex-col items-center">
-                <span className="text-amber-500 font-bold text-3xl">{globalStats.medium.solved}</span>
-                <span className="text-xs text-muted-foreground font-medium uppercase mt-1">Medium</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-rose-500 font-bold text-3xl">{globalStats.hard.solved}</span>
-                <span className="text-xs text-muted-foreground font-medium uppercase mt-1">Hard</span>
+              
+              <div className="flex flex-col gap-1 w-full">
+                {/* Month Labels */}
+                <div className="flex gap-[3px]">
+                  {visibleMonths.map((monthStr, i) => (
+                    <div key={i} className="w-[12px] shrink-0 text-[10px] leading-none text-muted-foreground/80 font-medium overflow-visible whitespace-nowrap">
+                      {monthStr}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Grid */}
+                <div className="flex gap-[3px]">
+                  {alignedWeeks.map((week, wIdx) => (
+                    <div key={wIdx} className="flex flex-col gap-[3px] shrink-0">
+                      {week.map((cell, cIdx) => {
+                        if (!cell.date) return <div key={cIdx} className="w-[12px] h-[12px] shrink-0 rounded-[2px] bg-transparent pointer-events-none" />
+                        const cellColor = cell.status === "solved" ? "bg-emerald-500/70 border border-emerald-500/30" : cell.status === "attempted" ? "bg-amber-500/50" : "bg-muted/60 dark:bg-muted/30"
+                        return <div key={cIdx} className={cn("w-[12px] h-[12px] shrink-0 rounded-[2px] transition-transform hover:scale-125 cursor-pointer", cellColor)} title={`${cell.date}: ${cell.count} submissions`} />
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Legend */}
+                <div className="flex items-center justify-end gap-1.5 mt-1.5 text-[10px] text-muted-foreground/80 font-medium">
+                  <span>Less</span>
+                  <div className="flex gap-[3px]">
+                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-muted/60 dark:bg-muted/30" />
+                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-amber-500/50" title="Attempted" />
+                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-emerald-500/70" title="Solved" />
+                  </div>
+                  <span>More</span>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Card 3: Streak */}
-        <Card className="shadow-sm border-border/60 relative overflow-hidden">
+        <Card className="shadow-sm border-border/60 relative overflow-hidden flex flex-col justify-between">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-[0.35] text-orange-500 pointer-events-none">
             <Flame className="w-20 h-20" />
           </div>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-0 pt-4 px-5">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Streak</CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="flex items-baseline gap-2">
+          <CardContent className="relative z-10 pb-5 px-5">
+            <div className="flex items-baseline gap-2 mb-2">
               <span className="text-4xl font-bold text-orange-500">{streakStats.currentStreak}</span>
               <span className="text-sm text-orange-500/70 font-medium">Days</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-2 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Max Streak: <span className="text-foreground">{streakStats.maxStreak}</span>
             </p>
           </CardContent>

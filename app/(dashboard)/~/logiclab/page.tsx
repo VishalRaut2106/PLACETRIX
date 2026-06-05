@@ -17,6 +17,14 @@ interface SearchParams {
   tag?: string
 }
 
+// Helper to format Date to local YYYY-MM-DD
+function toLocalYYYYMMDD(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default async function LogicLabPage(props: {
   searchParams: Promise<SearchParams>
 }) {
@@ -89,14 +97,16 @@ export default async function LogicLabPage(props: {
     .order("created_at", { ascending: true })
 
   // Calculate unique dates of submissions and their statuses
-  const uniqueDatesWithStatus = new Map<string, { solved: boolean; attempted: boolean }>()
+  const uniqueDatesWithStatus = new Map<string, { solved: boolean; attempted: boolean; count: number }>()
   
   for (const sub of userSubmissions ?? []) {
     if (!sub.created_at) continue
-    const dateStr = sub.created_at.split("T")[0] // YYYY-MM-DD
+    const localDate = new Date(sub.created_at)
+    const dateStr = toLocalYYYYMMDD(localDate)
     const isAccepted = sub.status === "Accepted"
     
-    const existing = uniqueDatesWithStatus.get(dateStr) || { solved: false, attempted: false }
+    const existing = uniqueDatesWithStatus.get(dateStr) || { solved: false, attempted: false, count: 0 }
+    existing.count++
     if (isAccepted) {
       existing.solved = true
     } else {
@@ -112,11 +122,11 @@ export default async function LogicLabPage(props: {
   let maxStreak = 0
   
   const today = new Date()
-  const todayStr = today.toISOString().split("T")[0]
+  const todayStr = toLocalYYYYMMDD(today)
   
   const yesterday = new Date()
   yesterday.setDate(today.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split("T")[0]
+  const yesterdayStr = toLocalYYYYMMDD(yesterday)
 
   const hasActiveStreak = uniqueDatesWithStatus.has(todayStr) || uniqueDatesWithStatus.has(yesterdayStr)
 
@@ -145,12 +155,12 @@ export default async function LogicLabPage(props: {
 
     if (hasActiveStreak) {
       const checkDate = uniqueDatesWithStatus.has(todayStr) ? new Date(today) : new Date(yesterday)
-      let checkStr = checkDate.toISOString().split("T")[0]
+      let checkStr = toLocalYYYYMMDD(checkDate)
       
       while (uniqueDatesWithStatus.has(checkStr)) {
         currentStreak++
         checkDate.setDate(checkDate.getDate() - 1)
-        checkStr = checkDate.toISOString().split("T")[0]
+        checkStr = toLocalYYYYMMDD(checkDate)
       }
     }
   }
@@ -159,6 +169,19 @@ export default async function LogicLabPage(props: {
   const streakStats = { currentStreak, maxStreak }
 
   const activityCalendar: any[] = []
+  const daysToGenerate = 182 // 26 weeks * 7 days
+  for (let i = daysToGenerate - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(today.getDate() - i)
+    const dateStr = toLocalYYYYMMDD(d)
+    const activity = uniqueDatesWithStatus.get(dateStr)
+    activityCalendar.push({
+      date: dateStr,
+      count: activity?.count || 0,
+      status: activity?.solved ? "solved" : activity?.attempted ? "attempted" : "none",
+      dayOfWeek: d.getDay()
+    })
+  }
 
   // Derive unique tags and counts from all enriched problems
   const tagCounts: Record<string, number> = {}
