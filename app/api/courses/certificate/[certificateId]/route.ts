@@ -123,7 +123,7 @@ export async function GET(_request: NextRequest, props: RouteParams) {
   // Bypass RLS — certificates are public documents
   const supabase = createAdminClient()
 
-  const { data: certificate, error } = await supabase
+  const { data: certificate, error } = await (supabase as any)
     .from("course_certificates")
     .select(`
       id,

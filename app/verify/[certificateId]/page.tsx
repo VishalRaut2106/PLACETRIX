@@ -20,7 +20,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
 
   try {
     const supabase = createAdminClient()
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("course_certificates")
       .select(`
         id,
