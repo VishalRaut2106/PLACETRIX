@@ -289,6 +289,69 @@ export async function POST(req: NextRequest) {
       overallStatus = "Accepted"
     }
 
+    // --- POTD STREAK LOGIC ---
+    if (overallStatus === "Accepted") {
+      try {
+        const todayUtc = new Date().toISOString().split("T")[0];
+        
+        // Use service role to bypass RLS for streaks
+        const adminSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        // Check if this problem is today's POTD
+        const { data: potd } = await adminSupabase
+          .from("daily_challenges")
+          .select("date")
+          .eq("date", todayUtc)
+          .eq("problem_id", problem_id)
+          .single();
+
+        if (potd) {
+          // Attempt to insert completion. If it fails, they already got credit today.
+          const { error: completionError } = await adminSupabase
+            .from("potd_completions")
+            .insert({ user_id, problem_id, date: todayUtc });
+
+          if (!completionError) {
+            // First time solving today's POTD! Update streak.
+            const { data: profile } = await adminSupabase
+              .from("profiles")
+              .select("current_potd_streak, max_potd_streak")
+              .eq("id", user_id)
+              .single();
+
+            if (profile) {
+              const yesterday = new Date();
+              yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+              const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+              // Check if they solved yesterday's POTD
+              const { data: yesterdaySolve } = await adminSupabase
+                .from("potd_completions")
+                .select("id")
+                .eq("user_id", user_id)
+                .eq("date", yesterdayStr)
+                .single();
+
+              let newCurrent = yesterdaySolve ? (profile.current_potd_streak || 0) + 1 : 1;
+              let newMax = Math.max(profile.max_potd_streak || 0, newCurrent);
+
+              await adminSupabase
+                .from("profiles")
+                .update({ current_potd_streak: newCurrent, max_potd_streak: newMax })
+                .eq("id", user_id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("POTD Streak update failed:", err);
+      }
+    }
+    // --- END POTD STREAK LOGIC ---
+
+
     // 5. Save submission to database
     const submission = {
       problem_id,

@@ -1,7 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { redirect } from "next/navigation"
 import { ProblemsDirectoryClient } from "./ProblemsDirectoryClient"
+import { unstable_cache } from "next/cache"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 export const metadata = {
   title: "LogicLab — Coding Problems",
@@ -25,6 +27,23 @@ function toLocalYYYYMMDD(date: Date) {
   return `${year}-${month}-${day}`
 }
 
+const getCachedPotd = unstable_cache(
+  async (todayStr: string) => {
+    const adminSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data } = await adminSupabase
+      .from("daily_challenges")
+      .select("problem_id, coding_problems ( id, title, difficulty )")
+      .eq("date", todayStr)
+      .single()
+    return data
+  },
+  ["daily-potd-cache"],
+  { revalidate: 3600 } // Cache for 1 hour
+)
+
 export default async function LogicLabPage(props: {
   searchParams: Promise<SearchParams>
 }) {
@@ -42,7 +61,7 @@ export default async function LogicLabPage(props: {
   const difficulty = params.difficulty || "All"
   const tag = params.tag || "All"
 
-  const supabase = (await createClient()) as any
+  const supabase = (await createServerClient()) as any
 
   // Fetch all problems
   const { data: problems } = await (supabase as any)
@@ -244,6 +263,9 @@ export default async function LogicLabPage(props: {
     },
   }
 
+  // Fetch initial POTD directly from aggressively cached function
+  let initialPotd = await getCachedPotd(todayStr);
+
   return (
     <ProblemsDirectoryClient
       problems={paginatedProblems}
@@ -261,6 +283,7 @@ export default async function LogicLabPage(props: {
       allTags={allTags}
       tagCounts={tagCounts}
       globalStats={globalStats}
+      initialPotd={initialPotd}
     />
   )
 }
