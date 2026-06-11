@@ -358,8 +358,8 @@ export function NavMain({ items }: { items: NavItem[] }) {
                         <ChevronRight className="ml-auto transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[state=open]/collapsible:rotate-90 size-4 shrink-0" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="collapsible-content">
-                      <SidebarMenuSub>
+                    <CollapsibleContent className="collapsible-content" suppressHydrationWarning>
+                      <SidebarMenuSub suppressHydrationWarning>
                         {item.items.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton

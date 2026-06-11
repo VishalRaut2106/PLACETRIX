@@ -15,30 +15,26 @@ export async function GET() {
 
     const supabase = (await createClient()) as any
 
-    const { data: userSubmissions, error } = await supabase
-      .from("coding_submissions")
-      .select("status, created_at")
+    const { data: userActivity, error } = await supabase
+      .from("user_daily_activity")
+      .select("activity_date, submission_count, solved_count")
       .eq("user_id", profile.id)
-      .order("created_at", { ascending: true })
+      .order("activity_date", { ascending: true })
 
     if (error) throw error
 
     const uniqueDatesWithStatus = new Map<string, { solved: boolean; attempted: boolean; count: number }>()
 
-    for (const sub of userSubmissions ?? []) {
-      if (!sub.created_at) continue
-      const localDate = new Date(sub.created_at)
-      const dateStr = toLocalYYYYMMDD(localDate)
-      const isAccepted = sub.status === "Accepted"
+    for (const row of userActivity ?? []) {
+      if (!row.activity_date) continue
       
-      const existing = uniqueDatesWithStatus.get(dateStr) || { solved: false, attempted: false, count: 0 }
-      existing.count++
-      if (isAccepted) {
-        existing.solved = true
-      } else {
-        existing.attempted = true
-      }
-      uniqueDatesWithStatus.set(dateStr, existing)
+      const dateStr = row.activity_date
+      
+      uniqueDatesWithStatus.set(dateStr, {
+        solved: row.solved_count > 0,
+        attempted: row.submission_count > 0 && row.solved_count === 0,
+        count: row.submission_count
+      })
     }
 
     const sortedDates = Array.from(uniqueDatesWithStatus.keys()).sort((a, b) => b.localeCompare(a))
