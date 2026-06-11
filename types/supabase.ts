@@ -862,6 +862,7 @@ export type Database = {
           email: string
           id: string
           is_active: boolean
+          signature_path: string | null
           updated_at: string
           username: string | null
         }
@@ -874,6 +875,7 @@ export type Database = {
           email: string
           id: string
           is_active?: boolean
+          signature_path?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -886,6 +888,7 @@ export type Database = {
           email?: string
           id?: string
           is_active?: boolean
+          signature_path?: string | null
           updated_at?: string
           username?: string | null
         }

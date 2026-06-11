@@ -133,6 +133,14 @@ export function AdminProfileClient({ userProfile }: Props) {
   const [tempImageSrc, setTempImageSrc] = useState<string | null>(null)
   const [tempFileName, setTempFileName] = useState("")
 
+  // Signature path state
+  const storedSignaturePath = useRef<string | null>(userProfile.signature_path ?? null)
+  const [signatureSrc, setSignatureSrc] = useState<string | null>(() =>
+    getStorageUrl(supabase, "avatars", storedSignaturePath.current)
+  )
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false)
+  const signatureInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     return () => {
       if (tempImageSrc) {
@@ -345,6 +353,86 @@ export function AdminProfileClient({ userProfile }: Props) {
     }
   }
 
+  async function handleSignatureFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Please upload a JPEG, PNG, or WEBP image.")
+      return
+    }
+    
+    setIsUploadingSignature(true)
+    const localPreviewUrl = URL.createObjectURL(file)
+    setSignatureSrc(localPreviewUrl)
+    
+    try {
+      const oldPath = storedSignaturePath.current
+      if (oldPath) {
+        const { error: deleteError } = await supabase.storage.from("avatars").remove([oldPath])
+        if (deleteError) console.warn("Could not delete old signature:", deleteError.message)
+      }
+      
+      const timestamp = Date.now()
+      const fileExt = file.name.split(".").pop() ?? "png"
+      const newPath = `admins/${userProfile.id}/signature/${timestamp}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(newPath, file, { upsert: false, contentType: file.type })
+      if (uploadError) throw uploadError
+
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .update({ signature_path: newPath })
+        .eq("id", userProfile.id)
+      if (dbError) throw dbError
+
+      storedSignaturePath.current = newPath
+      const newPublicUrl = getStorageUrl(supabase, "avatars", newPath)
+      setSignatureSrc(`${newPublicUrl}?v=${timestamp}`)
+      toast.success("Signature uploaded successfully!")
+      refresh()
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to upload signature. Please try again.")
+      setSignatureSrc(getStorageUrl(supabase, "avatars", storedSignaturePath.current))
+    } finally {
+      setIsUploadingSignature(false)
+      URL.revokeObjectURL(localPreviewUrl)
+      if (signatureInputRef.current) signatureInputRef.current.value = ""
+    }
+  }
+
+  async function handleRemoveSignature() {
+    const confirmRemove = window.confirm("Are you sure you want to remove your signature?")
+    if (!confirmRemove) return
+
+    setIsUploadingSignature(true)
+    try {
+      const oldPath = storedSignaturePath.current
+      if (oldPath) {
+        const { error: deleteError } = await supabase.storage.from("avatars").remove([oldPath])
+        if (deleteError) console.warn("Could not delete old signature:", deleteError.message)
+      }
+
+      const { error: dbError } = await supabase
+        .from("profiles")
+        .update({ signature_path: null })
+        .eq("id", userProfile.id)
+      if (dbError) throw dbError
+
+      storedSignaturePath.current = null
+      setSignatureSrc(null)
+      toast.success("Signature removed successfully!")
+      refresh()
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to remove signature. Please try again.")
+    } finally {
+      setIsUploadingSignature(false)
+    }
+  }
+
   const usernameMsg = usernameStatusMessage(usernameStatus)
   const initials = getInitials(displayName, userProfile.email)
   const editing = (s: SectionId) => editingSection === s
@@ -501,6 +589,80 @@ export function AdminProfileClient({ userProfile }: Props) {
                 </Button>
                 <p className="text-xs text-muted-foreground text-center sm:text-left">
                   Supports JPEG, PNG or WEBP. Max size 2MB.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Certificate Signature */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Certificate Signature</CardTitle>
+            <CardDescription>
+              Upload a transparent PNG of your signature to be printed on certificates. Recommended aspect ratio is 3:1 (e.g. 300x100 pixels).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {signatureSrc ? (
+                <div className="relative shrink-0 border border-muted rounded-lg p-2 bg-zinc-50 dark:bg-zinc-900/50 flex items-center justify-center min-w-[200px] h-20 max-w-[240px]">
+                  <img
+                    src={signatureSrc}
+                    alt="Signature preview"
+                    className="max-h-16 object-contain pointer-events-none select-none"
+                  />
+                  <div className="absolute -top-2 -right-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-6 w-6 rounded-full shadow-sm"
+                      onClick={handleRemoveSignature}
+                      disabled={isUploadingSignature}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="relative group cursor-pointer shrink-0 border-2 border-dashed border-muted hover:border-primary/50 transition-colors duration-200 rounded-lg flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-900/10 min-w-[200px] h-20 max-w-[240px]"
+                  onClick={() => !isUploadingSignature && signatureInputRef.current?.click()}
+                >
+                  <div className="flex flex-col items-center justify-center gap-1.5 text-muted-foreground group-hover:text-primary transition-colors">
+                    <Upload className="h-4 w-4" />
+                    <span className="text-[10px] font-medium">Upload Signature</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-col items-center sm:items-start gap-2.5">
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleSignatureFileChange}
+                  disabled={isUploadingSignature}
+                  aria-label="Upload certificate signature"
+                />
+                {!signatureSrc && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => signatureInputRef.current?.click()} 
+                    disabled={isUploadingSignature}
+                    className="shadow-sm"
+                  >
+                    {isUploadingSignature ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading…</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-2" />Select File</>
+                    )}
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground text-center sm:text-left">
+                  Transparent PNG works best. Max size 2MB.
                 </p>
               </div>
             </div>

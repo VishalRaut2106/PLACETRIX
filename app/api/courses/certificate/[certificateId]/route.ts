@@ -63,6 +63,28 @@ async function loadGaramondFonts(): Promise<{
   }
 }
 
+/** Load Montserrat Bold variant by parsing the Google Fonts CSS API response. */
+async function loadMontserratFont(): Promise<string | null> {
+  try {
+    const cssUrl = "https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap"
+    const cssResp = await fetch(cssUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; PlaceTrix/1.0)" },
+    })
+    if (!cssResp.ok) return null
+
+    const css = await cssResp.text()
+    const urlRegex = /src:\s*url\(([^)]+)\)\s*format\(['"']?(?:woff2?|truetype)['"']?\)/g
+    const m = urlRegex.exec(css)
+    if (m && m[1]) {
+      const fontUrl = m[1].replace(/['"]/g, "")
+      return await fetchFontBase64(fontUrl)
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 /** Draw the PlaceTrix logo vectors scaled and positioned on the PDF */
 function drawPlaceTrixLogo(doc: jsPDF, x: number, y: number, width: number) {
   const scale = width / 234
@@ -132,7 +154,8 @@ export async function GET(_request: NextRequest, props: RouteParams) {
       courses(
         title,
         instructor:profiles!courses_instructor_id_fkey(
-          display_name
+          display_name,
+          signature_path
         )
       ),
       profiles(display_name)
@@ -152,12 +175,25 @@ export async function GET(_request: NextRequest, props: RouteParams) {
   const recipientName  = (certificate as any).issued_to_name ?? certificate.profiles?.display_name ?? "Candidate"
   const courseTitle    = courseData?.title ?? "Training Track"
   const instructorName = courseData?.instructor?.display_name || "Course Instructor"
+  const signaturePath  = courseData?.instructor?.signature_path || null
   const issueDateStr   = new Date(certificate.issued_at).toLocaleDateString("en-IN", {
     year: "numeric", month: "long", day: "numeric",
   })
 
   const siteUrl    = process.env.NEXT_PUBLIC_SITE_URL ?? "https://placetrix.app"
   const verifyLink = `${siteUrl}/verify/${certificateId}`
+
+  let signatureBase64: string | null = null
+  if (signaturePath) {
+    try {
+      const { data: storageData } = supabase.storage.from("avatars").getPublicUrl(signaturePath)
+      if (storageData?.publicUrl) {
+        signatureBase64 = await fetchFontBase64(storageData.publicUrl)
+      }
+    } catch (e) {
+      console.error("Error fetching signature:", e)
+    }
+  }
 
   try {
     // ── Generate QR Code Data URL ─────────────────────────────────────────────
@@ -175,7 +211,10 @@ export async function GET(_request: NextRequest, props: RouteParams) {
     const ownerPassword =
       Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)
 
-    const garamond = await loadGaramondFonts()
+    const [garamond, montserrat] = await Promise.all([
+      loadGaramondFonts(),
+      loadMontserratFont()
+    ])
     const hasGaramond = !!garamond.regular
 
     const doc = new jsPDF({
@@ -206,6 +245,12 @@ export async function GET(_request: NextRequest, props: RouteParams) {
 
     // Font family (uses EB Garamond, falls back to times if needed)
     const G = hasGaramond ? "EBGaramond" : "times"
+    
+    if (montserrat) {
+      doc.addFileToVFS("Montserrat-Bold.ttf", montserrat)
+      doc.addFont("Montserrat-Bold.ttf", "Montserrat", "bold")
+    }
+    const M = montserrat ? "Montserrat" : "helvetica"
 
     // Helper to sanitize strings to pure ASCII to prevent jsPDF encryption metadata encoding bug
     const toAscii = (str: string) => {
@@ -237,9 +282,17 @@ export async function GET(_request: NextRequest, props: RouteParams) {
     doc.setFillColor(15, 23, 42)
     doc.rect(0, 0, W, H, "F")
 
+    // Subtle geometric cross-hatch pattern on the dark blue frame
+    doc.setDrawColor(30, 41, 59) // Slate-800 (slightly lighter than background)
+    doc.setLineWidth(0.5)
+    for (let i = -H; i < W; i += 12) {
+      doc.line(i, 0, i + H, H)    // \ diagonal
+      doc.line(i, H, i + H, 0)    // / diagonal
+    }
+
     // Ivory/white inner page
     doc.setFillColor(254, 254, 254) // Extremely clean, soft white
-    doc.rect(20, 20, W - 40, H - 40, "F")
+    doc.rect(8, 8, W - 16, H - 16, "F")
 
     // ── Traditional Double Gold Borders & Ornate Corners ───────────────────────
     doc.setDrawColor(197, 160, 89) // Champagne Gold
@@ -247,11 +300,11 @@ export async function GET(_request: NextRequest, props: RouteParams) {
     
     // Outer gold border (slightly thicker)
     doc.setLineWidth(1.2)
-    doc.rect(30, 30, W - 60, H - 60, "S")
+    doc.rect(16, 16, W - 32, H - 32, "S")
 
     // Inner gold border
     doc.setLineWidth(0.8)
-    doc.rect(36, 36, W - 72, H - 72, "S")
+    doc.rect(22, 22, W - 44, H - 44, "S")
 
     // Ornate L-bracket accents in corners
     const drawCornerAccent = (cx: number, cy: number, dirX: number, dirY: number) => {
@@ -267,10 +320,10 @@ export async function GET(_request: NextRequest, props: RouteParams) {
       doc.triangle(cx, cy + size, cx - size, cy, cx + size, cy, "F")
     }
 
-    drawCornerAccent(42, 42, 1, 1)         // Top-Left
-    drawCornerAccent(W - 42, 42, -1, 1)     // Top-Right
-    drawCornerAccent(42, H - 42, 1, -1)     // Bottom-Left
-    drawCornerAccent(W - 42, H - 42, -1, -1) // Bottom-Right
+    drawCornerAccent(28, 28, 1, 1)         // Top-Left
+    drawCornerAccent(W - 28, 28, -1, 1)     // Top-Right
+    drawCornerAccent(28, H - 28, 1, -1)     // Bottom-Left
+    drawCornerAccent(W - 28, H - 28, -1, -1) // Bottom-Right
 
     // ── Concentric Security Watermark ─────────────────────────────────────────
     // Centered in the middle of the certificate
@@ -296,7 +349,7 @@ export async function GET(_request: NextRequest, props: RouteParams) {
     // 0. Top Branding (Logo + Text side-by-side)
     const logoWidth = 24
     const gap = 8
-    doc.setFont("helvetica", "bold")
+    doc.setFont(M, "bold")
     doc.setFontSize(16)
     const brandTextWidth = doc.getTextWidth("PlaceTrix")
     const totalBrandingWidth = logoWidth + gap + brandTextWidth
@@ -308,77 +361,98 @@ export async function GET(_request: NextRequest, props: RouteParams) {
     doc.setTextColor(15, 23, 42) // Slate-900
     doc.text("PlaceTrix", brandingStartX + logoWidth + gap, brandingY + 12.5)
 
-    // 1. Certificate title (Moved down from 138 to 170)
+    // 1. Certificate title (Moved down from 138 to 165)
     doc.setFont(G, "bold")
-    doc.setFontSize(26)
+    doc.setFontSize(28)
     doc.setTextColor(15, 23, 42) // Slate-900
-    doc.text("CERTIFICATE OF COMPLETION", CX, 170, { align: "center" })
+    doc.text("CERTIFICATE OF COMPLETION", CX, 165, { align: "center" })
 
-    // Decorative divider line with center diamond under title (Moved down from 154 to 186)
+    // Decorative divider line with center diamond under title (Moved down from 154 to 182)
     doc.setDrawColor(197, 160, 89) // Champagne Gold
     doc.setLineWidth(0.8)
-    doc.line(CX - 120, 186, CX + 120, 186)
+    doc.line(CX - 130, 182, CX + 130, 182)
 
     // Center Diamond ornament
     doc.setFillColor(197, 160, 89)
-    doc.triangle(CX, 183, CX - 4, 186, CX + 4, 186, "F")
-    doc.triangle(CX, 189, CX - 4, 186, CX + 4, 186, "F")
+    doc.triangle(CX, 179, CX - 4, 182, CX + 4, 182, "F")
+    doc.triangle(CX, 185, CX - 4, 182, CX + 4, 182, "F")
 
-    // 2. Presentation label (Moved down from 188 to 220)
+    // 2. Presentation label (Moved down from 188 to 216)
     doc.setFont(G, hasGaramond ? "bolditalic" : "italic")
-    doc.setFontSize(11.5)
+    doc.setFontSize(12.5)
     doc.setTextColor(71, 85, 105) // Slate-600
-    doc.text("This certificate is proudly presented to", CX, 220, { align: "center" })
+    doc.text("This certificate is proudly presented to", CX, 216, { align: "center" })
 
-    // 3. Recipient name (Moved down from 236 to 268)
+    // 3. Recipient name (Moved down from 236 to 264)
     doc.setFont(G, "normal")
-    doc.setFontSize(30)
+    doc.setFontSize(35)
     doc.setTextColor(15, 23, 42) // Slate-900
-    doc.text(recipientName, CX, 268, { align: "center" })
+    doc.text(recipientName, CX, 264, { align: "center" })
 
-    // Gold line under name (Moved down from 248 to 280)
+    // Gold line under name (Moved down from 248 to 276)
     const nameWidth = doc.getTextWidth(recipientName)
-    const underlineHalf = Math.min(nameWidth / 2 + 15, 160)
+    const underlineHalf = Math.min(nameWidth / 2 + 18, 200)
     doc.setDrawColor(197, 160, 89) // Champagne Gold
     doc.setLineWidth(1.0)
-    doc.line(CX - underlineHalf, 280, CX + underlineHalf, 280)
+    doc.line(CX - underlineHalf, 276, CX + underlineHalf, 276)
 
-    // 4. Completion description (Moved down from 286 to 318)
+    // 4. Completion description (Moved down from 286 to 314)
     doc.setFont(G, hasGaramond ? "bolditalic" : "italic")
-    doc.setFontSize(11.5)
+    doc.setFontSize(12.5)
     doc.setTextColor(71, 85, 105) // Slate-600
-    doc.text("for successfully completing the curriculum and requirements for", CX, 318, { align: "center" })
+    doc.text("for successfully completing the curriculum and requirements for", CX, 314, { align: "center" })
 
-    // 5. Course title (Moved down from 325 to 355)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(18)
+    // 5. Course title (Moved down from 325 to 350)
+    doc.setFont(M, "bold")
+    doc.setFontSize(20)
     doc.setTextColor(15, 23, 42) // Slate-900
-    const wrappedTitle = doc.splitTextToSize(courseTitle, W - 220)
-    doc.text(wrappedTitle, CX, 355, { align: "center" })
+    const wrappedTitle = doc.splitTextToSize(courseTitle, W - 210)
+    doc.text(wrappedTitle, CX, 350, { align: "center" })
 
-    const titleBlockBottom = 355 + (wrappedTitle.length - 1) * 22
+    const titleBlockBottom = 350 + (wrappedTitle.length - 1) * 24
 
     // 6. Issue date
     doc.setFont(G, "normal")
-    doc.setFontSize(10)
+    doc.setFontSize(10.5)
     doc.setTextColor(100, 116, 139) // Slate-500
     doc.text(`Issued on ${issueDateStr}`, CX, titleBlockBottom + 35, { align: "center" })
 
     // ── 8. Symmetrical Footer Layout (Signatures & Verification) ──────────────
     const sigY = 485
-    const leftX = 220
-    const rightX = W - 220
+    const leftX = 210
+    const rightX = W - 210
 
-    // Left Column: Handwritten Signature of Instructor
-    doc.setDrawColor(15, 23, 42) // Slate-900
-    doc.setLineWidth(1.0)
-    doc.moveTo(leftX - 50, sigY - 15)
-    doc.lineTo(leftX - 35, sigY - 20)
-    doc.curveTo(leftX - 25, sigY - 35, leftX - 15, sigY - 30, leftX - 10, sigY - 15)
-    doc.curveTo(leftX, sigY - 5, leftX + 5, sigY - 35, leftX + 15, sigY - 25)
-    doc.curveTo(leftX + 25, sigY - 15, leftX + 35, sigY - 30, leftX + 50, sigY - 15)
-    doc.lineTo(leftX + 70, sigY - 18)
-    doc.stroke()
+    // Left Column: Signature of Instructor
+    if (signatureBase64) {
+      try {
+        const sigWidth = 100
+        const sigHeight = 30
+        const sigX = leftX - sigWidth / 2
+        const sigYAdjusted = sigY - sigHeight - 5
+
+        let format = "PNG"
+        if (signaturePath && (signaturePath.endsWith(".jpg") || signaturePath.endsWith(".jpeg"))) {
+          format = "JPEG"
+        } else if (signaturePath && signaturePath.endsWith(".webp")) {
+          format = "WEBP"
+        }
+
+        doc.addImage(signatureBase64, format, sigX, sigYAdjusted, sigWidth, sigHeight)
+      } catch (err) {
+        console.error("Failed to add signature image, falling back to text:", err)
+        // Fallback to "Digitally Signed" text
+        doc.setFont(G, hasGaramond ? "bolditalic" : "italic")
+        doc.setFontSize(10)
+        doc.setTextColor(100, 116, 139) // Slate-500
+        doc.text("Digitally Signed", leftX, sigY - 12, { align: "center" })
+      }
+    } else {
+      // Fallback to "Digitally Signed" text
+      doc.setFont(G, hasGaramond ? "bolditalic" : "italic")
+      doc.setFontSize(10)
+      doc.setTextColor(100, 116, 139) // Slate-500
+      doc.text("Digitally Signed", leftX, sigY - 12, { align: "center" })
+    }
 
     // Signature line
     doc.setDrawColor(203, 213, 225) // Slate-300
@@ -387,24 +461,24 @@ export async function GET(_request: NextRequest, props: RouteParams) {
 
     // Instructor details
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(8.5)
+    doc.setFontSize(9)
     doc.setTextColor(15, 23, 42) // Slate-900
     doc.text(instructorName, leftX, sigY + 14, { align: "center" })
 
     doc.setFont("helvetica", "normal")
-    doc.setFontSize(7.5)
+    doc.setFontSize(8)
     doc.setTextColor(100, 116, 139) // Slate-500
     doc.text("Course Instructor", leftX, sigY + 24, { align: "center" })
 
     // Right Column: QR Code & Verification (Centered symmetrically)
-    const qrSize = 45
+    const qrSize = 46
     const qrX = rightX - qrSize / 2
     const qrY = sigY - qrSize - 5
 
     doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize)
 
     doc.setFont("helvetica", "normal")
-    doc.setFontSize(7.5)
+    doc.setFontSize(8)
     doc.setTextColor(100, 116, 139) // Slate-500
     
     doc.text(`Verify at: ${verifyLink}`, rightX, sigY + 14, { align: "center" })
@@ -419,7 +493,7 @@ export async function GET(_request: NextRequest, props: RouteParams) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="certificate_${certificateId.slice(0, 8)}.pdf"`,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
       },
     })
   } catch (err: any) {

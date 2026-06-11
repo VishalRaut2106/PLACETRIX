@@ -4,6 +4,15 @@ import * as React from "react"
 import { useMemo, useState } from "react"
 import { MathText } from "./math-text"
 import { Copy, Check, Code } from "lucide-react"
+import Prism from "prismjs"
+import "prismjs/components/prism-javascript"
+import "prismjs/components/prism-typescript"
+import "prismjs/components/prism-python"
+import "prismjs/components/prism-sql"
+import "prismjs/components/prism-c"
+import "prismjs/components/prism-cpp"
+import "prismjs/components/prism-csharp"
+import "prismjs/components/prism-java"
 
 /**
  * Stack-based balanced brace parser for LaTeX inline formatting.
@@ -203,204 +212,6 @@ export function parseLatexInline(text: string): React.ReactNode[] {
   return elements
 }
 
-type TokenType =
-  | "comment"
-  | "string"
-  | "keyword"
-  | "number"
-  | "function"
-  | "type"
-  | "builtin"
-  | "operator"
-  | "plain"
-
-interface Token {
-  type: TokenType
-  text: string
-}
-
-function tokenize(code: string, lang: string): Token[] {
-  const tokens: Token[] = []
-  const lowerLang = lang ? lang.toLowerCase() : ""
-
-  // Define keywords per language
-  let keywords = new Set<string>()
-  let builtins = new Set<string>()
-  let types = new Set<string>()
-
-  if (
-    lowerLang === "js" ||
-    lowerLang === "javascript" ||
-    lowerLang === "ts" ||
-    lowerLang === "typescript" ||
-    lowerLang === "tsx" ||
-    lowerLang === "jsx"
-  ) {
-    keywords = new Set([
-      "const", "let", "var", "function", "class", "import", "export", "from",
-      "default", "return", "if", "else", "for", "while", "switch", "case",
-      "break", "continue", "try", "catch", "finally", "throw", "new", "typeof",
-      "instanceof", "async", "await", "yield", "extends", "super", "this",
-      "in", "of", "delete", "debugger", "as"
-    ])
-    builtins = new Set([
-      "console", "window", "document", "process", "global", "Math", "Object",
-      "Array", "String", "Number", "Boolean", "Promise", "JSON", "Map", "Set",
-      "Error"
-    ])
-    types = new Set(["string", "number", "boolean", "any", "void", "unknown", "never", "null", "undefined", "true", "false"])
-  } else if (lowerLang === "python" || lowerLang === "py") {
-    keywords = new Set([
-      "def", "class", "import", "from", "as", "return", "if", "elif", "else",
-      "for", "while", "break", "continue", "try", "except", "finally", "raise",
-      "assert", "pass", "in", "is", "and", "or", "not", "lambda", "with",
-      "yield", "global", "nonlocal", "del"
-    ])
-    builtins = new Set([
-      "print", "len", "range", "str", "int", "float", "list", "dict", "set",
-      "tuple", "bool", "type", "dir", "help", "input", "open", "sum", "max",
-      "min", "abs", "enumerate", "zip", "map", "filter", "any", "all"
-    ])
-    types = new Set(["self", "cls", "None", "True", "False"])
-  } else if (
-    lowerLang === "cpp" ||
-    lowerLang === "c++" ||
-    lowerLang === "c" ||
-    lowerLang === "cs" ||
-    lowerLang === "csharp" ||
-    lowerLang === "java"
-  ) {
-    keywords = new Set([
-      "class", "struct", "public", "private", "protected", "static", "const",
-      "virtual", "override", "final", "return", "if", "else", "for", "while",
-      "do", "switch", "case", "break", "continue", "new", "delete", "this",
-      "throw", "try", "catch", "namespace", "using", "include", "import",
-      "package", "interface", "extends", "implements", "operator", "template",
-      "typename", "friend", "inline"
-    ])
-    builtins = new Set([
-      "std", "cout", "cin", "endl", "vector", "string", "map", "set", "list",
-      "pair", "System", "out", "println", "print", "Console", "WriteLine"
-    ])
-    types = new Set(["int", "float", "double", "char", "bool", "void", "long", "short", "unsigned", "signed", "true", "false", "null", "nullptr", "String"])
-  } else if (lowerLang === "sql") {
-    keywords = new Set([
-      "select", "from", "where", "insert", "update", "delete", "into", "values",
-      "join", "left", "right", "inner", "outer", "on", "group", "by", "having",
-      "order", "create", "table", "alter", "drop", "index", "primary", "key",
-      "foreign", "references", "as", "in", "like", "between", "exists", "and",
-      "or", "not"
-    ])
-    builtins = new Set(["count", "sum", "avg", "min", "max", "coalesce", "now", "concat", "lower", "upper", "substring"])
-    types = new Set(["null", "true", "false", "int", "integer", "varchar", "char", "text", "boolean", "date", "timestamp", "numeric", "decimal", "float", "real"])
-  } else {
-    // Default fallback keywords
-    keywords = new Set([
-      "class", "function", "return", "if", "else", "for", "while", "break",
-      "continue", "try", "catch", "new", "this", "import", "export", "from"
-    ])
-    types = new Set(["true", "false", "null", "undefined"])
-  }
-
-  // Regexes
-  const commentPattern = /^(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*|--[^\n]*)/
-  const stringPattern = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/
-  const numberPattern = /^(?:0x[a-fA-F0-9]+|\b\d+(?:\.\d+)?\b)/
-  const identifierPattern = /^[a-zA-Z_]\w*/
-  const operatorPattern = /^(?:===|==|!==|!=|<=|>=|=>|\+\+|--|&&|\|\||[+\-*/%=!<>^&|~?:])/
-  const punctuationPattern = /^[{}()\[\],.;]+/
-  const whitespacePattern = /^\s+/
-
-  let index = 0
-  while (index < code.length) {
-    const remaining = code.substring(index)
-
-    // 1. Whitespace
-    const wsMatch = remaining.match(whitespacePattern)
-    if (wsMatch) {
-      tokens.push({ type: "plain", text: wsMatch[0] })
-      index += wsMatch[0].length
-      continue
-    }
-
-    // 2. Comment
-    const commentMatch = remaining.match(commentPattern)
-    if (commentMatch) {
-      tokens.push({ type: "comment", text: commentMatch[0] })
-      index += commentMatch[0].length
-      continue
-    }
-
-    // 3. String
-    const stringMatch = remaining.match(stringPattern)
-    if (stringMatch) {
-      tokens.push({ type: "string", text: stringMatch[0] })
-      index += stringMatch[0].length
-      continue
-    }
-
-    // 4. Number
-    const numberMatch = remaining.match(numberPattern)
-    if (numberMatch) {
-      tokens.push({ type: "number", text: numberMatch[0] })
-      index += numberMatch[0].length
-      continue
-    }
-
-    // 5. Identifier
-    const idMatch = remaining.match(identifierPattern)
-    if (idMatch) {
-      const text = idMatch[0]
-      const lowerText = text.toLowerCase()
-      let type: TokenType = "plain"
-
-      if (keywords.has(text) || keywords.has(lowerText)) {
-        type = "keyword"
-      } else if (types.has(text) || types.has(lowerText)) {
-        type = "type"
-      } else if (builtins.has(text) || builtins.has(lowerText)) {
-        type = "builtin"
-      } else {
-        // Peek at next character to see if it's a function call
-        const nextCharIndex = index + text.length
-        let k = nextCharIndex
-        while (k < code.length && /\s/.test(code[k])) {
-          k++
-        }
-        if (k < code.length && code[k] === "(") {
-          type = "function"
-        }
-      }
-
-      tokens.push({ type, text })
-      index += text.length
-      continue
-    }
-
-    // 6. Operator
-    const opMatch = remaining.match(operatorPattern)
-    if (opMatch) {
-      tokens.push({ type: "operator", text: opMatch[0] })
-      index += opMatch[0].length
-      continue
-    }
-
-    // 7. Punctuation
-    const puncMatch = remaining.match(punctuationPattern)
-    if (puncMatch) {
-      tokens.push({ type: "plain", text: puncMatch[0] })
-      index += puncMatch[0].length
-      continue
-    }
-
-    // 8. Fallback
-    tokens.push({ type: "plain", text: remaining[0] })
-    index += 1
-  }
-
-  return tokens
-}
-
 interface CodeBlockProps {
   code: string
   language?: string
@@ -422,7 +233,16 @@ function CodeBlock({ code, language, caption }: CodeBlockProps) {
     }
   }
 
-  const tokens = useMemo(() => tokenize(code, language || ""), [code, language])
+  const html = useMemo(() => {
+    let langName = language ? language.toLowerCase() : "clike"
+    if (langName === "js") langName = "javascript"
+    if (langName === "ts") langName = "typescript"
+    if (langName === "py") langName = "python"
+    if (langName === "cs") langName = "csharp"
+
+    const grammar = Prism.languages[langName] || Prism.languages.clike
+    return Prism.highlight(code, grammar, langName)
+  }, [code, language])
 
   return (
     <div className="bg-muted/40 border border-border/50 rounded-xl shadow-xs overflow-hidden my-5 font-mono text-xs relative group/code">
@@ -458,42 +278,10 @@ function CodeBlock({ code, language, caption }: CodeBlockProps) {
         </div>
       </div>
       <pre className="p-3.5 overflow-x-auto text-foreground/90 whitespace-pre scrollbar-thin max-h-[500px]">
-        <code>
-          {tokens.map((token, index) => {
-            let className = ""
-            switch (token.type) {
-              case "comment":
-                className = "text-slate-400 dark:text-slate-500 italic"
-                break
-              case "string":
-                className = "text-amber-600 dark:text-amber-400"
-                break
-              case "keyword":
-                className = "text-pink-600 dark:text-pink-400 font-semibold"
-                break
-              case "number":
-                className = "text-indigo-600 dark:text-indigo-400"
-                break
-              case "function":
-                className = "text-sky-600 dark:text-sky-400"
-                break
-              case "type":
-                className = "text-emerald-600 dark:text-emerald-400"
-                break
-              case "builtin":
-                className = "text-violet-600 dark:text-violet-400"
-                break
-              case "operator":
-                className = "text-rose-500 dark:text-rose-400"
-                break
-            }
-            return (
-              <span key={index} className={className}>
-                {token.text}
-              </span>
-            )
-          })}
-        </code>
+        <code
+          className={`language-${language || 'clike'}`}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </pre>
     </div>
   )

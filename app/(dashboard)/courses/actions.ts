@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { randomUUID } from "crypto"
 
 // Type interfaces for admin operations
 export interface AdminModuleInput {
@@ -67,6 +68,7 @@ export async function createCourseAction(
   // 2. Insert modules if any exist
   if (modules && modules.length > 0) {
     const modulesToInsert = modules.map((mod, index) => ({
+      id: randomUUID(),
       course_id: course.id,
       title: mod.title,
       description: mod.description || null,
@@ -156,7 +158,7 @@ export async function updateCourseAction(
     const modulesToUpsert = modules.map((mod, index) => {
       const isNew = !mod.id || mod.id.startsWith("temp-")
       return {
-        ...(isNew ? {} : { id: mod.id }),
+        id: isNew ? randomUUID() : mod.id,
         course_id: courseId,
         title: mod.title,
         description: mod.description || null,

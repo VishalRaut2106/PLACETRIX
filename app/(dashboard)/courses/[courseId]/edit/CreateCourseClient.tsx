@@ -47,6 +47,38 @@ interface Props {
 
 // ── LaTeX Preview ──────────────────────────────────────────────────────────────
 
+function extractAttachmentPaths(text: string): string[] {
+  if (!text) return []
+  const paths: string[] = []
+  
+  // 1. Check LaTeX \includegraphics
+  const reLatex = /\\includegraphics(?:\[.*?\])?\{([^}]+)\}/g
+  let match
+  while ((match = reLatex.exec(text)) !== null) {
+    const url = match[1]
+    if (url.includes('course-attachments/')) {
+      const parts = url.split('course-attachments/')
+      if (parts.length > 1) {
+        paths.push(parts[1])
+      }
+    }
+  }
+
+  // 2. Check Markdown ![alt](url)
+  const reMarkdown = /!\[.*?\]\((.*?)\)/g
+  while ((match = reMarkdown.exec(text)) !== null) {
+    const url = match[1]
+    if (url.includes('course-attachments/')) {
+      const parts = url.split('course-attachments/')
+      if (parts.length > 1) {
+        paths.push(parts[1])
+      }
+    }
+  }
+  
+  return paths
+}
+
 // ── Main Component ──────────────────────────────────────────────────────────────
 
 export function CreateCourseClient({ initialCourse, initialModules = [], adminProfile }: Props) {
@@ -80,6 +112,11 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
   const [activePreviewModuleId, setActivePreviewModuleId] = useState<string | null>(null)
   const [isUploadingImageMap, setIsUploadingImageMap] = useState<Record<number, boolean>>({})
 
+  // ── Upload staging states ───────────────────────────────────────────────────
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null)
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
+  const [pendingUploads, setPendingUploads] = useState<Record<string, { file: File; filePath: string }>>({})
+
   // ── Validation ───────────────────────────────────────────────────────────────
   const canSave =
     title.trim().length > 0 &&
@@ -97,23 +134,9 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
       toast.error("Please upload an image file.")
       return
     }
-    setIsUploading(true)
-    const supabase = createClient()
-    try {
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${crypto.randomUUID()}.${fileExt}`
-      const filePath = `covers/${fileName}`
-      const { error: uploadError } = await supabase.storage
-        .from("course-covers")
-        .upload(filePath, file)
-      if (uploadError) throw uploadError
-      setCoverImagePath(filePath)
-      toast.success("Cover image uploaded successfully!")
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to upload cover image.")
-    } finally {
-      setIsUploading(false)
-    }
+    setCoverImageFile(file)
+    setCoverPreviewUrl(URL.createObjectURL(file))
+    toast.success("Cover image selected successfully!")
   }
 
   const handleModuleImageUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,28 +147,25 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
       return
     }
 
-    setIsUploadingImageMap((prev) => ({ ...prev, [index]: true }))
-    const supabase = createClient()
     try {
       const fileExt = file.name.split(".").pop()
       const fileName = `${crypto.randomUUID()}.${fileExt}`
       const filePath = `modules/${fileName}`
-      const { error: uploadError } = await supabase.storage
-        .from("course-attachments")
-        .upload(filePath, file)
-      if (uploadError) throw uploadError
+      const localUrl = URL.createObjectURL(file)
 
-      const imageUrl = buildStorageUrl("course-attachments", filePath)
-      const latexFigure = `\n\n\\begin{figure}[h]\n  \\centering\n  \\includegraphics{${imageUrl}}\n  \\caption{Attachment}\n\\end{figure}\n`
+      setPendingUploads((prev) => ({
+        ...prev,
+        [localUrl]: { file, filePath }
+      }))
 
-      // Append the LaTeX figure to the module's content
+      const latexFigure = `\n\n\\begin{figure}[h]\n  \\centering\n  \\includegraphics{${localUrl}}\n  \\caption{Attachment}\n\\end{figure}\n`
+
       const currentContent = modules[index].content ?? ""
       updateModuleField(index, "content", currentContent + latexFigure)
-      toast.success("Image uploaded and added to LaTeX content successfully!")
+      toast.success("Image added locally! Submit to save changes to storage.")
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to upload module image.")
+      toast.error(err.message ?? "Failed to stage module image.")
     } finally {
-      setIsUploadingImageMap((prev) => ({ ...prev, [index]: false }))
       e.target.value = ""
     }
   }
@@ -193,26 +213,95 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
     }
 
     startTransition(async () => {
-      const courseData: AdminCourseInput = {
-        title,
-        description,
-        level,
-        duration,
-        type: courseType,
-        badge: badge.trim() || null,
-        cover_image_path: coverImagePath,
-        instructor_id: initialCourse?.instructor_id || adminProfile?.id || null,
-        is_published: isPublished,
-      }
+      const supabase = createClient()
+      let finalCoverPath = coverImagePath
+
       try {
+        // 1. Upload Cover Image if a new one was selected
+        if (coverImageFile) {
+          const fileExt = coverImageFile.name.split(".").pop()
+          const fileName = `${crypto.randomUUID()}.${fileExt}`
+          const filePath = `covers/${fileName}`
+          
+          const { error: uploadError } = await supabase.storage
+            .from("course-covers")
+            .upload(filePath, coverImageFile)
+            
+          if (uploadError) throw uploadError
+          finalCoverPath = filePath
+          
+          // Delete old cover image if it existed
+          if (initialCourse?.cover_image_path) {
+            await supabase.storage
+              .from("course-covers")
+              .remove([initialCourse.cover_image_path])
+          }
+        } else if (!coverImagePath && initialCourse?.cover_image_path) {
+          // Cover was removed
+          await supabase.storage
+            .from("course-covers")
+            .remove([initialCourse.cover_image_path])
+        }
+
+        // 2. Upload pending module attachments that are actually referenced
+        const updatedModules = [...modules]
+        for (let idx = 0; idx < updatedModules.length; idx++) {
+          let content = updatedModules[idx].content ?? ""
+          
+          const localUrlsUsed = Object.keys(pendingUploads).filter((localUrl) =>
+            content.includes(localUrl)
+          )
+          
+          for (const localUrl of localUrlsUsed) {
+            const { file, filePath } = pendingUploads[localUrl]
+            
+            const { error: uploadError } = await supabase.storage
+              .from("course-attachments")
+              .upload(filePath, file)
+              
+            if (uploadError) throw uploadError
+            
+            const finalUrl = buildStorageUrl("course-attachments", filePath) || ""
+            content = content.replaceAll(localUrl, finalUrl)
+          }
+          
+          updatedModules[idx].content = content
+        }
+
+        // 3. Storage Cleanup for deleted module attachments (in edit mode)
+        const originalPaths = initialModules.flatMap((mod) => extractAttachmentPaths(mod.content ?? ""))
+        const finalPaths = updatedModules.flatMap((mod) => extractAttachmentPaths(mod.content ?? ""))
+        const deletedPaths = originalPaths.filter((path) => !finalPaths.includes(path))
+        
+        if (deletedPaths.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from("course-attachments")
+            .remove(deletedPaths)
+          if (deleteError) {
+            console.error("Failed to delete unused attachments:", deleteError)
+          }
+        }
+
+        const courseData: AdminCourseInput = {
+          title,
+          description,
+          level,
+          duration,
+          type: courseType,
+          badge: badge.trim() || null,
+          cover_image_path: finalCoverPath,
+          instructor_id: initialCourse?.instructor_id || adminProfile?.id || null,
+          is_published: isPublished,
+        }
+
         if (initialCourse?.id) {
-          const result = await updateCourseAction(initialCourse.id, courseData, modules)
+          const result = await updateCourseAction(initialCourse.id, courseData, updatedModules)
           if (result.success) {
             toast.success("Course updated successfully!")
             router.push("/courses")
           }
         } else {
-          const result = await createCourseAction(courseData, modules)
+          const result = await createCourseAction(courseData, updatedModules)
           if (result.success) {
             toast.success("Course created successfully!")
             router.push("/courses")
@@ -224,7 +313,7 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
     })
   }
 
-  const coverUrl = coverImagePath ? buildStorageUrl("course-covers", coverImagePath) : null
+  const coverUrl = coverPreviewUrl || (coverImagePath ? buildStorageUrl("course-covers", coverImagePath) : null)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -629,7 +718,11 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setCoverImagePath(null)}
+                        onClick={() => {
+                          setCoverImageFile(null)
+                          setCoverPreviewUrl(null)
+                          setCoverImagePath(null)
+                        }}
                         className="h-7 text-xs text-destructive hover:bg-destructive/10"
                       >
                         <X className="mr-1 size-3" />

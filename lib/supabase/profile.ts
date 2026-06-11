@@ -18,6 +18,7 @@ export interface UserProfile {
   avatar_path: string | null;
   username: string | null;
   account_type: AccountType;
+  signature_path?: string | null;
 }
 
 function isDefinitiveRevocation(error: AuthApiError): boolean {
@@ -93,6 +94,7 @@ function profileFromClaims(
     avatar_path: (meta.avatar_path as string) ?? (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
     username: (meta.username as string) ?? null,
     account_type: account_type as AccountType,
+    signature_path: (meta.signature_path as string) ?? null,
   };
 }
 
@@ -125,6 +127,7 @@ function profileFromAuthUser(
     avatar_path: (meta.avatar_path as string) ?? (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
     username: (meta.username as string) ?? null,
     account_type: (account_type ?? "candidate") as AccountType,
+    signature_path: (meta.signature_path as string) ?? null,
     // Internal flag: if true, caller should resolve account_type from DB.
     _account_type_missing: account_type === null,
   };
@@ -216,7 +219,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
     try {
       const { data: dbProfile } = await (supabase as any)
         .from("profiles")
-        .select("username, display_name, avatar_path, account_type")
+        .select("username, display_name, avatar_path, account_type, signature_path")
         .eq("id", built.id)
         .maybeSingle();
 
@@ -225,6 +228,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
         if (dbProfile.display_name !== undefined) built.display_name = dbProfile.display_name;
         if (dbProfile.avatar_path !== undefined) built.avatar_path = dbProfile.avatar_path;
         if (dbProfile.account_type !== undefined) built.account_type = dbProfile.account_type as AccountType;
+        if (dbProfile.signature_path !== undefined) built.signature_path = dbProfile.signature_path;
         built._account_type_missing = false;
       }
     } catch (e) {
