@@ -51,7 +51,6 @@ import {
 } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import { PotdHistoryModal } from "./PotdHistoryModal"
 
 interface Problem {
   id: string
@@ -154,10 +153,24 @@ export function ProblemsDirectoryClient({
   const [showMetrics, setShowMetrics] = useState(true)
   const isOwnUpdateRef = useRef(false)
 
-  // POTD State
   const [potd, setPotd] = useState<any>(initialPotd)
   const [timeLeft, setTimeLeft] = useState<string>("")
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false)
+
+  const [activityData, setActivityData] = useState({
+    streakStats: streakStats || { currentStreak: 0, maxStreak: 0 },
+    activityCalendar: activityCalendar || []
+  })
+
+  useEffect(() => {
+    fetch("/api/logiclab/activity")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setActivityData({ streakStats: data.streakStats, activityCalendar: data.activityCalendar })
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   useEffect(() => {
     if (!potd) {
@@ -216,14 +229,14 @@ export function ProblemsDirectoryClient({
     const result: CalendarCell[][] = []
     let currentWeek: CalendarCell[] = []
     
-    if (!activityCalendar || activityCalendar.length === 0) return result
+    if (!activityData.activityCalendar || activityData.activityCalendar.length === 0) return result
     
-    const firstDay = activityCalendar[0].dayOfWeek
+    const firstDay = activityData.activityCalendar[0].dayOfWeek
     for (let i = 0; i < firstDay; i++) {
       currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
     }
     
-    activityCalendar.forEach((cell) => {
+    activityData.activityCalendar.forEach((cell) => {
       currentWeek.push(cell)
       if (cell.dayOfWeek === 6) {
         result.push(currentWeek)
@@ -240,7 +253,7 @@ export function ProblemsDirectoryClient({
     }
     
     return result.slice(-26)
-  }, [activityCalendar])
+  }, [activityData.activityCalendar])
 
   const visibleMonths = useMemo(() => {
     const list: string[] = []
@@ -374,33 +387,20 @@ export function ProblemsDirectoryClient({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2 h-10 px-4 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsHistoryModalOpen(true)}>
-            <CalendarDays className="h-4 w-4" />
-            History
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="outline" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground transition-colors shrink-0" onClick={() => setShowMetrics(!showMetrics)} title="Toggle Dashboard">
+            {showMetrics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
-          <Button variant="outline" className="gap-3 h-10 w-[170px] px-4 text-muted-foreground hover:text-foreground transition-colors justify-start" onClick={() => setShowMetrics(!showMetrics)}>
-            {showMetrics ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
-            <div className="flex text-left">
-              <span className="w-[40px]">{showMetrics ? "Hide" : "Show"}</span>
-              <span>Dashboard</span>
-            </div>
-          </Button>
-          <Button onClick={handleRandomProblem} variant="outline" className="gap-2 h-10 px-5 text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20">
-            <Dices className="h-4 w-4" />
-            Pick Random
-          </Button>
-          <Button asChild variant="outline" className="gap-2 h-10 px-5">
-            <Link href="/logiclab/playground">
+
+          <Button asChild variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Playground">
+            <Link href="/logiclab/playground" className="flex items-center justify-center">
               <Terminal className="h-4 w-4" />
-              Playground
             </Link>
           </Button>
           {isAdmin && (
-            <Button asChild className="gap-2 h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
-              <Link href="/logiclab/admin">
+            <Button asChild size="icon" className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0" title="Create Problem">
+              <Link href="/logiclab/admin" className="flex items-center justify-center">
                 <Plus className="h-4 w-4" />
-                Create Problem
               </Link>
             </Button>
           )}
@@ -471,11 +471,11 @@ export function ProblemsDirectoryClient({
             <div className="flex items-center gap-3 text-sm">
               <div className="flex items-center gap-1.5 font-medium">
                 <Flame className="w-4 h-4 text-orange-500" />
-                <span className="text-foreground">{streakStats.currentStreak} Day Streak</span>
+                <span className="text-foreground">{activityData.streakStats.currentStreak} Day Streak</span>
               </div>
               <span className="text-muted-foreground/40">|</span>
               <div className="text-muted-foreground font-medium text-xs">
-                Max: <span className="text-foreground">{streakStats.maxStreak}</span>
+                Max: <span className="text-foreground">{activityData.streakStats.maxStreak}</span>
               </div>
             </div>
           </CardHeader>
@@ -544,43 +544,41 @@ export function ProblemsDirectoryClient({
           </CardContent>
         </Card>
 
-        {/* Card 3: Topics / Tags */}
-        <Card className="shadow-sm border-border/60 flex flex-col justify-between">
-          <CardHeader className="pb-0 pt-3 px-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Topics</CardTitle>
+        {/* Card 3: POTD Card */}
+        <Card className="shadow-sm border-border/60 flex flex-col justify-between group overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent opacity-50" />
+          <CardHeader className="pb-0 pt-3 px-5 flex flex-row items-center justify-between relative">
+            <CardTitle className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Flame className="w-4 h-4" />
+              Daily Challenge
+            </CardTitle>
+            {timeLeft && (
+              <div className="text-[10px] font-bold text-muted-foreground/80 flex items-center gap-1 uppercase tracking-wider">
+                <Clock className="h-3 w-3" />
+                {timeLeft}
+              </div>
+            )}
           </CardHeader>
-          <CardContent className="p-3 pt-2 overflow-y-auto max-h-[165px] scrollbar-thin">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={initialTag === "All" ? "default" : "secondary"}
-                size="sm"
-                onClick={() => updateParams({ tag: "All", page: 1 })}
-                className="rounded-full h-7 px-3 text-[11px] font-medium"
-              >
-                All Topics
-              </Button>
-              {allTags.slice(0, showAllTags ? undefined : 14).map(tag => (
-                <Button
-                  key={tag}
-                  variant={initialTag === tag ? "default" : "secondary"}
-                  size="sm"
-                  onClick={() => updateParams({ tag, page: 1 })}
-                  className="rounded-full h-7 px-3 text-[11px] font-medium"
-                >
-                  {tag} <span className="ml-1 opacity-50 text-[9px]">{tagCounts[tag] || 0}</span>
-                </Button>
-              ))}
-              {allTags.length > 14 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAllTags(!showAllTags)}
-                  className="rounded-full h-7 px-3 text-[11px] font-medium text-muted-foreground hover:bg-muted/50"
-                >
-                  {showAllTags ? "Show Less" : `... +${allTags.length - 14} More`}
-                </Button>
-              )}
+          <CardContent className="p-5 pt-3 flex flex-col justify-between h-full relative">
+            <div className="space-y-1">
+              <h3 className="font-bold text-lg text-foreground line-clamp-1">{potd?.coding_problems?.title || "Loading..."}</h3>
+              <div className="flex items-center gap-2 mt-1">
+                {potd?.coding_problems?.difficulty && (
+                  <Badge variant="secondary" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0", DIFFICULTY_COLORS[potd.coding_problems.difficulty])}>
+                    {potd.coding_problems.difficulty}
+                  </Badge>
+                )}
+              </div>
             </div>
+            
+            <Button 
+              className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white shadow-md transition-all gap-2"
+              onClick={() => potd && router.push(`/logiclab/problems/${potd.problem_id}`)}
+              disabled={!potd}
+            >
+              Solve Now
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -594,17 +592,7 @@ export function ProblemsDirectoryClient({
           {/* Toolbar */}
           <div className="p-4 border-b border-border/60 bg-muted/10 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             
-            {/* Tabs (Moved to Left) */}
-            <Tabs value={initialTab} onValueChange={(v) => updateParams({ tab: v, page: 1 })} className="w-full xl:w-auto">
-              <TabsList className="h-10 w-full xl:w-auto p-1 bg-muted/50 overflow-x-auto flex justify-start rounded-xl">
-                <TabsTrigger value="all" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">All</TabsTrigger>
-                <TabsTrigger value="solved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Solved</TabsTrigger>
-                <TabsTrigger value="attempted" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Attempted</TabsTrigger>
-                <TabsTrigger value="unsolved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Unsolved</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Search & Difficulty (Moved to Right) */}
+            {/* Search & Difficulty (Moved to Left) */}
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
               <div className="relative w-full sm:w-80">
                 {isPending ? (
@@ -645,7 +633,20 @@ export function ProblemsDirectoryClient({
                   <SelectItem value="Hard">Hard</SelectItem>
                 </SelectContent>
               </Select>
+              <Button onClick={handleRandomProblem} variant="outline" size="icon" className="h-10 w-10 shrink-0 text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Pick Random Problem">
+                <Dices className="h-4 w-4" />
+              </Button>
             </div>
+
+            {/* Tabs (Moved to Right) */}
+            <Tabs value={initialTab} onValueChange={(v) => updateParams({ tab: v, page: 1 })} className="w-full xl:w-auto">
+              <TabsList className="h-10 w-full xl:w-auto p-1 bg-muted/50 overflow-x-auto flex justify-start rounded-xl">
+                <TabsTrigger value="all" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">All</TabsTrigger>
+                <TabsTrigger value="solved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Solved</TabsTrigger>
+                <TabsTrigger value="attempted" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Attempted</TabsTrigger>
+                <TabsTrigger value="unsolved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Unsolved</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
           {/* Table Body */}
@@ -689,144 +690,7 @@ export function ProblemsDirectoryClient({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {potd && fullPotdProblem && (() => {
-                        const potdProblem = fullPotdProblem;
-                        const todayDateStr = new Date().toISOString().split("T")[0];
-                        const todayActivity = activityCalendar.find(c => c.date === todayDateStr);
-                        const isPotdSolved = potdProblem?.solved_status === "Accepted" || todayActivity?.status === "solved";
-                        
-                        let streakMessage = "";
-                        if (isPotdSolved) {
-                          streakMessage = "Solved - Streak Kept";
-                        } else if (streakStats.currentStreak > 0) {
-                          streakMessage = "Save Your Streak";
-                        } else if (streakStats.maxStreak > 0) {
-                          streakMessage = "Solve Now";
-                        } else {
-                          streakMessage = "Start Your Streak";
-                        }
-
-                        return (
-                          <TableRow
-                            key="potd"
-                            onClick={() => router.push(`/logiclab/problems/${potd.problem_id}`)}
-                            className="group cursor-pointer transition-colors h-12 border-b-border/60 bg-orange-50/40 hover:bg-orange-100/50 dark:bg-orange-500/5 dark:hover:bg-orange-500/10"
-                          >
-                            {/* Status */}
-                            <TableCell className="pl-6">
-                              <Flame className={cn("h-5 w-5", isPotdSolved ? "text-orange-500 fill-orange-500" : "text-orange-500/50")} />
-                            </TableCell>
-
-                            {/* Title */}
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="flex flex-col items-center justify-center w-8 shrink-0 pt-0.5">
-                                  <span className="text-[13px] font-black text-orange-500/80 leading-none">
-                                    {new Date(potd.date || todayDateStr).toLocaleDateString('en-US', { day: '2-digit' })}
-                                  </span>
-                                  <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none mt-0.5 tracking-wider">
-                                    {new Date(potd.date || todayDateStr).toLocaleDateString('en-US', { month: 'short' })}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-base font-medium text-foreground/90 group-hover:text-foreground transition-colors">
-                                    {potd.coding_problems?.title || "Daily Challenge"}
-                                  </span>
-                                  <span className={cn(
-                                    "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
-                                    isPotdSolved ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" :
-                                    streakStats.currentStreak > 0 ? "border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/10" :
-                                    "border-muted-foreground/30 text-muted-foreground bg-muted/30"
-                                  )}>
-                                    {streakMessage}
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            {/* Difficulty */}
-                            <TableCell>
-                              {potd.coding_problems?.difficulty && (
-                                <Badge
-                                  variant="secondary"
-                                  className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md", DIFFICULTY_COLORS[potd.coding_problems.difficulty])}
-                                >
-                                  {potd.coding_problems.difficulty}
-                                </Badge>
-                              )}
-                            </TableCell>
-
-                            {/* Acceptance Rate */}
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-foreground/80">
-                                  {potdProblem?.acceptance_rate !== null && potdProblem?.acceptance_rate !== undefined ? `${potdProblem.acceptance_rate}%` : "—"}
-                                </span>
-                                {potdProblem && potdProblem.total_submissions > 0 && (
-                                  <span className="text-xs text-muted-foreground/60">
-                                    ({potdProblem.total_submissions})
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-
-                            {/* Tags & Time Left */}
-                            <TableCell className="py-2">
-                              <div className="flex flex-col gap-1.5">
-                                <div className="flex flex-wrap gap-1.5">
-                                  {(potdProblem?.tags || []).slice(0, 2).map((tag: string) => (
-                                    <Badge
-                                      key={tag}
-                                      variant="secondary"
-                                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/80 text-muted-foreground/80 hover:bg-muted border-transparent"
-                                    >
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                  {(potdProblem?.tags || []).length > 2 && (
-                                    <Badge 
-                                      variant="secondary"
-                                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/40 text-muted-foreground/60 hover:bg-muted/50 border-transparent"
-                                    >
-                                      +{(potdProblem!.tags).length - 2}
-                                    </Badge>
-                                  )}
-                                </div>
-                                {timeLeft && (
-                                  <div className="text-[10px] font-bold text-muted-foreground/80 flex items-center gap-1 uppercase tracking-wider">
-                                    <Clock className="h-3 w-3" />
-                                    Ends in {timeLeft}
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-
-                            {/* Admin actions */}
-                            {isAdmin && (
-                              <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Link
-                                    href={`/logiclab/admin/edit/${potd.problem_id}`}
-                                    className="p-2 hover:bg-background rounded-md text-muted-foreground hover:text-emerald-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
-                                    title="Edit Problem"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Link>
-                                </div>
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })()}
-                      
-                      {/* Divider for POTD */}
-                      {potd && (
-                        <TableRow className="border-b-4 border-muted/50 hover:bg-transparent cursor-default h-1">
-                          <TableCell colSpan={6} className="p-0"></TableCell>
-                        </TableRow>
-                      )}
-
-                      {(potd ? problems.filter(p => p.id !== potd.problem_id) : problems).map((problem, idx) => (
+                      {problems.map((problem, idx) => (
                         <TableRow
                           key={problem.id}
                           onClick={() => router.push(`/logiclab/problems/${problem.id}`)}
@@ -1052,7 +916,7 @@ export function ProblemsDirectoryClient({
           </div>
         </div>
       )}
-      <PotdHistoryModal open={isHistoryModalOpen} onOpenChange={setIsHistoryModalOpen} />
+
     </div>
   )
 }

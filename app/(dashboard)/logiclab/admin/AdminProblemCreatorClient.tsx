@@ -444,12 +444,9 @@ export function AdminProblemCreatorClient({
 
       let result;
       if (isEdit) {
-        const { data, error } = await (supabase as any)
-          .from("coding_problems")
-          .update(payload)
-          .eq("id", initialProblem.id)
-          .select("id")
-          .single()
+        const { data, error } = await (supabase as any).functions.invoke('update-problem', {
+          body: { problemId: initialProblem.id, data: payload },
+        })
         result = { data, error }
       } else {
         const { data, error } = await (supabase as any)

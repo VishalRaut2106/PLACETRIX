@@ -24,23 +24,8 @@ export async function GET() {
       return NextResponse.json({ success: true, potd: existingPotd })
     }
 
-    // 2. If it doesn't exist, trigger the Postgres function to generate it.
-    // This pushes the O(1) random selection down to the database level,
-    // avoiding the O(N) memory leak of pulling all problems into Node.
-    await supabase.rpc("generate_daily_potd")
-
-    // 3. Fetch the newly generated POTD
-    const { data: newPotd, error } = await supabase
-      .from("daily_challenges")
-      .select("problem_id, coding_problems ( id, title, difficulty )")
-      .eq("date", today)
-      .single()
-
-    if (error || !newPotd) {
-      return NextResponse.json({ success: false, error: "Failed to generate POTD." }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, potd: newPotd })
+    // If it doesn't exist yet, we just return nothing, because the Edge Function handles creation.
+    return NextResponse.json({ success: true, potd: null })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
