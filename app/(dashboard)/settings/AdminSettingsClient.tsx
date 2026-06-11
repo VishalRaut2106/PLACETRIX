@@ -669,6 +669,35 @@ export function AdminSettingsClient({ userProfile }: Props) {
                 ))}
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Data Management</CardTitle>
+                <CardDescription>Export or request account removal</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    toast.info(
+                      "To export your account data, please contact our support team at 360viewtech@gmail.com."
+                    )
+                  }
+                >
+                  Export Admin Data
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() =>
+                    toast.info(
+                      "To request deletion of your account, please contact our support team at 360viewtech@gmail.com."
+                    )
+                  }
+                >
+                  Request Account Deletion
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </div>
       </Tabs>

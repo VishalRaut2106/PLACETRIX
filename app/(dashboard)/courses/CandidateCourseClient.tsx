@@ -259,32 +259,15 @@ export function CandidateCourseClient({ initialCourses }: { initialCourses: Cour
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
 
-  // Restore progress & view mode from localStorage
+  // Restore view mode from localStorage & sync initialCourses
   useEffect(() => {
     if (typeof window === "undefined") return
-    const saved = localStorage.getItem("placetrix_courses_progress")
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as Course[]
-        const merged = initialCourses.map(templateCourse => {
-          const savedCourse = parsed.find(c => c.id === templateCourse.id)
-          if (!savedCourse) return templateCourse
-          return {
-            ...templateCourse,
-            modules: templateCourse.modules.map(templateMod => {
-              const savedMod = savedCourse.modules?.find(m => m.id === templateMod.id)
-              return { ...templateMod, completed: savedMod ? savedMod.completed : templateMod.completed }
-            }),
-          }
-        })
-        setCourses(merged)
-        localStorage.setItem("placetrix_courses_progress", JSON.stringify(merged))
-      } catch (e) {
-        console.error("Failed to parse courses progress:", e)
-      }
-    }
     const savedView = localStorage.getItem("placetrix_courses_view")
     if (savedView === "list" || savedView === "grid") setViewMode(savedView)
+  }, [])
+
+  useEffect(() => {
+    setCourses(initialCourses)
   }, [initialCourses])
 
   const handleViewToggle = (mode: "grid" | "list") => {

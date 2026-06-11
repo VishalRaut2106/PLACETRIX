@@ -674,8 +674,27 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
             <Card>
               <CardHeader><CardTitle>Data Management</CardTitle><CardDescription>Export or delete your account data</CardDescription></CardHeader>
               <CardContent className="flex flex-wrap gap-3">
-                <Button variant="outline">Export All Data</Button>
-                <Button variant="outline" className="text-destructive hover:text-destructive">Request Account Deletion</Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    toast.info(
+                      "To export your account data, please contact our support team at 360viewtech@gmail.com."
+                    )
+                  }
+                >
+                  Export All Data
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() =>
+                    toast.info(
+                      "To request deletion of your account, please contact our support team at 360viewtech@gmail.com."
+                    )
+                  }
+                >
+                  Request Account Deletion
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

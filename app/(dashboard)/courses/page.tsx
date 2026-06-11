@@ -71,20 +71,31 @@ export default async function CoursesPage() {
     .eq("is_published", true)
     .order("created_at", { ascending: false })
 
-  const { data: dbModules } = await (supabase as any)
-    .from("course_modules")
-    .select("*")
-    .order("order_index", { ascending: true })
+  const courseIds = (dbCourses ?? []).map((c: any) => c.id)
 
-  const { data: dbEnrollments } = await (supabase as any)
-    .from("course_enrollments")
-    .select("*")
-    .eq("user_id", profile.id)
+  const { data: dbModules } = courseIds.length > 0
+    ? await (supabase as any)
+        .from("course_modules")
+        .select("id, course_id, title, description, type, duration, order_index")
+        .in("course_id", courseIds)
+        .order("order_index", { ascending: true })
+    : { data: [] }
 
-  const { data: dbProgress } = await (supabase as any)
-    .from("course_module_progress")
-    .select("*")
-    .eq("user_id", profile.id)
+  const { data: dbEnrollments } = courseIds.length > 0
+    ? await (supabase as any)
+        .from("course_enrollments")
+        .select("course_id")
+        .eq("user_id", profile.id)
+        .in("course_id", courseIds)
+    : { data: [] }
+
+  const { data: dbProgress } = courseIds.length > 0
+    ? await (supabase as any)
+        .from("course_module_progress")
+        .select("module_id, completed")
+        .eq("user_id", profile.id)
+        .in("course_id", courseIds)
+    : { data: [] }
 
   // Map database structures to Candidate UI structures
   const formattedCandidateCourses = (dbCourses ?? []).map((course: any) => {

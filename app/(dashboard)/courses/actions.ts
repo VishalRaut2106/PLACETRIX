@@ -118,36 +118,63 @@ export async function updateCourseAction(
     throw new Error(courseError.message || "Failed to update course.")
   }
 
-  // 2. Re-sync modules: delete existing and insert new
-  const { error: deleteError } = await (supabase as any)
+  // 2. Re-sync modules: diff and execute delta updates
+  // A. Fetch current database modules
+  const { data: dbModules, error: fetchError } = await (supabase as any)
     .from("course_modules")
-    .delete()
+    .select("id")
     .eq("course_id", courseId)
 
-  if (deleteError) {
-    console.error("Error clearing existing course modules:", deleteError)
-    throw new Error(deleteError.message || "Failed to update course modules (clear phase).")
+  if (fetchError) {
+    console.error("Error fetching existing course modules:", fetchError)
+    throw new Error(fetchError.message || "Failed to update course modules (fetch phase).")
   }
 
-  if (modules && modules.length > 0) {
-    const modulesToInsert = modules.map((mod, index) => ({
-      course_id: courseId,
-      title: mod.title,
-      description: mod.description || null,
-      duration: mod.duration || null,
-      type: mod.type || "text",
-      content: mod.content || null,
-      order_index: index,
-      updated_at: new Date().toISOString(),
-    }))
+  const dbModuleIds: string[] = (dbModules ?? []).map((m: any) => m.id as string)
+  const incomingModuleIds = new Set(
+    modules
+      .map((m) => m.id)
+      .filter((id: string | undefined): id is string => !!id && !id.startsWith("temp-"))
+  )
 
-    const { error: modulesError } = await (supabase as any)
+  // B. Delete modules that are in DB but missing from the updated list
+  const toDelete = dbModuleIds.filter((id: string) => !incomingModuleIds.has(id))
+  if (toDelete.length > 0) {
+    const { error: deleteError } = await (supabase as any)
       .from("course_modules")
-      .insert(modulesToInsert)
+      .delete()
+      .in("id", toDelete)
 
-    if (modulesError) {
-      console.error("Error updating course modules:", modulesError)
-      throw new Error(modulesError.message || "Failed to update course modules (insert phase).")
+    if (deleteError) {
+      console.error("Error deleting old course modules:", deleteError)
+      throw new Error(deleteError.message || "Failed to update course modules (delete phase).")
+    }
+  }
+
+  // C. Upsert modules
+  if (modules && modules.length > 0) {
+    const modulesToUpsert = modules.map((mod, index) => {
+      const isNew = !mod.id || mod.id.startsWith("temp-")
+      return {
+        ...(isNew ? {} : { id: mod.id }),
+        course_id: courseId,
+        title: mod.title,
+        description: mod.description || null,
+        duration: mod.duration || null,
+        type: mod.type || "text",
+        content: mod.content || null,
+        order_index: index,
+        updated_at: new Date().toISOString(),
+      }
+    })
+
+    const { error: upsertError } = await (supabase as any)
+      .from("course_modules")
+      .upsert(modulesToUpsert)
+
+    if (upsertError) {
+      console.error("Error upserting course modules:", upsertError)
+      throw new Error(upsertError.message || "Failed to update course modules (upsert phase).")
     }
   }
 

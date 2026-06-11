@@ -80,30 +80,35 @@ export default async function CourseDetailPage({ params }: PageProps) {
 
     const totalModules = courseModules.length
 
-    // For each enrolled user, get their module progress count and certificate
-    const studentPromises = (enrollments ?? []).map(async (enr: any) => {
+    // Bulk fetch progress counts for all users in this course
+    const { data: progressRows } = await (supabase as any)
+      .from("course_module_progress")
+      .select("user_id")
+      .eq("course_id", courseId)
+      .eq("completed", true)
+
+    // Build lookup map: user_id -> count of completed modules
+    const progressMap: Record<string, number> = {}
+    progressRows?.forEach((row: any) => {
+      progressMap[row.user_id] = (progressMap[row.user_id] || 0) + 1
+    })
+
+    // Bulk fetch certificates for this course
+    const { data: certRows } = await (supabase as any)
+      .from("course_certificates")
+      .select("user_id, id")
+      .eq("course_id", courseId)
+
+    // Build lookup set of user_ids with certificates
+    const certSet = new Set<string>(certRows?.map((c: any) => c.user_id) ?? [])
+
+    const students = (enrollments ?? []).map((enr: any) => {
       const userId = enr.user_id
       const displayName = enr.profiles?.display_name ?? null
       const email = enr.profiles?.email ?? "unknown@email.com"
 
-      // Count completed modules
-      const { count: completedCount } = await (supabase as any)
-        .from("course_module_progress")
-        .select("id", { count: "exact", head: true })
-        .eq("course_id", courseId)
-        .eq("user_id", userId)
-        .eq("completed", true)
-
-      const modulesCompleted = completedCount ?? 0
+      const modulesCompleted = progressMap[userId] || 0
       const completionPct = totalModules > 0 ? Math.round((modulesCompleted / totalModules) * 100) : 0
-
-      // Check certificate
-      const { data: cert } = await (supabase as any)
-        .from("course_certificates")
-        .select("id")
-        .eq("course_id", courseId)
-        .eq("user_id", userId)
-        .maybeSingle()
 
       return {
         enrollment_id: enr.id,
@@ -114,11 +119,9 @@ export default async function CourseDetailPage({ params }: PageProps) {
         modules_completed: modulesCompleted,
         total_modules: totalModules,
         completion_pct: completionPct,
-        has_certificate: !!cert,
+        has_certificate: certSet.has(userId),
       }
     })
-
-    const students = await Promise.all(studentPromises)
 
     const adminCourse = {
       id: course.id,

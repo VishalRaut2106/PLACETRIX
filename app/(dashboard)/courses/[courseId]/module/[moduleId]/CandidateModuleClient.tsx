@@ -248,7 +248,7 @@ export function CandidateModuleClient({ course, module }: Props) {
 
           {/* Progress Card */}
           <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
-            <CardHeader className="pb-3">
+            <CardHeader>
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Course Progress
               </CardTitle>

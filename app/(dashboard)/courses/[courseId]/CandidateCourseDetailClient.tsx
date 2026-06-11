@@ -403,7 +403,7 @@ export function CandidateCourseDetailClient({ course, isEnrolled, certificateId,
             </Card>
           ) : (
             <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
-              <CardHeader className="">
+              <CardHeader>
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Course Progress
                 </CardTitle>
