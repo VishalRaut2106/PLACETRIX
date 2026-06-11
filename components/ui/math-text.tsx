@@ -24,10 +24,8 @@ type Segment =
 /** Split a raw string into alternating text / math segments. */
 function parseSegments(raw: string): Segment[] {
     const segments: Segment[] = []
-    // Match $$...$$ first (display), then $...$ (inline).
-    // [^$]+ allows any character (including newlines) except a second $,
-    // so multi-line or complex expressions don't silently fall through.
-    const re = /\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g
+    // Match $$...$$ (display), \[...\] (display), $...$ (inline), \(...\) (inline)
+    const re = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$]+?)\$|\\\(([\s\S]+?)\\\)/g
     let lastIndex = 0
     let match: RegExpExecArray | null
 
@@ -40,9 +38,15 @@ function parseSegments(raw: string): Segment[] {
         if (match[1] !== undefined) {
             // Display math $$...$$
             segments.push({ type: "math", value: match[1], display: true })
-        } else {
+        } else if (match[2] !== undefined) {
+            // Display math \[...\]
+            segments.push({ type: "math", value: match[2], display: true })
+        } else if (match[3] !== undefined) {
             // Inline math $...$
-            segments.push({ type: "math", value: match[2], display: false })
+            segments.push({ type: "math", value: match[3], display: false })
+        } else if (match[4] !== undefined) {
+            // Inline math \(...\)
+            segments.push({ type: "math", value: match[4], display: false })
         }
 
         lastIndex = re.lastIndex

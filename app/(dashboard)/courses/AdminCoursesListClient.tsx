@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { deleteCourseAction } from "./actions"
@@ -342,8 +343,27 @@ export function AdminCoursesListClient({ courses: initialCourses }: Props) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in duration-300">
               {filteredAndSortedCourses.map((course) => {
+                const levelColor = course.level === "Beginner" 
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" 
+                  : course.level === "Intermediate" 
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" 
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+
+                const dotColor = course.level === "Beginner" 
+                  ? "bg-emerald-500" 
+                  : course.level === "Intermediate" 
+                    ? "bg-amber-500" 
+                    : "bg-rose-500"
+
                 return (
-                  <Card key={course.id} className="group flex flex-col justify-between overflow-hidden border border-border/50 dark:border-zinc-800/80 bg-card hover:border-primary/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 h-full p-0 gap-0">
+                  <Card
+                    key={course.id}
+                    className={cn(
+                      "group flex flex-col justify-between overflow-hidden border border-border/50 dark:border-zinc-800/80 bg-card",
+                      "hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(99,102,241,0.08)] hover:-translate-y-1.5",
+                      "transition-all duration-300 h-full p-0 gap-0"
+                    )}
+                  >
                     <div className="flex flex-col h-full">
                       {/* Cover Image Area */}
                       <div className="aspect-video w-full overflow-hidden bg-muted relative rounded-t-xl">
@@ -353,14 +373,14 @@ export function AdminCoursesListClient({ courses: initialCourses }: Props) {
 
                         {/* Badge overlay */}
                         {course.badge && (
-                          <span className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
+                          <span className="absolute top-2.5 left-2.5 backdrop-blur-md bg-black/60 text-white border border-white/10 text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
                             {course.badge}
                           </span>
                         )}
 
                         {/* Published / Draft pill */}
                         <span className={cn(
-                          "absolute top-2.5 right-2.5 border text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/75 backdrop-blur-xs",
+                          "absolute top-2.5 right-2.5 border text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/65 backdrop-blur-xs",
                           course.is_published
                             ? "text-emerald-400 border-emerald-500/25"
                             : "text-amber-400 border-amber-500/25"
@@ -371,36 +391,49 @@ export function AdminCoursesListClient({ courses: initialCourses }: Props) {
 
                       {/* Info Area */}
                       <div className="flex flex-col flex-1">
-                        <CardHeader className="px-4 pt-4 pb-0 gap-1.5">
+                        <CardHeader className="px-4 pt-4 pb-0 gap-2">
                           {/* Instructor details row */}
-                          <div className="flex items-center gap-1.5">
-                            {course.instructor_avatar_path ? (
-                              <img
-                                src={buildStorageUrl("avatars", course.instructor_avatar_path) || ""}
-                                alt=""
-                                className="h-4 w-4 rounded-full object-cover shrink-0 border border-primary/25"
-                              />
-                            ) : (
-                              <div className="h-4 w-4 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center font-bold text-[9px] text-primary shrink-0">
-                                {course.instructor_name?.charAt(0) ?? "I"}
-                              </div>
-                            )}
-                            <span className="text-[11px] text-muted-foreground font-medium truncate">
-                              {course.instructor_name || "Instructor"}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {course.instructor_avatar_path ? (
+                                <img
+                                  src={buildStorageUrl("avatars", course.instructor_avatar_path) || ""}
+                                  alt=""
+                                  className="h-4.5 w-4.5 rounded-full object-cover shrink-0 border border-primary/20"
+                                />
+                              ) : (
+                                <div className="h-4.5 w-4.5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-[9px] text-primary shrink-0">
+                                  {course.instructor_name?.charAt(0) ?? "I"}
+                                </div>
+                              )}
+                              <span className="text-[10px] text-muted-foreground font-medium truncate">
+                                {course.instructor_name || "Instructor"}
+                              </span>
+                            </div>
+
+                            {/* Type badge */}
+                            <span className="text-[9px] font-semibold text-muted-foreground/85 uppercase tracking-wider bg-muted px-2 py-0.5 rounded-md border border-border/40 whitespace-nowrap">
+                              {course.type || "Course"}
                             </span>
                           </div>
 
                           {/* Title */}
-                          <CardTitle className="font-semibold text-sm text-foreground leading-snug line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors duration-200">
+                          <CardTitle className="font-semibold text-[13px] text-foreground leading-snug line-clamp-2 min-h-[40px] group-hover:text-primary transition-colors duration-200">
                             {course.title}
                           </CardTitle>
 
-                          {/* Type · Level */}
-                          <CardDescription className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                            <span className="font-medium text-foreground/80">{course.type || "Course"}</span>
-                            <span className="text-muted-foreground/30">•</span>
-                            <span className="capitalize">{course.level}</span>
-                          </CardDescription>
+                          {/* Description */}
+                          <p className="text-[11px] text-muted-foreground/80 line-clamp-2 leading-relaxed min-h-[32px]">
+                            {course.description}
+                          </p>
+
+                          {/* Level badge */}
+                          <div className="flex items-center pt-0.5">
+                            <Badge variant="outline" className={cn("text-[9px] font-semibold flex items-center gap-1 px-2 py-0 h-5 rounded-full uppercase tracking-wider", levelColor)}>
+                              <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+                              {course.level}
+                            </Badge>
+                          </div>
                         </CardHeader>
 
                         {/* Bottom Stats + Actions */}
@@ -410,11 +443,11 @@ export function AdminCoursesListClient({ courses: initialCourses }: Props) {
                             {/* Quick stats row */}
                             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                               <span className="inline-flex items-center gap-1">
-                                <BookOpen className="h-3 w-3" />
+                                <BookOpen className="h-3.5 w-3.5" />
                                 {course.modules_count} module{course.modules_count !== 1 ? "s" : ""}
                               </span>
                               <span className="inline-flex items-center gap-1">
-                                <Users className="h-3 w-3" />
+                                <Users className="h-3.5 w-3.5" />
                                 {course.enrollments_count} enrolled
                               </span>
                             </div>

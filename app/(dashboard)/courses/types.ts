@@ -15,6 +15,7 @@ export interface Course {
   duration: string
   type: "Specialization" | "Professional Certificate" | "Course"
   cover_image_path?: string
+  badge?: string | null
   instructor: {
     name: string
     role: string

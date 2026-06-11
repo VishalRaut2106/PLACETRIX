@@ -122,6 +122,7 @@ export default async function CoursesPage() {
       level: course.level as any,
       duration: course.duration,
       type: course.type as any,
+      badge: course.badge || null,
       cover_image_path: course.cover_image_path || undefined,
       instructor: {
         name: course.instructor?.display_name || "Instructor",

@@ -32,6 +32,7 @@ interface Props {
     level: string
     duration: string
     type: string
+    badge?: string | null
     cover_image_path?: string | null
     instructor_id?: string | null
     is_published: boolean
@@ -58,12 +59,8 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
   const [title, setTitle] = useState(initialCourse?.title ?? "")
   const [description, setDescription] = useState(initialCourse?.description ?? "")
   const [level, setLevel] = useState(initialCourse?.level ?? "Beginner")
-  const [duration, setDuration] = useState<string>(() => {
-    if (!initialCourse?.duration) return ""
-    const mins = parseDurationToMinutes(initialCourse.duration)
-    return mins > 0 ? String(mins) : ""
-  })
   const [courseType, setCourseType] = useState(initialCourse?.type ?? "Course")
+  const [badge, setBadge] = useState<string>(initialCourse?.badge ?? "")
   const [coverImagePath, setCoverImagePath] = useState<string | null>(
     initialCourse?.cover_image_path ?? null
   )
@@ -71,6 +68,12 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
 
   // ── Modules state ────────────────────────────────────────────────────────────
   const [modules, setModules] = useState<AdminModuleInput[]>(initialModules)
+
+  // Course duration is auto-calculated from the sum of all module durations
+  const computedDuration = modules.reduce((sum, mod) => {
+    return sum + (mod.duration ? parseDurationToMinutes(mod.duration) : 0)
+  }, 0)
+  const duration = String(computedDuration)
 
   // ── UI state ─────────────────────────────────────────────────────────────────
   const [isUploading, setIsUploading] = useState(false)
@@ -133,12 +136,12 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
       if (uploadError) throw uploadError
 
       const imageUrl = buildStorageUrl("course-attachments", filePath)
-      const markdownImage = `\n\n![Image](${imageUrl})\n`
+      const latexFigure = `\n\n\\begin{figure}[h]\n  \\centering\n  \\includegraphics{${imageUrl}}\n  \\caption{Attachment}\n\\end{figure}\n`
 
-      // Append the markdown image to the module's content
+      // Append the LaTeX figure to the module's content
       const currentContent = modules[index].content ?? ""
-      updateModuleField(index, "content", currentContent + markdownImage)
-      toast.success("Image uploaded and added to markdown content successfully!")
+      updateModuleField(index, "content", currentContent + latexFigure)
+      toast.success("Image uploaded and added to LaTeX content successfully!")
     } catch (err: any) {
       toast.error(err.message ?? "Failed to upload module image.")
     } finally {
@@ -196,7 +199,7 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
         level,
         duration,
         type: courseType,
-        badge: null,
+        badge: badge.trim() || null,
         cover_image_path: coverImagePath,
         instructor_id: initialCourse?.instructor_id || adminProfile?.id || null,
         is_published: isPublished,
@@ -312,7 +315,7 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="course-level">Level</Label>
                     <Select value={level} onValueChange={setLevel}>
@@ -329,15 +332,15 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
 
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="course-duration">
-                      Duration (in mins) <span className="text-destructive">*</span>
+                      Duration (in mins) <span className="text-muted-foreground text-[10px]">(Auto-calculated)</span>
                     </Label>
                     <Input
                       id="course-duration"
                       type="number"
-                      min="1"
-                      placeholder="e.g. 120"
+                      placeholder="0"
                       value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
+                      disabled
+                      className="bg-muted cursor-not-allowed font-medium"
                     />
                   </div>
 
@@ -353,6 +356,17 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                         <SelectItem value="Professional Certificate">Professional Certificate</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="course-badge">Badge / Category</Label>
+                    <Input
+                      id="course-badge"
+                      placeholder="e.g. Hot, SQL, Python"
+                      value={badge}
+                      onChange={(e) => setBadge(e.target.value)}
+                      maxLength={30}
+                    />
                   </div>
                 </div>
 
