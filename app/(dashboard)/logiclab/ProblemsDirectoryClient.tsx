@@ -26,6 +26,7 @@ import {
   Dices,
   Clock,
   CalendarDays,
+  Trophy,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -50,6 +51,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 
 interface Problem {
@@ -112,11 +123,11 @@ function ConcentricRing({ radius, value, max, color, trackColor }: { radius: num
   const circumference = 2 * Math.PI * radius
   const percent = max > 0 ? value / max : 0
   const strokeDashoffset = circumference - percent * circumference
-  
+
   return (
     <g transform="rotate(-90 50 50)">
       <circle cx="50" cy="50" r={radius} fill="none" stroke={trackColor} strokeWidth="8" />
-      <circle 
+      <circle
         cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="8"
         strokeDasharray={circumference} strokeDashoffset={mounted ? strokeDashoffset : circumference}
         strokeLinecap="round"
@@ -152,6 +163,7 @@ export function ProblemsDirectoryClient({
   const [showAllTags, setShowAllTags] = useState(false)
   const [showMetrics, setShowMetrics] = useState(true)
   const isOwnUpdateRef = useRef(false)
+  const cellRadiusClass = "rounded-[calc(var(--radius)*0.25)] sm:rounded-[calc(var(--radius)*0.2)]"
 
   const [potd, setPotd] = useState<any>(initialPotd)
   const [timeLeft, setTimeLeft] = useState<string>("")
@@ -190,23 +202,38 @@ export function ProblemsDirectoryClient({
       const now = new Date();
       const nextMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
       const diff = nextMidnight.getTime() - now.getTime();
-      
+
       if (diff <= 0) {
         setTimeLeft("00h 00m 00s");
         return;
       }
-      
+
       const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
       const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
       const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
-      
+
       setTimeLeft(`${h}h ${m}m ${s}s`);
     };
-    
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [potd]);
+
+  const activeChallenge = useMemo(() => {
+    if (fullPotdProblem) return fullPotdProblem;
+    if (!potd) return null;
+    const pId = potd.problem_id || potd.coding_problems?.id;
+    const found = problems.find((p) => p.id === pId);
+    if (found) return found;
+    return {
+      title: potd.coding_problems?.title,
+      difficulty: potd.coding_problems?.difficulty,
+      tags: [],
+      solved_status: null,
+      acceptance_rate: null,
+      total_submissions: 0
+    };
+  }, [fullPotdProblem, potd, problems]);
 
   const handleRandomProblem = async () => {
     const toastId = toast.loading("Picking a random problem...")
@@ -228,14 +255,14 @@ export function ProblemsDirectoryClient({
   const alignedWeeks = useMemo(() => {
     const result: CalendarCell[][] = []
     let currentWeek: CalendarCell[] = []
-    
+
     if (!activityData.activityCalendar || activityData.activityCalendar.length === 0) return result
-    
+
     const firstDay = activityData.activityCalendar[0].dayOfWeek
     for (let i = 0; i < firstDay; i++) {
       currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
     }
-    
+
     activityData.activityCalendar.forEach((cell) => {
       currentWeek.push(cell)
       if (cell.dayOfWeek === 6) {
@@ -243,7 +270,7 @@ export function ProblemsDirectoryClient({
         currentWeek = []
       }
     })
-    
+
     if (currentWeek.length > 0) {
       const lastDay = currentWeek[currentWeek.length - 1].dayOfWeek
       for (let i = lastDay + 1; i <= 6; i++) {
@@ -251,50 +278,74 @@ export function ProblemsDirectoryClient({
       }
       result.push(currentWeek)
     }
-    
-    return result.slice(-26)
+
+    return result.slice(-20)
   }, [activityData.activityCalendar])
 
-  const visibleMonths = useMemo(() => {
-    const list: string[] = []
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const { displayColumns, visibleMonthLabels } = useMemo(() => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const cols: any[] = [];
+    const labels: string[] = [];
 
-    let lastPushedLabel = ""
+    let currentMonthStr = "";
 
     alignedWeeks.forEach((week) => {
-      const monthCounts: Record<string, number> = {}
+      const monthsInWeek: string[] = [];
       week.forEach((cell) => {
-        if (!cell.date) return
-        const parts = cell.date.split("-")
-        if (parts.length >= 2) {
-          const m = parts[1]
-          monthCounts[m] = (monthCounts[m] || 0) + 1
+        if (cell && cell.date) {
+          const m = cell.date.substring(0, 7);
+          if (!monthsInWeek.includes(m)) monthsInWeek.push(m);
         }
-      })
+      });
 
-      let maxMonth = ""
-      let maxCount = 0
-      Object.entries(monthCounts).forEach(([m, count]) => {
-        if (count > maxCount) {
-          maxCount = count
-          maxMonth = m
+      if (monthsInWeek.length === 2) {
+        const m1 = monthsInWeek[0];
+        const m2 = monthsInWeek[1];
+
+        const part1 = week.map((c) =>
+          c && c.date && c.date.substring(0, 7) === m1 ? c : { date: "", count: 0, status: "none", dayOfWeek: c?.dayOfWeek || 0 }
+        );
+        const part2 = week.map((c) =>
+          c && c.date && c.date.substring(0, 7) === m2 ? c : { date: "", count: 0, status: "none", dayOfWeek: c?.dayOfWeek || 0 }
+        );
+
+        if (currentMonthStr === "") {
+          currentMonthStr = m1;
+          labels.push(monthNames[parseInt(m1.split("-")[1], 10) - 1]);
+        } else {
+          labels.push("");
         }
-      })
+        cols.push(part1);
 
-      if (!maxMonth) {
-        list.push("")
-        return
-      }
+        cols.push("GAP");
+        labels.push("");
 
-      const label = monthNames[parseInt(maxMonth, 10) - 1] || ""
-      if (label !== lastPushedLabel) {
-        list.push(label)
-        lastPushedLabel = label
+        cols.push(part2);
+        labels.push(monthNames[parseInt(m2.split("-")[1], 10) - 1]);
+        currentMonthStr = m2;
+      } else if (monthsInWeek.length === 1) {
+        const m = monthsInWeek[0];
+        if (currentMonthStr !== "" && m !== currentMonthStr) {
+          cols.push("GAP");
+          labels.push("");
+          cols.push(week);
+          labels.push(monthNames[parseInt(m.split("-")[1], 10) - 1]);
+        } else {
+          cols.push(week);
+          if (currentMonthStr === "") {
+            labels.push(monthNames[parseInt(m.split("-")[1], 10) - 1]);
+          } else {
+            labels.push("");
+          }
+        }
+        currentMonthStr = m;
       } else {
-        list.push("")
+        cols.push(week);
+        labels.push("");
       }
-    })
-    return list
+    });
+
+    return { displayColumns: cols, visibleMonthLabels: labels };
   }, [alignedWeeks])
 
   // Modal deletion state
@@ -380,7 +431,7 @@ export function ProblemsDirectoryClient({
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-4xl font-bold font-cirka tracking-tight text-foreground">LogicLab</h1>
+          <h1 className="text-4xl font-bold font-cirka tracking-tight text-foreground">Logic Lab</h1>
           <p className="text-base text-muted-foreground">
             Master your coding skills with our curated problem set.
           </p>
@@ -388,19 +439,19 @@ export function ProblemsDirectoryClient({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button variant="outline" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground transition-colors shrink-0" onClick={() => setShowMetrics(!showMetrics)} title="Toggle Dashboard">
-            {showMetrics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => setShowMetrics(!showMetrics)} title="Toggle Dashboard">
+            {showMetrics ? <ChevronUp /> : <ChevronDown />}
           </Button>
 
-          <Button asChild variant="outline" size="icon" className="h-10 w-10 shrink-0" title="Playground">
+          <Button asChild variant="outline" size="icon" className="shrink-0" title="Playground">
             <Link href="/logiclab/playground" className="flex items-center justify-center">
-              <Terminal className="h-4 w-4" />
+              <Terminal />
             </Link>
           </Button>
           {isAdmin && (
-            <Button asChild size="icon" className="h-10 w-10 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0" title="Create Problem">
+            <Button asChild size="icon" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0" title="Create Problem">
               <Link href="/logiclab/admin" className="flex items-center justify-center">
-                <Plus className="h-4 w-4" />
+                <Plus />
               </Link>
             </Button>
           )}
@@ -411,511 +462,646 @@ export function ProblemsDirectoryClient({
 
       {/* Metrics Row */}
       {showMetrics && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-        {/* Card 1: Progress & Difficulty */}
-        <Card className="lg:col-span-1 shadow-sm border-border/60 flex flex-col justify-between">
-          <CardHeader className="pb-0 pt-3 px-5">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 px-5 h-full flex flex-col justify-center">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex flex-col justify-center">
-                <div className="flex flex-col gap-2 mt-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500"/>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Easy <span className="text-emerald-500 ml-1">{globalStats.easy.solved}</span> <span className="text-muted-foreground/40 text-[10px] ml-0.5">/ {globalStats.easy.total}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"/>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Med <span className="text-amber-500 ml-1">{globalStats.medium.solved}</span> <span className="text-muted-foreground/40 text-[10px] ml-0.5">/ {globalStats.medium.total}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-rose-500"/>
-                    <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Hard <span className="text-rose-500 ml-1">{globalStats.hard.solved}</span> <span className="text-muted-foreground/40 text-[10px] ml-0.5">/ {globalStats.hard.total}</span></span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="relative w-[90px] h-[90px] shrink-0">
-                <svg className="w-full h-full drop-shadow-md" viewBox="0 0 100 100">
-                  <defs>
-                    <linearGradient id="easyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#34d399" />
-                      <stop offset="100%" stopColor="#059669" />
-                    </linearGradient>
-                    <linearGradient id="medGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="100%" stopColor="#d97706" />
-                    </linearGradient>
-                    <linearGradient id="hardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#fb7185" />
-                      <stop offset="100%" stopColor="#be123c" />
-                    </linearGradient>
-                  </defs>
-                  <ConcentricRing radius={40} value={globalStats.easy.solved} max={globalStats.easy.total} color="url(#easyGrad)" trackColor="rgba(16, 185, 129, 0.15)" />
-                  <ConcentricRing radius={28} value={globalStats.medium.solved} max={globalStats.medium.total} color="url(#medGrad)" trackColor="rgba(245, 158, 11, 0.15)" />
-                  <ConcentricRing radius={16} value={globalStats.hard.solved} max={globalStats.hard.total} color="url(#hardGrad)" trackColor="rgba(244, 63, 94, 0.15)" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[22px] font-extrabold">{globalStats.solved}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Activity Heat Map */}
-        <Card className="shadow-sm border-border/60 flex flex-col justify-between">
-          <CardHeader className="pb-0 pt-3 px-5 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity Graph</CardTitle>
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-1.5 font-medium">
-                <Flame className="w-4 h-4 text-orange-500" />
-                <span className="text-foreground">{activityData.streakStats.currentStreak} Day Streak</span>
-              </div>
-              <span className="text-muted-foreground/40">|</span>
-              <div className="text-muted-foreground font-medium text-xs">
-                Max: <span className="text-foreground">{activityData.streakStats.maxStreak}</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center p-3 pt-2">
-            <div className="flex gap-2 w-full overflow-x-auto scrollbar-none">
-              
-              {/* Day Labels */}
-              <div className="flex flex-col gap-[3px] mt-[16px] shrink-0 text-[10px] leading-[12px] text-muted-foreground/60 font-medium">
-                <div className="h-[12px] flex items-center justify-end" />
-                <div className="h-[12px] flex items-center justify-end">Mon</div>
-                <div className="h-[12px] flex items-center justify-end" />
-                <div className="h-[12px] flex items-center justify-end">Wed</div>
-                <div className="h-[12px] flex items-center justify-end" />
-                <div className="h-[12px] flex items-center justify-end">Fri</div>
-                <div className="h-[12px] flex items-center justify-end" />
-              </div>
-              
-              <div className="flex flex-col gap-1 w-full">
-                {/* Month Labels */}
-                <div className="flex gap-[3px]">
-                  {visibleMonths.map((monthStr, i) => (
-                    <div key={i} className="w-[12px] shrink-0 text-[10px] leading-none text-muted-foreground/80 font-medium overflow-visible whitespace-nowrap">
-                      {monthStr}
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Grid */}
-                <div className="flex gap-[3px]">
-                  {alignedWeeks.map((week, wIdx) => (
-                    <div key={wIdx} className="flex flex-col gap-[3px] shrink-0">
-                      {week.map((cell, cIdx) => {
-                        if (!cell.date) return <div key={cIdx} className="w-[12px] h-[12px] shrink-0 rounded-[2px] bg-transparent pointer-events-none" />
-                        
-                        let cellColor = "bg-muted/60 dark:bg-muted/30";
-                        if (cell.status === "attempted") {
-                          cellColor = "bg-amber-500/70 border border-amber-500/30";
-                        } else if (cell.status === "solved") {
-                          if (cell.count === 1) cellColor = "bg-emerald-300/80 border border-emerald-300/40 dark:bg-emerald-900/80 dark:border-emerald-900/40";
-                          else if (cell.count <= 3) cellColor = "bg-emerald-400/90 border border-emerald-400/50 dark:bg-emerald-700/90 dark:border-emerald-700/50";
-                          else if (cell.count <= 6) cellColor = "bg-emerald-500 border border-emerald-500/60 dark:bg-emerald-500/90 dark:border-emerald-500/60";
-                          else cellColor = "bg-emerald-600 border border-emerald-600/70 dark:bg-emerald-400 dark:border-emerald-400/70";
-                        }
-
-                        return <div key={cIdx} className={cn("w-[12px] h-[12px] shrink-0 rounded-[2px] cursor-pointer", cellColor)} title={`${cell.date}: ${cell.count} submissions`} />
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Legend */}
-                <div className="flex items-center justify-end gap-1.5 mt-1.5 text-[10px] text-muted-foreground/80 font-medium">
-                  <span>Less</span>
-                  <div className="flex gap-[3px] items-center">
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-muted/60 dark:bg-muted/30" title="0 submissions" />
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-amber-500/70 border border-amber-500/30" title="Attempted" />
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-emerald-300/80 border border-emerald-300/40 dark:bg-emerald-900/80 dark:border-emerald-900/40" title="1 submission" />
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-emerald-400/90 border border-emerald-400/50 dark:bg-emerald-700/90 dark:border-emerald-700/50" title="2-3 submissions" />
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-emerald-500 border border-emerald-500/60 dark:bg-emerald-500/90 dark:border-emerald-500/60" title="4-6 submissions" />
-                    <div className="w-[10px] h-[10px] rounded-[1.5px] bg-emerald-600 border border-emerald-600/70 dark:bg-emerald-400 dark:border-emerald-400/70" title="7+ submissions" />
-                  </div>
-                  <span>More</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: POTD Card */}
-        <Card className="shadow-sm border-border/60 flex flex-col justify-between group overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent opacity-50" />
-          <CardHeader className="pb-0 pt-3 px-5 flex flex-row items-center justify-between relative">
-            <CardTitle className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Flame className="w-4 h-4" />
-              Daily Challenge
-            </CardTitle>
-            {timeLeft && (
-              <div className="text-[10px] font-bold text-muted-foreground/80 flex items-center gap-1 uppercase tracking-wider">
-                <Clock className="h-3 w-3" />
-                {timeLeft}
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="p-5 pt-3 flex flex-col justify-between h-full relative">
-            <div className="space-y-1">
-              <h3 className="font-bold text-lg text-foreground line-clamp-1">{potd?.coding_problems?.title || "Loading..."}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                {potd?.coding_problems?.difficulty && (
-                  <Badge variant="secondary" className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0", DIFFICULTY_COLORS[potd.coding_problems.difficulty])}>
-                    {potd.coding_problems.difficulty}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            <Button 
-              className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white shadow-md transition-all gap-2"
-              onClick={() => potd && router.push(`/logiclab/problems/${potd.problem_id}`)}
-              disabled={!potd}
-            >
-              Solve Now
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-      )}
-
-      {/* Main Content Area */}
-      <div className="flex flex-col gap-4 min-w-0 w-full">
-
-        {/* Table Section */}
-        <Card className="shadow-sm border-border/60 overflow-hidden">
-          {/* Toolbar */}
-          <div className="p-4 border-b border-border/60 bg-muted/10 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            
-            {/* Search & Difficulty (Moved to Left) */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-              <div className="relative w-full sm:w-80">
-                {isPending ? (
-                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
-                ) : (
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                )}
-                <Input
-                  placeholder="Search problems..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-9 pr-9 h-10 w-full bg-background text-sm rounded-lg"
-                />
-                {searchInput && (
-                  <button
-                    onClick={() => {
-                      isOwnUpdateRef.current = true
-                      setSearchInput("")
-                      updateParams({ search: "", page: 1 })
-                    }}
-                    className="absolute right-3 top-2.5 h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <Select value={initialDifficulty} onValueChange={(val) => updateParams({ difficulty: val, page: 1 })}>
-                <SelectTrigger className="h-10 w-full sm:w-[160px] bg-background text-sm rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                    <SelectValue placeholder="Difficulty" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Difficulties</SelectItem>
-                  <SelectItem value="Easy">Easy</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleRandomProblem} variant="outline" size="icon" className="h-10 w-10 shrink-0 text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Pick Random Problem">
-                <Dices className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Tabs (Moved to Right) */}
-            <Tabs value={initialTab} onValueChange={(v) => updateParams({ tab: v, page: 1 })} className="w-full xl:w-auto">
-              <TabsList className="h-10 w-full xl:w-auto p-1 bg-muted/50 overflow-x-auto flex justify-start rounded-xl">
-                <TabsTrigger value="all" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">All</TabsTrigger>
-                <TabsTrigger value="solved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Solved</TabsTrigger>
-                <TabsTrigger value="attempted" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Attempted</TabsTrigger>
-                <TabsTrigger value="unsolved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Unsolved</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          {/* Table Body */}
-          <div className="relative">
-            {isPending && (
-              <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-[1px] flex items-center justify-center min-h-[200px]">
-                <div className="flex flex-col items-center gap-3 rounded-xl border bg-card px-6 py-5 shadow-lg">
-                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                  <span className="text-sm font-medium text-muted-foreground">Loading problems...</span>
-                </div>
-              </div>
-            )}
-
-            <div className={cn("transition-opacity duration-200", isPending && "opacity-40 pointer-events-none")}>
-              {totalCount === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-                  <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
-                    <BookOpen className="h-8 w-8 text-muted-foreground/60" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-lg font-semibold text-foreground">No problems found</p>
-                    <p className="text-sm text-muted-foreground max-w-sm">
-                      We couldn't find any problems matching your current filters. Try adjusting your search or removing some tags.
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={() => updateParams({ search: "All", tag: "All", difficulty: "All", tab: "all", page: 1 })} className="mt-2">
-                    Clear all filters
-                  </Button>
-                </div>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <Table className="min-w-[800px]">
-                    <TableHeader className="bg-muted/10 h-10">
-                      <TableRow className="hover:bg-transparent border-b-border/60">
-                        <TableHead className="w-[80px] pl-6 text-sm font-medium">Status</TableHead>
-                        <TableHead className="text-sm font-medium">Title</TableHead>
-                        <TableHead className="w-[140px] text-sm font-medium">Difficulty</TableHead>
-                        <TableHead className="w-[180px] text-sm font-medium">Acceptance</TableHead>
-                        <TableHead className="w-[200px] text-sm font-medium">Tags</TableHead>
-                        {isAdmin && <TableHead className="text-right pr-6 w-[120px] text-sm font-medium">Actions</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {problems.map((problem, idx) => (
-                        <TableRow
-                          key={problem.id}
-                          onClick={() => router.push(`/logiclab/problems/${problem.id}`)}
-                          className="group cursor-pointer hover:bg-muted/40 transition-colors h-12 border-b-border/60"
-                        >
-                          {/* Status */}
-                          <TableCell className="pl-6">
-                            {problem.solved_status === "Accepted" ? (
-                              <CircleCheck className="h-5 w-5 text-emerald-500 fill-emerald-50 dark:fill-emerald-950/20" />
-                            ) : problem.solved_status ? (
-                              <CircleDot className="h-5 w-5 text-amber-500 fill-amber-50 dark:fill-amber-950/20" />
-                            ) : (
-                              <div className="h-4 w-4 ml-0.5 rounded-full border-2 border-muted-foreground/30" />
-                            )}
-                          </TableCell>
-
-                          {/* Title */}
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm text-muted-foreground/60 font-mono w-6 shrink-0">
-                                {idx + 1 + (activePage - 1) * initialPageSize}.
-                              </span>
-                              <span className="text-base font-medium text-foreground/90 group-hover:text-foreground transition-colors">
-                                {problem.title}
-                              </span>
-                            </div>
-                          </TableCell>
-
-                          {/* Difficulty */}
-                          <TableCell>
-                            <Badge
-                              variant="secondary"
-                              className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md", DIFFICULTY_COLORS[problem.difficulty])}
-                            >
-                              {problem.difficulty}
-                            </Badge>
-                          </TableCell>
-
-                          {/* Acceptance Rate */}
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground/80">
-                                {problem.acceptance_rate !== null ? `${problem.acceptance_rate}%` : "—"}
-                              </span>
-                              {problem.total_submissions > 0 && (
-                                <span className="text-xs text-muted-foreground/60">
-                                  ({problem.total_submissions})
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          {/* Tags */}
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(problem.tags || []).slice(0, 2).map((tag) => (
-                                <Badge
-                                  key={tag}
-                                  variant="secondary"
-                                  className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/80 text-muted-foreground/80 hover:bg-muted border-transparent"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {(problem.tags || []).length > 2 && (
-                                <Badge 
-                                  variant="secondary"
-                                  className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/40 text-muted-foreground/60 hover:bg-muted/50 border-transparent"
-                                >
-                                  +{(problem.tags || []).length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          {/* Admin actions */}
-                          {isAdmin && (
-                            <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Link
-                                  href={`/logiclab/admin/edit/${problem.id}`}
-                                  className="p-2 hover:bg-background rounded-md text-muted-foreground hover:text-emerald-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
-                                  title="Edit Problem"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Link>
-                                <button
-                                  onClick={() => setDeletingProblemId(problem.id)}
-                                  className="p-2 hover:bg-background rounded-md text-muted-foreground/70 hover:text-rose-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
-                                  title="Delete Problem"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-
-              {/* Pagination Footer */}
-              {totalCount > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/60 bg-muted/5">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    <span className="font-medium text-foreground">
-                      {totalCount === 0 ? 0 : Math.min(totalCount, (activePage - 1) * initialPageSize + 1)}
-                    </span>
-                    {" "}to{" "}
-                    <span className="font-medium text-foreground">{Math.min(totalCount, activePage * initialPageSize)}</span>
-                    {" "}of{" "}
-                    <span className="font-medium text-foreground">{totalCount}</span> problems
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page</span>
-                      <Select
-                        value={initialPageSize.toString()}
-                        onValueChange={(val) => updateParams({ size: val, page: 1 })}
-                      >
-                        <SelectTrigger className="h-9 w-[80px] bg-background text-sm">
-                          <SelectValue placeholder={initialPageSize.toString()} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[20, 50, 100].map((s) => (
-                            <SelectItem key={s} value={s.toString()} className="text-sm">{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-9 w-9 bg-background"
-                        onClick={() => updateParams({ page: 1 })} disabled={activePage === 1}>
-                        <ChevronsLeft className="h-4 w-4" />
-                        <span className="sr-only">First page</span>
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9 bg-background"
-                        onClick={() => updateParams({ page: Math.max(1, activePage - 1) })} disabled={activePage === 1}>
-                        <ChevronLeft className="h-4 w-4" />
-                        <span className="sr-only">Previous page</span>
-                      </Button>
-                      <div className="flex items-center justify-center text-sm font-medium min-w-[100px] text-muted-foreground">
-                        Page <span className="text-foreground mx-1">{activePage}</span> of {totalPages}
-                      </div>
-                      <Button variant="outline" size="icon" className="h-9 w-9 bg-background"
-                        onClick={() => updateParams({ page: Math.min(totalPages, activePage + 1) })}
-                        disabled={activePage === totalPages || totalPages === 0}>
-                        <ChevronRight className="h-4 w-4" />
-                        <span className="sr-only">Next page</span>
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-9 w-9 bg-background"
-                        onClick={() => updateParams({ page: totalPages })}
-                        disabled={activePage === totalPages || totalPages === 0}>
-                        <ChevronsRight className="h-4 w-4" />
-                        <span className="sr-only">Last page</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* ── Delete Confirmation Modal ── */}
-      {deletingProblemId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background border border-border rounded-xl shadow-2xl overflow-hidden w-full max-w-md flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 min-w-0">
+          {/* Card 1: Progress & Difficulty */}
+          <div className="lg:col-span-1 shadow-sm border border-border/60 rounded-xl bg-card text-card-foreground min-w-0 flex flex-col p-6">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-muted/80 border-b border-border">
-              <h3 className="text-base font-bold flex items-center gap-2 text-rose-500 uppercase tracking-wider">
-                <AlertTriangle className="h-5 w-5" /> Permanent Deletion
+            <div className="flex flex-row items-center justify-between pb-4 relative shrink-0 flex-wrap gap-2 min-w-0">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                Overall Progress
               </h3>
-              <button
-                onClick={() => setDeletingProblemId(null)}
-                disabled={isDeleting}
-                className="p-1.5 hover:bg-muted rounded-md text-muted-foreground/70 hover:text-foreground transition-colors cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 text-sm text-foreground/80 space-y-4">
-              <p className="text-base">
-                Are you absolutely sure you want to permanently delete this coding problem?
-              </p>
-              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400 font-medium">
-                This action cannot be undone. All associated user submissions and attempts will also be deleted.
+              <div className="text-xs text-muted-foreground/80 flex items-center gap-1 font-medium select-none shrink-0">
+                {globalStats.total > 0 ? Math.round((globalStats.solved / globalStats.total) * 100) : 0}% Solved
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 bg-muted/30 border-t border-border">
+            {/* Content & Footer */}
+            <div className="flex flex-col flex-1 justify-between gap-5">
+              {/* Main Content: Stats and Chart */}
+              <div className="flex items-center justify-between gap-6 min-w-0 w-full my-auto">
+                {/* Stat rows */}
+                <div className="flex flex-col gap-3.5 flex-1 min-w-0">
+                  {/* Easy */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-muted-foreground font-medium truncate">Easy</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
+                      <span className="text-emerald-600 dark:text-emerald-400">{globalStats.easy.solved}</span>
+                      <span className="text-xs text-muted-foreground/50">/ {globalStats.easy.total}</span>
+                    </div>
+                  </div>
+
+                  {/* Medium */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                      <span className="text-muted-foreground font-medium truncate">Medium</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
+                      <span className="text-amber-600 dark:text-amber-400">{globalStats.medium.solved}</span>
+                      <span className="text-xs text-muted-foreground/50">/ {globalStats.medium.total}</span>
+                    </div>
+                  </div>
+
+                  {/* Hard */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                      <span className="text-muted-foreground font-medium truncate">Hard</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
+                      <span className="text-rose-600 dark:text-rose-400">{globalStats.hard.solved}</span>
+                      <span className="text-xs text-muted-foreground/50">/ {globalStats.hard.total}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Concentric ring chart */}
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0">
+                  <svg className="w-full h-full drop-shadow-md" viewBox="0 0 100 100" preserveAspectRatio="xMaxYMid meet">
+                    <defs>
+                      <linearGradient id="easyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#34d399" />
+                        <stop offset="100%" stopColor="#059669" />
+                      </linearGradient>
+                      <linearGradient id="medGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#fbbf24" />
+                        <stop offset="100%" stopColor="#d97706" />
+                      </linearGradient>
+                      <linearGradient id="hardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#fb7185" />
+                        <stop offset="100%" stopColor="#be123c" />
+                      </linearGradient>
+                    </defs>
+                    <ConcentricRing radius={44} value={globalStats.easy.solved} max={globalStats.easy.total} color="url(#easyGrad)" trackColor="rgba(16, 185, 129, 0.15)" />
+                    <ConcentricRing radius={31} value={globalStats.medium.solved} max={globalStats.medium.total} color="url(#medGrad)" trackColor="rgba(245, 158, 11, 0.15)" />
+                    <ConcentricRing radius={18} value={globalStats.hard.solved} max={globalStats.hard.total} color="url(#hardGrad)" trackColor="rgba(244, 63, 94, 0.15)" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Clean Horizontal Progress Bar for Total Progress */}
+              <div className="mt-auto pt-4 border-border/60 select-none space-y-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Total Solved</span>
+                  <span className="font-bold text-foreground">
+                    {globalStats.solved} <span className="text-xs font-normal text-muted-foreground/60">/ {globalStats.total}</span>
+                  </span>
+                </div>
+                <Progress
+                  value={globalStats.total > 0 ? (globalStats.solved / globalStats.total) * 100 : 0}
+                  className="h-1.5 bg-muted/60 [&>div]:bg-blue-500 dark:[&>div]:bg-blue-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Activity Heat Map */}
+          <div className="shadow-sm border border-border/60 rounded-xl bg-card text-card-foreground min-w-0 flex flex-col p-6">
+            <div className="flex flex-row items-center justify-between pb-6 shrink-0 flex-wrap gap-2 min-w-0">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Activity Graph</h3>
+            </div>
+
+            {/* Heatmap Grid Container */}
+            <div className="w-full pb-2">
+              <div
+                className="grid gap-x-[2px] gap-y-[2px] sm:gap-x-[3px] sm:gap-y-[3px] w-full"
+                style={{
+                  gridTemplateColumns: `auto ${displayColumns.map(c => c === "GAP" ? "minmax(4px, 8px)" : "minmax(0, 1fr)").join(" ")}`
+                }}
+              >
+                {/* Month Labels Row */}
+                <div className=""></div>
+                {(() => {
+                  const blocks: { label: string; span: number }[] = [];
+                  let currentLabel: string | null = null;
+                  let currentSpan = 0;
+
+                  displayColumns.forEach((col, wIdx) => {
+                    const m = visibleMonthLabels[wIdx];
+                    if (m) {
+                      if (currentSpan > 0) {
+                        blocks.push({ label: currentLabel || "", span: currentSpan });
+                      }
+                      currentLabel = m;
+                      currentSpan = 1;
+                    } else {
+                      if (currentLabel === null) {
+                        currentLabel = "";
+                      }
+                      currentSpan += 1;
+                    }
+                  });
+                  if (currentSpan > 0) {
+                    blocks.push({ label: currentLabel || "", span: currentSpan });
+                  }
+
+                  return blocks.map((block, i) => (
+                    <div key={`month-block-${i}`} className="relative h-5 flex items-end justify-center pb-1" style={{ gridColumn: `span ${block.span}` }}>
+                      {block.label && (
+                        <span className="text-[10px] font-semibold text-muted-foreground/70 whitespace-nowrap">
+                          {block.label}
+                        </span>
+                      )}
+                    </div>
+                  ));
+                })()}
+
+                {/* Day Rows */}
+                {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => (
+                  <React.Fragment key={dayIndex}>
+                    {/* Y-Axis Label */}
+                    <div className="relative w-6 sm:w-7">
+                      <span className="absolute inset-y-0 right-2 flex items-center text-[10px] font-medium text-muted-foreground/50 leading-none">
+                        {dayIndex === 1 ? "Mon" : dayIndex === 3 ? "Wed" : dayIndex === 5 ? "Fri" : ""}
+                      </span>
+                    </div>
+                    {/* Week Cells for this Day */}
+                    {displayColumns.map((col, wIdx) => {
+                      if (col === "GAP") return <div key={`gap-cell-${dayIndex}-${wIdx}`} className="" />;
+
+                      const cell = col[dayIndex];
+
+                      if (!cell || !cell.date) {
+                        return (
+                          <div
+                            key={`cell-${dayIndex}-${wIdx}`}
+                            className={cn("w-full aspect-square bg-transparent pointer-events-none", cellRadiusClass)}
+                          />
+                        );
+                      }
+
+                      let cellColor = "bg-muted";
+                      if (cell.status === "attempted") {
+                        cellColor = "bg-amber-400/80 dark:bg-amber-500/60";
+                      } else if (cell.status === "solved") {
+                        if (cell.count === 1) cellColor = "bg-emerald-300 dark:bg-emerald-800";
+                        else if (cell.count <= 3) cellColor = "bg-emerald-400 dark:bg-emerald-600";
+                        else if (cell.count <= 6) cellColor = "bg-emerald-500 dark:bg-emerald-500";
+                        else cellColor = "bg-emerald-600 dark:bg-emerald-400";
+                      }
+
+                      return (
+                        <div
+                          key={`cell-${dayIndex}-${wIdx}`}
+                          className={cn(
+                            "w-full aspect-square cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-foreground/20 dark:hover:ring-offset-background",
+                            cellRadiusClass,
+                            cellColor
+                          )}
+                          title={`${cell.date}: ${cell.count} submissions`}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer: Streak and Legend */}
+            <div className="mt-auto pt-5 flex items-end justify-between gap-4 flex-wrap min-w-0 w-full">
+              {/* Legend */}
+              <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground/70 pb-0.5">
+                <span>Less</span>
+                <div className="flex gap-[3px] items-center">
+                  <div className={cn("w-[10px] h-[10px] bg-muted", cellRadiusClass)} title="0 submissions" />
+                  <div className={cn("w-[10px] h-[10px] bg-amber-400/80 dark:bg-amber-500/60", cellRadiusClass)} title="Attempted" />
+                  <div className={cn("w-[10px] h-[10px] bg-emerald-300 dark:bg-emerald-800", cellRadiusClass)} title="1 submission" />
+                  <div className={cn("w-[10px] h-[10px] bg-emerald-400 dark:bg-emerald-600", cellRadiusClass)} title="2-3 submissions" />
+                  <div className={cn("w-[10px] h-[10px] bg-emerald-500 dark:bg-emerald-500", cellRadiusClass)} title="4-6 submissions" />
+                  <div className={cn("w-[10px] h-[10px] bg-emerald-600 dark:bg-emerald-400", cellRadiusClass)} title="7+ submissions" />
+                </div>
+                <span>More</span>
+              </div>
+
+              {/* Streak */}
+              <div className="flex items-center gap-2.5 shrink-0 text-sm font-semibold">
+                <div className="flex items-center gap-1.5 text-foreground">
+                  <Flame className="w-4 h-4 text-orange-500 fill-orange-500/10 shrink-0" />
+                  <span>{activityData.streakStats.currentStreak} day streak</span>
+                </div>
+                <span className="text-muted-foreground/30">|</span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  Max: <span className="text-foreground font-semibold">{activityData.streakStats.maxStreak}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: POTD Card */}
+          <div className="shadow-sm border border-border/60 rounded-xl bg-card text-card-foreground min-w-0 flex flex-col group relative p-6 transition-all hover:border-border/80">
+            <div className="flex flex-row items-center justify-between pb-4 relative shrink-0 flex-wrap gap-2 min-w-0">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                Daily Challenge
+              </h3>
+              {timeLeft && (
+                <div className="text-xs text-muted-foreground/80 flex items-center gap-1 font-medium select-none shrink-0">
+                  <Clock className="h-3.5 w-3.5" />
+                  {timeLeft}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col flex-1 justify-between gap-5 relative">
+              <div className="space-y-4 min-w-0">
+                <div className="space-y-1.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug group-hover:text-primary transition-colors">
+                      {activeChallenge?.title || "Loading..."}
+                    </h3>
+                    {activeChallenge?.solved_status === "Accepted" && (
+                      <CircleCheck className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                    {/* Difficulty (clean inline text) */}
+                    {activeChallenge?.difficulty && (
+                      <span className={cn(
+                        "font-semibold",
+                        activeChallenge.difficulty === "Easy" ? "text-emerald-600 dark:text-emerald-400" :
+                          activeChallenge.difficulty === "Medium" ? "text-amber-600 dark:text-amber-400" :
+                            "text-rose-600 dark:text-rose-400"
+                      )}>
+                        {activeChallenge.difficulty}
+                      </span>
+                    )}
+
+                    <span>•</span>
+
+                    {/* Acceptance rate */}
+                    {activeChallenge?.acceptance_rate !== undefined && activeChallenge?.acceptance_rate !== null && (
+                      <>
+                        <span>{activeChallenge.acceptance_rate}% accept</span>
+                        <span>•</span>
+                      </>
+                    )}
+
+                    {/* Submissions count */}
+                    <span>{activeChallenge?.total_submissions?.toLocaleString() || 0} submissions</span>
+                  </div>
+                </div>
+
+                {/* Clean Tags Row */}
+                {activeChallenge?.tags && activeChallenge.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {activeChallenge.tags.slice(0, 2).map((t: string) => (
+                      <span key={t} className="text-[11px] bg-muted px-2.5 py-1 rounded-md text-muted-foreground font-medium">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Clean Horizontal Progress Bar for Acceptance Rate */}
+                {activeChallenge?.acceptance_rate !== undefined && activeChallenge?.acceptance_rate !== null && (
+                  <div className="space-y-2 pt-2 select-none">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                      <span>Acceptance Rate</span>
+                      <span className="font-semibold text-foreground">{activeChallenge.acceptance_rate}%</span>
+                    </div>
+                    <Progress
+                      value={activeChallenge.acceptance_rate}
+                      className={cn(
+                        "h-1.5 bg-muted/60",
+                        activeChallenge?.solved_status === "Accepted"
+                          ? "[&>div]:bg-emerald-500"
+                          : "[&>div]:bg-orange-500"
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button: Minimal Outline Button */}
               <Button
                 variant="outline"
-                onClick={() => setDeletingProblemId(null)}
-                disabled={isDeleting}
-                className="h-10"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="h-10 px-5 gap-2"
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
+                className={cn(
+                  "w-full mt-2 gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors",
+                  activeChallenge?.solved_status === "Accepted"
+                    ? "border-emerald-500/20 text-emerald-600 dark:border-emerald-500/10 dark:text-emerald-400 hover:bg-transparent hover:text-emerald-600 dark:hover:text-emerald-400"
+                    : "border-orange-500/20 text-orange-600 dark:border-orange-500/10 dark:text-orange-400 hover:bg-transparent hover:text-orange-600 dark:hover:text-orange-400"
                 )}
-                {isDeleting ? "Deleting..." : "Delete Problem"}
+                onClick={() => potd && router.push(`/logiclab/problems/${potd.problem_id}`)}
+                disabled={!potd}
+              >
+                {activeChallenge?.solved_status === "Accepted" ? (
+                  <>
+                    Review Challenge
+                    <CircleCheck className="w-4.5 h-4.5" />
+                  </>
+                ) : (
+                  <>
+                    Solve Challenge
+                    <ChevronRight className="w-4.5 h-4.5" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Toolbar */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+
+        {/* Search & Difficulty (Moved to Left) */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <div className="relative w-full sm:w-80">
+            {isPending ? (
+              <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+            ) : (
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
+            <Input
+              placeholder="Search problems..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-9 h-10 w-full bg-background text-sm rounded-lg"
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  isOwnUpdateRef.current = true
+                  setSearchInput("")
+                  updateParams({ search: "", page: 1 })
+                }}
+                className="absolute right-3 top-2.5 h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Select value={initialDifficulty} onValueChange={(val) => updateParams({ difficulty: val, page: 1 })}>
+            <SelectTrigger className="h-10 w-full sm:w-[160px] bg-background text-sm rounded-lg">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <SelectValue placeholder="Difficulty" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Difficulties</SelectItem>
+              <SelectItem value="Easy">Easy</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="Hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleRandomProblem} variant="outline" size="icon" className="shrink-0 text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Pick Random Problem">
+            <Dices />
+          </Button>
+        </div>
+
+        {/* Tabs (Moved to Right) */}
+        <Tabs value={initialTab} onValueChange={(v) => updateParams({ tab: v, page: 1 })} className="w-full xl:w-auto">
+          <TabsList className="h-10 w-full xl:w-auto p-1 bg-muted/50 overflow-x-auto flex justify-start rounded-xl">
+            <TabsTrigger value="all" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">All</TabsTrigger>
+            <TabsTrigger value="solved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Solved</TabsTrigger>
+            <TabsTrigger value="attempted" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Attempted</TabsTrigger>
+            <TabsTrigger value="unsolved" className="px-5 text-sm rounded-lg data-[state=active]:shadow-sm">Unsolved</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl border border-border/60 overflow-hidden">
+        <div className="relative">
+          {isPending && (
+            <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-[1px] flex items-center justify-center min-h-[200px]">
+              <div className="flex flex-col items-center gap-3 rounded-xl border bg-card px-6 py-5 shadow-lg">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <span className="text-sm font-medium text-muted-foreground">Loading problems...</span>
+              </div>
+            </div>
+          )}
+
+          <div className={cn("transition-opacity duration-200", isPending && "opacity-40 pointer-events-none")}>
+            {totalCount === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+                <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+                  <BookOpen className="h-8 w-8 text-muted-foreground/60" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold text-foreground">No problems found</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    We couldn't find any problems matching your current filters. Try adjusting your search or removing some tags.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => updateParams({ search: "All", tag: "All", difficulty: "All", tab: "all", page: 1 })} className="mt-2">
+                  Clear all filters
+                </Button>
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[800px]">
+                  <TableHeader className="bg-muted/10 h-10">
+                    <TableRow className="hover:bg-transparent border-b-border/60">
+                      <TableHead className="w-[80px] pl-6 text-sm font-medium">Status</TableHead>
+                      <TableHead className="text-sm font-medium">Title</TableHead>
+                      <TableHead className="w-[140px] text-sm font-medium">Difficulty</TableHead>
+                      <TableHead className="w-[180px] text-sm font-medium">Acceptance</TableHead>
+                      <TableHead className="w-[200px] text-sm font-medium">Tags</TableHead>
+                      {isAdmin && <TableHead className="text-right pr-6 w-[120px] text-sm font-medium">Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {problems.map((problem, idx) => (
+                      <TableRow
+                        key={problem.id}
+                        onClick={() => router.push(`/logiclab/problems/${problem.id}`)}
+                        className="group cursor-pointer hover:bg-muted/40 transition-colors h-12 border-b-border/60"
+                      >
+                        {/* Status */}
+                        <TableCell className="pl-6">
+                          {problem.solved_status === "Accepted" ? (
+                            <CircleCheck className="h-5 w-5 text-emerald-500 fill-emerald-50 dark:fill-emerald-950/20" />
+                          ) : problem.solved_status ? (
+                            <CircleDot className="h-5 w-5 text-amber-500 fill-amber-50 dark:fill-amber-950/20" />
+                          ) : (
+                            <div className="h-4 w-4 ml-0.5 rounded-full border-2 border-muted-foreground/30" />
+                          )}
+                        </TableCell>
+
+                        {/* Title */}
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-muted-foreground/60 font-mono w-6 shrink-0">
+                              {idx + 1 + (activePage - 1) * initialPageSize}.
+                            </span>
+                            <span className="text-base font-medium text-foreground/90 group-hover:text-foreground transition-colors">
+                              {problem.title}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        {/* Difficulty */}
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md", DIFFICULTY_COLORS[problem.difficulty])}
+                          >
+                            {problem.difficulty}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Acceptance Rate */}
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground/80">
+                              {problem.acceptance_rate !== null ? `${problem.acceptance_rate}%` : "—"}
+                            </span>
+                            {problem.total_submissions > 0 && (
+                              <span className="text-xs text-muted-foreground/60">
+                                ({problem.total_submissions})
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Tags */}
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(problem.tags || []).slice(0, 2).map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/80 text-muted-foreground/80 hover:bg-muted border-transparent"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                            {(problem.tags || []).length > 2 && (
+                              <Badge
+                                variant="secondary"
+                                className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/40 text-muted-foreground/60 hover:bg-muted/50 border-transparent"
+                              >
+                                +{(problem.tags || []).length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Admin actions */}
+                        {isAdmin && (
+                          <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Link
+                                href={`/logiclab/admin/edit/${problem.id}`}
+                                className="p-2 hover:bg-background rounded-md text-muted-foreground hover:text-emerald-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
+                                title="Edit Problem"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                              <button
+                                onClick={() => setDeletingProblemId(problem.id)}
+                                className="p-2 hover:bg-background rounded-md text-muted-foreground/70 hover:text-rose-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
+                                title="Delete Problem"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Pagination Footer */}
+            {totalCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-border/60 bg-muted/5">
+                <div className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-medium text-foreground">
+                    {totalCount === 0 ? 0 : Math.min(totalCount, (activePage - 1) * initialPageSize + 1)}
+                  </span>
+                  {" "}to{" "}
+                  <span className="font-medium text-foreground">{Math.min(totalCount, activePage * initialPageSize)}</span>
+                  {" "}of{" "}
+                  <span className="font-medium text-foreground">{totalCount}</span> problems
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page</span>
+                    <Select
+                      value={initialPageSize.toString()}
+                      onValueChange={(val) => updateParams({ size: val, page: 1 })}
+                    >
+                      <SelectTrigger className="h-9 w-[80px] bg-background text-sm">
+                        <SelectValue placeholder={initialPageSize.toString()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[20, 50, 100].map((s) => (
+                          <SelectItem key={s} value={s.toString()} className="text-sm">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="bg-background"
+                      onClick={() => updateParams({ page: 1 })} disabled={activePage === 1}>
+                      <ChevronsLeft />
+                      <span className="sr-only">First page</span>
+                    </Button>
+                    <Button variant="outline" size="icon" className="bg-background"
+                      onClick={() => updateParams({ page: Math.max(1, activePage - 1) })} disabled={activePage === 1}>
+                      <ChevronLeft />
+                      <span className="sr-only">Previous page</span>
+                    </Button>
+                    <div className="flex items-center justify-center text-sm font-medium min-w-[100px] text-muted-foreground">
+                      Page <span className="text-foreground mx-1">{activePage}</span> of {totalPages}
+                    </div>
+                    <Button variant="outline" size="icon" className="bg-background"
+                      onClick={() => updateParams({ page: Math.min(totalPages, activePage + 1) })}
+                      disabled={activePage === totalPages || totalPages === 0}>
+                      <ChevronRight />
+                      <span className="sr-only">Next page</span>
+                    </Button>
+                    <Button variant="outline" size="icon" className="bg-background"
+                      onClick={() => updateParams({ page: totalPages })}
+                      disabled={activePage === totalPages || totalPages === 0}>
+                      <ChevronsRight />
+                      <span className="sr-only">Last page</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <AlertDialog open={!!deletingProblemId} onOpenChange={(open) => { if (!open) setDeletingProblemId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-rose-500">
+              <AlertTriangle className="size-5" /> Permanent Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription className="flex flex-col gap-3">
+              <span>Are you absolutely sure you want to permanently delete this coding problem?</span>
+              <span className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400 font-medium block">
+                This action cannot be undone. All associated user submissions and attempts will also be deleted.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
+            >
+              {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              {isDeleting ? "Deleting..." : "Delete Problem"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

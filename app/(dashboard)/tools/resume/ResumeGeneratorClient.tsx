@@ -7,6 +7,7 @@ import {
   useRef,
   useCallback,
   useLayoutEffect,
+  useEffect,
   memo,
 } from "react"
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion"
@@ -27,6 +28,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { createClient } from "@/lib/supabase/client"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -87,6 +90,7 @@ import {
   FolderGit2,
   Award,
   Palette,
+  Loader2,
 } from "lucide-react"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -477,7 +481,7 @@ const ResumeDocument = memo(function ResumeDocument({ data, config }: { data: Re
   const font = FONT_STACK[config.font]
   const acc = config.accentColor
   const mg = config.marginPx
-  const base: React.CSSProperties = { fontFamily: font, fontSize: fs, lineHeight: 1.42, color: "#111" }
+  const base: React.CSSProperties = { fontFamily: font, fontSize: fs, lineHeight: 1.42, color: "#111", overflowWrap: "break-word", wordWrap: "break-word", wordBreak: "break-word" }
 
   function renderSection(key: string): React.ReactNode {
     switch (key) {
@@ -623,21 +627,46 @@ const ResumeDocument = memo(function ResumeDocument({ data, config }: { data: Re
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ScaledPreview({ data, config }: { data: ResumeData; config: ResumeConfig }) {
-  const outerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+
   useLayoutEffect(() => {
-    const el = outerRef.current
+    const el = containerRef.current
     if (!el) return
-    const measure = () => { const w = el.getBoundingClientRect().width; if (w > 0) setScale(w / A4_W) }
+    const measure = () => {
+      // Use offsetWidth instead of getBoundingClientRect().width
+      // offsetWidth is unaffected by browser zoom level
+      const w = el.offsetWidth
+      if (w > 0) setScale(w / A4_W)
+    }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
+
   return (
-    <div ref={outerRef} style={{ width: "100%", height: A4_H * scale, overflow: "hidden", position: "relative" }}>
-      <div style={{ width: A4_W, transformOrigin: "top left", transform: `scale(${scale})`, pointerEvents: "none", userSelect: "none" }}>
-        <ResumeDocument data={data} config={config} />
+    <div ref={containerRef} className="w-full">
+      {/* Use padding-bottom trick to maintain A4 aspect ratio */}
+      <div
+        className="relative w-full shadow-2xl bg-white overflow-hidden"
+        style={{ paddingBottom: `${(A4_H / A4_W) * 100}%` }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: A4_W,
+            height: A4_H,
+            transformOrigin: "top left",
+            transform: `scale(${scale})`,
+            pointerEvents: "none",
+            userSelect: "none",
+          }}
+        >
+          <ResumeDocument data={data} config={config} />
+        </div>
       </div>
     </div>
   )
@@ -674,18 +703,16 @@ const PreviewSheetContent = memo(function PreviewSheetContent({ data, config, on
 }) {
   return (
     <>
-      <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b">
-        <SheetTitle className="text-base flex items-center gap-2"><Eye className="size-4" /> Resume Preview</SheetTitle>
+      <SheetHeader className="border-b">
+        <SheetTitle className="flex items-center gap-2"><Eye className="size-4" /> Resume Preview</SheetTitle>
       </SheetHeader>
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="rounded-xl border bg-[#e4e7eb] p-3 md:p-5">
-          <div className="shadow-2xl rounded-sm overflow-hidden">
-            <ScaledPreview data={data} config={config} />
-          </div>
+          <ScaledPreview data={data} config={config} />
         </div>
       </div>
-      <div className="px-4 pb-5 pt-3 border-t shrink-0">
-        <Button className="w-full h-10 gap-2" onClick={onExport}>
+      <div className="p-4 border-t shrink-0">
+        <Button className="w-full gap-2" onClick={onExport}>
           <Printer className="size-4" /> Export as PDF
         </Button>
       </div>
@@ -760,124 +787,170 @@ function ResumeFloatingBar({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STEP HEADER
-// ─────────────────────────────────────────────────────────────────────────────
-
-function StepHeader({ step, index, isActive, isDone, onClick }: {
-  step: StepConfig; index: number; isActive: boolean
-  isDone: boolean; onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-center gap-4 px-5 py-4 text-left transition-colors cursor-pointer",
-        isActive && "bg-primary/5",
-        !isActive && "hover:bg-muted/40",
-      )}
-    >
-      <div className={cn(
-        "size-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold border-2 transition-all",
-        isDone && !isActive && "bg-emerald-500 border-emerald-500 text-white",
-        isActive && "border-primary text-primary bg-primary/10",
-        !isDone && !isActive && "border-muted-foreground/30 text-muted-foreground",
-      )}>
-        {isDone && !isActive ? <CheckCircle2 className="size-4" /> : <span>{index + 1}</span>}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn("text-sm font-semibold", isActive || isDone ? "text-foreground" : "text-muted-foreground")}>
-            {step.label}
-          </span>
-          {step.optional && (
-            <span className="text-xs text-muted-foreground border rounded-full px-1.5 py-0.5 leading-none">optional</span>
-          )}
-          {isDone && !isActive && (
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Complete</span>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">{step.description}</p>
-      </div>
-      <div className="shrink-0 text-muted-foreground">
-        {isActive ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-      </div>
-    </button>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP FOOTER
-// ─────────────────────────────────────────────────────────────────────────────
-
-function StepFooter({ isLast, isDone, onContinue, onSkip }: {
-  isLast: boolean; isDone: boolean; onContinue: () => void; onSkip?: () => void
-}) {
-  return (
-    <div className="flex items-center justify-between pt-4 mt-2 border-t gap-3">
-      {onSkip
-        ? <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" onClick={onSkip}>Skip for now</Button>
-        : <div />
-      }
-      <Button type="button" size="sm" className="gap-2 min-w-[140px] justify-center" onClick={onContinue}>
-        {isLast
-          ? <><Eye className="size-3.5" /> Preview & Export</>
-          : isDone
-            ? <>Save & Continue <ChevronRight className="size-3.5" /></>
-            : <>Continue anyway <ChevronRight className="size-3.5" /></>
-        }
-      </Button>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ResumeGeneratorClient() {
   const [data, setData] = useState<ResumeData>(() => makeEmpty())
   const [config, setConfig] = useState<ResumeConfig>(DEFAULT_CONFIG)
-  const [activeStep, setActiveStep] = useState<StepId | null>("personal")
   const [previewOpen, setPreviewOpen] = useState(false)
-  // ✅ FIX: Track which steps the user has actually visited
-  const [visitedSteps, setVisitedSteps] = useState<Set<StepId>>(new Set())
-  const stepRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [isAutoFilling, setIsAutoFilling] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  const completion = overallCompletion(data, visitedSteps)
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem("placetrix_resume_data")
+      if (savedData) {
+        setData(JSON.parse(savedData))
+      }
+      const savedConfig = localStorage.getItem("placetrix_resume_config")
+      if (savedConfig) {
+        setConfig(JSON.parse(savedConfig))
+      }
+    } catch (e) {
+      console.error("Failed to load resume state from localStorage", e)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  // Save to localStorage when state changes (only after loading is complete)
+  useEffect(() => {
+    if (!isLoaded) return
+    try {
+      localStorage.setItem("placetrix_resume_data", JSON.stringify(data))
+    } catch (e) {
+      console.error("Failed to save resume data to localStorage", e)
+    }
+  }, [data, isLoaded])
+
+  useEffect(() => {
+    if (!isLoaded) return
+    try {
+      localStorage.setItem("placetrix_resume_config", JSON.stringify(config))
+    } catch (e) {
+      console.error("Failed to save resume config to localStorage", e)
+    }
+  }, [config, isLoaded])
+
+  const completion = overallCompletion(data, new Set(["style"]))
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // ── Step navigation ───────────────────────────────────────────────────────
+  // ── Auto-fill ─────────────────────────────────────────────────────────────
 
-  function goToStep(id: StepId) {
-    setActiveStep(id)
-    // ✅ FIX: Mark step as visited when navigated to
-    setVisitedSteps((prev) => new Set(prev).add(id))
-    setTimeout(() => {
-      const el = stepRefs.current[id]
-      if (!el) return
-      const top = el.getBoundingClientRect().top + window.scrollY - 16
-      window.scrollTo({ top, behavior: "smooth" })
-    }, 60)
-  }
+  const handleAutoFill = async () => {
+    setIsAutoFilling(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not logged in")
 
-  function goNext() {
-    const idx = STEPS.findIndex((s) => s.id === activeStep)
-    if (idx >= 0 && idx < STEPS.length - 1) goToStep(STEPS[idx + 1].id)
-    else setPreviewOpen(true)
-  }
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const { data: candidate } = await supabase.from('candidate_profiles').select('*').eq('profile_id', user.id).single()
 
-  function handleStepHeaderClick(id: StepId) {
-    if (activeStep === id) {
-      setActiveStep(null)
-    } else {
-      // ✅ FIX: Mark step as visited when user opens it manually
-      setVisitedSteps((prev) => new Set(prev).add(id))
-      goToStep(id)
+      if (profile || candidate) {
+        let instituteName = "Institute"
+        if (candidate?.institute_id) {
+          const { data: inst } = await supabase
+            .from('institute_profiles')
+            .select('institute_name')
+            .eq('profile_id', candidate.institute_id)
+            .single()
+          if (inst?.institute_name) {
+            instituteName = inst.institute_name
+          }
+        }
+
+        setData(prev => {
+          let newEdu = prev.education;
+          if (candidate?.course_name || candidate?.is_hsc || candidate?.is_diploma || candidate?.ssc_percentage) {
+            newEdu = []
+            if (candidate.course_name) {
+              newEdu.push({
+                id: uid(),
+                institution: instituteName,
+                degree: candidate.course_name,
+                field: "",
+                location: "",
+                startDate: "",
+                endDate: candidate.passout_year ? String(candidate.passout_year) : "",
+                gpa: candidate.cgpa != null ? String(candidate.cgpa) : "",
+                honors: ""
+              })
+            }
+            if (candidate.is_hsc) {
+              newEdu.push({
+                id: uid(),
+                institution: "HSC",
+                degree: "Higher Secondary",
+                field: "",
+                location: "",
+                startDate: "",
+                endDate: candidate.hsc_pass_year ? String(candidate.hsc_pass_year) : "",
+                gpa: candidate.hsc_percentage != null ? `${candidate.hsc_percentage}%` : "",
+                honors: ""
+              })
+            }
+            if (candidate.is_diploma) {
+              newEdu.push({
+                id: uid(),
+                institution: "Diploma",
+                degree: "Diploma",
+                field: "",
+                location: "",
+                startDate: "",
+                endDate: candidate.diploma_pass_year ? String(candidate.diploma_pass_year) : "",
+                gpa: candidate.diploma_percentage != null ? `${candidate.diploma_percentage}%` : "",
+                honors: ""
+              })
+            }
+            if (candidate.ssc_percentage) {
+              newEdu.push({
+                id: uid(),
+                institution: "SSC",
+                degree: "Secondary",
+                field: "",
+                location: "",
+                startDate: "",
+                endDate: candidate.ssc_pass_year ? String(candidate.ssc_pass_year) : "",
+                gpa: candidate.ssc_percentage != null ? `${candidate.ssc_percentage}%` : "",
+                honors: ""
+              })
+            }
+            if (newEdu.length === 0) newEdu = prev.education
+          }
+
+          return {
+            ...prev,
+            personal: {
+              fullName: candidate?.full_name || (candidate?.first_name ? `${candidate.first_name} ${candidate.last_name}` : profile?.display_name || prev.personal.fullName),
+              email: profile?.email || prev.personal.email,
+              phone: candidate?.phone_number || prev.personal.phone,
+              location: candidate?.current_address || prev.personal.location,
+              linkedin: candidate?.linkedin_url || prev.personal.linkedin,
+              github: candidate?.github_url || prev.personal.github,
+              portfolio: candidate?.portfolio_links?.[0] || prev.personal.portfolio,
+              tagline: prev.personal.tagline
+            },
+            education: newEdu,
+            skills: candidate?.skills && candidate.skills.length > 0 ? [
+              { id: uid(), category: "Core Skills", skills: candidate.skills.join(", ") }
+            ] : prev.skills
+          }
+        })
+        toast.success("Resume data auto-filled from your profile!")
+      } else {
+        toast.error("No profile data found to auto-fill.")
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to auto-fill data")
+    } finally {
+      setIsAutoFilling(false)
     }
   }
 
@@ -961,9 +1034,6 @@ export function ResumeGeneratorClient() {
   const handleReset = useCallback(() => {
     setData(makeEmpty())
     setConfig(DEFAULT_CONFIG)
-    setActiveStep("personal")
-    // ✅ FIX: Also reset visited steps on reset
-    setVisitedSteps(new Set())
     toast.info("Resume reset to defaults.")
   }, [])
 
@@ -972,28 +1042,10 @@ export function ResumeGeneratorClient() {
     setTimeout(() => exportToPDF(data, config), 150)
   }, [data, config])
 
-  // ── Done summary lines ────────────────────────────────────────────────────
-
-  function getDoneSummary(id: StepId): string {
-    switch (id) {
-      case "personal": return data.personal.fullName ? `${data.personal.fullName} · ${data.personal.email}` : ""
-      case "experience": { const n = data.experience.filter((e) => e.company).length; return `${n} position${n !== 1 ? "s" : ""} added` }
-      case "education": { const n = data.education.filter((e) => e.institution).length; return `${n} institution${n !== 1 ? "s" : ""} added` }
-      case "skills": { const n = data.skills.filter((s) => s.skills.trim()).length; return `${n} skill categor${n !== 1 ? "ies" : "y"} added` }
-      case "projects": { const n = data.projects.filter((p) => p.name).length; return `${n} project${n !== 1 ? "s" : ""} added` }
-      case "certifications": { const n = data.certifications.filter((c) => c.name).length; return `${n} certification${n !== 1 ? "s" : ""} added` }
-      case "style": return `${FONT_DISPLAY[config.font]} · ${config.fontSize}pt · ${config.marginPx === 32 ? "Narrow" : config.marginPx === 64 ? "Wide" : "Normal"} margins`
-    }
-  }
-
   // ── Step content ──────────────────────────────────────────────────────────
 
   function getStepContent(id: StepId) {
-    const isLast = STEPS[STEPS.length - 1].id === id
-    const done = isStepDone(id, data, visitedSteps)
-
     switch (id) {
-
       case "personal": return (
         <div className="space-y-6">
           <div className="space-y-4">
@@ -1062,7 +1114,6 @@ export function ResumeGeneratorClient() {
             "Keep location to City, State — a full address is unnecessary.",
             'Write your summary without "I" — get straight to your value proposition.',
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} />
         </div>
       )
 
@@ -1111,7 +1162,6 @@ export function ResumeGeneratorClient() {
             "Mirror keywords from the job description in your bullet points.",
             "Aim for 3–5 bullets per role; more dilutes impact.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} />
         </div>
       )
 
@@ -1160,7 +1210,6 @@ export function ResumeGeneratorClient() {
             "Honors like Dean's List or Magna Cum Laude add real credibility.",
             "For recent grads, education can come before experience in section order.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} />
         </div>
       )
 
@@ -1192,7 +1241,6 @@ export function ResumeGeneratorClient() {
             "Prioritise skills explicitly mentioned in the job description.",
             "Keep each category to 5–8 skills; a long list looks padded.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} />
         </div>
       )
 
@@ -1234,7 +1282,6 @@ export function ResumeGeneratorClient() {
             "Describe impact: users, performance gains, or problem solved.",
             "Choose quality over quantity — 2 strong projects beat 5 half-finished ones.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} onSkip={goNext} />
         </div>
       )
 
@@ -1270,7 +1317,6 @@ export function ResumeGeneratorClient() {
             "Only list certifications relevant to the role you're applying for.",
             "Recent certifications (last 3 years) carry significantly more weight.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} onSkip={goNext} />
         </div>
       )
 
@@ -1334,24 +1380,6 @@ export function ResumeGeneratorClient() {
                   style={{ background: color }}
                 />
               ))}
-              <label
-                title="Custom color"
-                aria-label="Custom accent color picker"
-                className={cn(
-                  "h-7 w-7 rounded-full border-2 cursor-pointer transition-all hover:scale-110 relative overflow-hidden focus-within:ring-2 focus-within:ring-offset-1 focus-within:ring-foreground/30 shrink-0",
-                  !ACCENT_PRESETS.includes(config.accentColor)
-                    ? "border-foreground scale-110 ring-2 ring-offset-1 ring-foreground/30"
-                    : "border-dashed border-muted-foreground/40"
-                )}
-                style={{ background: !ACCENT_PRESETS.includes(config.accentColor) ? config.accentColor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
-                <input
-                  type="color"
-                  value={config.accentColor}
-                  onChange={(e) => setConf("accentColor", e.target.value)}
-                  aria-label="Custom accent color"
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                />
-              </label>
             </div>
           </div>
 
@@ -1390,7 +1418,6 @@ export function ResumeGeneratorClient() {
             "Stick to a dark accent color — avoid bright or neon shades.",
             "Place your strongest section first — experience for seniors, education for fresh grads.",
           ]} />
-          <StepFooter isLast={isLast} isDone={done} onContinue={goNext} />
         </div>
       )
     }
@@ -1402,69 +1429,83 @@ export function ResumeGeneratorClient() {
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 pb-24 md:pb-20">
 
       {/* ── Page Header ── */}
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Resume Builder</h1>
-        <p className="text-sm text-muted-foreground">
-          Build a professional, ATS-friendly resume
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Resume Builder</h1>
+          <p className="text-sm text-muted-foreground">Build a professional, ATS-friendly resume</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={handleAutoFill} disabled={isAutoFilling} className="gap-2">
+            {isAutoFilling ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4 text-primary" />}
+            Auto-fill
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+                <RotateCcw className="size-3.5" /> Reset
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset resume data?</AlertDialogTitle>
+                <AlertDialogDescription>This will clear all fields and restore defaults. This action cannot be undone.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button size="sm" className="gap-1.5" onClick={handleExportFromSheet}>
+            <Printer className="size-3.5" /> Export PDF
+          </Button>
+        </div>
       </div>
 
-      {/* ── Accordion steps ── */}
-      <div className="space-y-3">
-        {STEPS.map((step, idx) => {
-          const isActive = activeStep === step.id
-          const isDone = isStepDone(step.id, data, visitedSteps)
+      {/* ── Two-column layout ── */}
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_min(50%,_850px)] gap-8 items-start">
 
-          return (
-            <div
-              key={step.id}
-              ref={(el) => { stepRefs.current[step.id] = el }}
-              className={cn(
-                "rounded-xl overflow-hidden transition-all duration-200 border",
-                isActive && "shadow-sm",
-                isDone && "border-emerald-200/60 dark:border-emerald-800/30",
-                !isDone && "border-border",
-              )}
-            >
-              <StepHeader
-                step={step}
-                index={idx}
-                isActive={isActive}
-                isDone={isDone}
-                onClick={() => handleStepHeaderClick(step.id)}
-              />
-
-              <div className={cn(
-                "grid transition-all duration-300 ease-in-out",
-                isActive ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-              )}>
-                <div className="overflow-hidden">
-                  {isActive && (
-                    <div className="px-5 pb-6 pt-2 border-t">
-                      {getStepContent(step.id)}
-                    </div>
-                  )}
+        {/* Left: Form accordion */}
+        <Accordion type="single" collapsible defaultValue="personal" className="w-full space-y-3">
+          {STEPS.map(step => (
+            <AccordionItem key={step.id} value={step.id} className="border rounded-xl bg-card shadow-sm overflow-hidden">
+              <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 text-primary rounded-md shrink-0">
+                    {step.icon}
+                  </div>
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="font-semibold text-sm leading-none">{step.label}</span>
+                    <span className="text-xs text-muted-foreground font-normal">{step.description}</span>
+                  </div>
                 </div>
-              </div>
-
-              {!isActive && isDone && (
-                <div className="px-5 py-2 border-t bg-muted/20 flex items-center gap-2">
-                  <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-muted-foreground truncate">{getDoneSummary(step.id)}</p>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="px-5 pb-5 pt-2">
+                  {getStepContent(step.id)}
                 </div>
-              )}
-            </div>
-          )
-        })}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+
+        {/* Right: Live preview (desktop only) */}
+        <div className="hidden lg:block sticky top-6 w-full">
+          <div className="rounded-xl border bg-[#e4e7eb] shadow-inner p-4 md:p-6">
+            <ScaledPreview data={data} config={config} />
+          </div>
+        </div>
       </div>
 
-      {/* ── Floating action bar ── */}
-      <ResumeFloatingBar
-        completion={completion}
-        onPreview={() => setPreviewOpen(true)}
-        onExport={handleExportFromSheet}
-        onReset={handleReset}
-      />
+      {/* ── Floating action bar (mobile/tablet) ── */}
+      <div className="lg:hidden">
+        <ResumeFloatingBar
+          completion={completion}
+          onPreview={() => setPreviewOpen(true)}
+          onExport={handleExportFromSheet}
+          onReset={handleReset}
+        />
+      </div>
 
       {/* ── Preview sheet ── */}
       <Sheet open={previewOpen} onOpenChange={setPreviewOpen}>

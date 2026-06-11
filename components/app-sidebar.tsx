@@ -12,6 +12,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   MoreVertical,
+  ChevronUp,
   FileText,
   Folder,
   CircleHelp,
@@ -41,7 +42,8 @@ import {
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
-  SidebarMenuItem, SidebarMenuSkeleton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar,
+  SidebarMenuItem, SidebarMenuSkeleton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton,
+  SidebarSeparator, useSidebar,
 } from "@/components/ui/sidebar"
 import {
   Collapsible,
@@ -54,6 +56,7 @@ import {
 } from "./ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 
 import { AccountType, UserProfile } from "@/lib/supabase/profile"
@@ -77,7 +80,6 @@ type NavItem = {
   }[]
 }
 
-
 const VALID_ACCOUNT_TYPES: AccountType[] = ["candidate", "institute", "admin", "recruiter"]
 
 
@@ -90,15 +92,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
     { title: "Events", url: "/events", icon: Calendar },
     { title: "Courses", url: "/courses", icon: BookOpen },
     { title: "Logic Lab", url: "/logiclab", icon: Code },
-    {
-      title: "Tools",
-      url: "#",
-      icon: Wrench,
-      items: [
-        { title: "Resume Generator", url: "/resume" },
-        { title: "Resume Analyzer", url: "/resume-analyzer" },
-      ],
-    },
+    { title: "Tools", url: "/tools", icon: Wrench },
   ],
   institute: [
     { title: "Home", url: "/home", icon: Home },
@@ -222,30 +216,30 @@ export function NavUser({ user }: { user: UserProfile | null }) {
           <DropdownMenuTrigger asChild disabled={!user}>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group/user"
+              className="w-full text-sidebar-foreground group-data-[state=expanded]/sidebar-wrapper:bg-sidebar-border/30 group-data-[state=expanded]/sidebar-wrapper:border group-data-[state=expanded]/sidebar-wrapper:border-sidebar-border/60 group-data-[state=expanded]/sidebar-wrapper:shadow-2xs hover:bg-sidebar-border/50! hover:text-sidebar-foreground! active:bg-sidebar-border/50! active:text-sidebar-foreground! data-[state=open]:bg-sidebar-border/50! data-[state=open]:text-sidebar-foreground! data-[state=open]:hover:bg-sidebar-border/50! data-[state=open]:hover:text-sidebar-foreground! group-data-[state=expanded]/sidebar-wrapper:p-2.5 group/user transition-all duration-200 cursor-pointer group-data-[state=expanded]/sidebar-wrapper:h-14 rounded-xl"
               asChild
             >
-              <div className="flex items-center gap-2 w-full" suppressHydrationWarning>
+              <div className="flex items-center gap-2.5 w-full" suppressHydrationWarning>
                 {user ? (
                   <>
-                    <Avatar className="h-8 w-8 rounded-lg shrink-0 group-hover/user:ring-2 group-hover/user:ring-sidebar-accent-foreground group-data-[state=open]/user:ring-2 group-data-[state=open]/user:ring-sidebar-accent-foreground">
+                    <Avatar className="h-9 w-9 rounded-lg shrink-0 border border-sidebar-border group-hover/user:border-primary/20 group-data-[state=open]/user:border-primary/20 transition-all duration-200">
                       <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
-                      <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                      <AvatarFallback className="rounded-lg bg-sidebar-border text-sidebar-foreground font-semibold">{initials}</AvatarFallback>
                     </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                      <span className="truncate font-medium">{displayName}</span>
-                      <span className="truncate text-[13px] text-muted-foreground group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground">{sidebarSubtitle}</span>
+                    <div className="flex flex-col flex-1 text-left min-w-0 gap-1 group-data-[state=collapsed]/sidebar-wrapper:hidden">
+                      <span className="truncate font-semibold text-sm leading-none text-sidebar-foreground">{displayName}</span>
+                      <span className="truncate text-[11px] text-muted-foreground leading-none">{sidebarSubtitle}</span>
                     </div>
-                    <MoreVertical className="ml-auto shrink-0 size-4" />
+                    <ChevronUp className="ml-auto shrink-0 size-4 text-muted-foreground/80 group-hover/user:text-sidebar-foreground group-data-[state=open]/user:text-sidebar-foreground transition-colors duration-200 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
                   </>
                 ) : (
                   <>
-                    <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0 group-data-[state=collapsed]/sidebar-wrapper:hidden">
                       <Skeleton className="h-3.5 w-28" />
                       <Skeleton className="h-3 w-36" />
                     </div>
-                    <Skeleton className="h-4 w-4 rounded shrink-0" />
+                    <Skeleton className="h-4 w-4 rounded shrink-0 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
                   </>
                 )}
               </div>
@@ -257,7 +251,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
               className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg [&_svg]:stroke-[2.5]"
               side={isMobile ? "bottom" : "right"}
               align="end"
-              sideOffset={4}
+              sideOffset={8}
               onPointerEnter={() => onUserMenuOpenChange(true)}
               onPointerLeave={() => onUserMenuOpenChange(false)}
               onCloseAutoFocus={(e) => e.preventDefault()}
@@ -270,7 +264,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                     <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{displayName}</span>
+                    <span className="truncate font-semibold">{displayName}</span>
                     <span className="truncate text-xs text-muted-foreground">{email}</span>
                   </div>
                 </div>
@@ -320,7 +314,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                 onClick={handleLogout}
                 className="cursor-pointer"
               >
-                <LogOut />
+                <LogOut className="size-4 shrink-0" />
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -498,7 +492,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       {...props}
     >
       {/* ── Header ───────────────────────────────────────── */}
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-sidebar-border/50 pb-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -522,7 +516,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarHeader>
 
       {/* ── Content ──────────────────────────────────────── */}
-      <SidebarContent>
+      <SidebarContent className="pt-2">
         {mainNav ? (
           <NavMain items={mainNav} />
         ) : (
@@ -540,9 +534,9 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         )}
 
         {user ? (
-          <NavSecondary items={secondaryNav} className="mt-auto" />
+          <NavSecondary items={secondaryNav} className="mt-auto pb-2" />
         ) : (
-          <SidebarGroup className="mt-auto">
+          <SidebarGroup className="mt-auto pb-2">
             <SidebarGroupContent>
               <SidebarMenu>
                 {Array.from({ length: NAV_SECONDARY.length }).map((_, i) => (
@@ -557,7 +551,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
       </SidebarContent>
 
       {/* ── Footer ───────────────────────────────────────── */}
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border/50 p-2">
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
