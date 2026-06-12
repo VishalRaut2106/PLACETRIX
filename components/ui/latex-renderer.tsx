@@ -19,6 +19,14 @@ import "./prism-adaptive.css"
 
 // ─── Inline Parser ────────────────────────────────────────────────────────────
 
+export function unescapeLatex(str: string): string {
+  if (!str) return ""
+  return str
+    .replace(/\\([$%&_{}~^#])/g, "$1")
+    .replace(/\\textbackslash\{\}/g, "\\")
+    .replace(/\\textbackslash/g, "\\")
+}
+
 /**
  * Stack-based balanced brace parser for LaTeX inline formatting.
  * Supports: textbf, textit, texttt, textsf, emph, underline, sout, textcolor,
@@ -46,6 +54,8 @@ export function parseLatexInline(text: string): React.ReactNode[] {
       ["\\$", "$"], ["\\%", "%"], ["\\&", "&"],
       ["\\_", "_"], ["\\{", "{"], ["\\}", "}"],
       ["\\~", "~"], ["\\^", "^"], ["\\#", "#"],
+      ["\\textbackslash{}", "\\"],
+      ["\\textbackslash", "\\"],
     ]
     let didEscape = false
     for (const [pfx, char] of ESCAPES) {
@@ -141,11 +151,21 @@ export function parseLatexInline(text: string): React.ReactNode[] {
       if (!text.startsWith(macro.prefix, i)) continue
 
       // Find matching closing brace
+      const NON_NESTING = ["texttt", "textsf", "url", "cite", "label", "ref"]
+      const isNonNesting = NON_NESTING.includes(macro.name)
+
       let braceCount = 1
       let j = i + macro.prefix.length
       while (j < text.length && braceCount > 0) {
-        if (text[j] === "{") braceCount++
-        else if (text[j] === "}") braceCount--
+        const isEscaped = j > 0 && text[j - 1] === "\\" && (j < 2 || text[j - 2] !== "\\")
+        if (!isEscaped) {
+          if (isNonNesting) {
+            if (text[j] === "}") braceCount = 0
+          } else {
+            if (text[j] === "{") braceCount++
+            else if (text[j] === "}") braceCount--
+          }
+        }
         j++
       }
       if (braceCount !== 0) continue
@@ -164,12 +184,12 @@ export function parseLatexInline(text: string): React.ReactNode[] {
         case "texttt":
           pushKey(
             <code key={`tt-${i}`} className="bg-muted/70 border border-border/40 px-1.5 py-0.5 rounded-md text-[12.5px] font-mono text-foreground/95 font-medium">
-              {inner}
+              {unescapeLatex(inner)}
             </code>
           )
           break
         case "textsf":
-          pushKey(<span key={`sf-${i}`} className="font-sans text-foreground">{parseLatexInline(inner)}</span>)
+          pushKey(<span key={`sf-${i}`} className="font-sans text-foreground">{parseLatexInline(unescapeLatex(inner))}</span>)
           break
         case "underline":
           pushKey(<u key={`ul-${i}`} className="underline decoration-foreground/30 underline-offset-2">{parseLatexInline(inner)}</u>)
@@ -195,14 +215,16 @@ export function parseLatexInline(text: string): React.ReactNode[] {
           }
           break
         }
-        case "url":
+        case "url": {
+          const unescapedUrl = unescapeLatex(inner)
           pushKey(
-            <a key={`url-${i}`} href={inner} target="_blank" rel="noopener noreferrer"
+            <a key={`url-${i}`} href={unescapedUrl} target="_blank" rel="noopener noreferrer"
                className="text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary hover:text-primary/85 transition-all duration-200 font-medium text-[13px]">
-              {inner}
+              {unescapedUrl}
             </a>
           )
           break
+        }
         case "href": {
           // \href{url}{label}
           let url = inner; let label: React.ReactNode = inner
@@ -217,7 +239,7 @@ export function parseLatexInline(text: string): React.ReactNode[] {
             j = k
           }
           pushKey(
-            <a key={`href-${i}`} href={url} target="_blank" rel="noopener noreferrer"
+            <a key={`href-${i}`} href={unescapeLatex(url)} target="_blank" rel="noopener noreferrer"
                className="text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary hover:text-primary/85 transition-all duration-200 font-medium">
               {label}
             </a>
@@ -499,6 +521,47 @@ interface Block {
 
 // ─── Document Parser ──────────────────────────────────────────────────────────
 
+export function parseOptions(optionsStr: string): Record<string, string> {
+  const options: Record<string, string> = {}
+  let currentKey = ""
+  let currentValue = ""
+  let inBraces = 0
+  let inQuotes = false
+  let isParsingValue = false
+
+  for (let j = 0; j < optionsStr.length; j++) {
+    const char = optionsStr[j]
+    if (char === "{" && !inQuotes) {
+      inBraces++
+      if (isParsingValue && inBraces > 1) currentValue += char
+    } else if (char === "}" && !inQuotes) {
+      if (inBraces > 0) inBraces--
+      if (isParsingValue && inBraces > 0) currentValue += char
+    } else if (char === '"') {
+      inQuotes = !inQuotes
+    } else if (char === "=" && inBraces === 0 && !inQuotes && !isParsingValue) {
+      isParsingValue = true
+    } else if (char === "," && inBraces === 0 && !inQuotes) {
+      if (currentKey) {
+        options[currentKey.trim().toLowerCase()] = currentValue.trim()
+      }
+      currentKey = ""
+      currentValue = ""
+      isParsingValue = false
+    } else {
+      if (isParsingValue) {
+        currentValue += char
+      } else {
+        currentKey += char
+      }
+    }
+  }
+  if (currentKey) {
+    options[currentKey.trim().toLowerCase()] = currentValue.trim()
+  }
+  return options
+}
+
 function parseLatexDocument(content: string): Block[] {
   const lines = content.split("\n")
   const rootBlocks: Block[] = []
@@ -515,13 +578,11 @@ function parseLatexDocument(content: string): Block[] {
     const line = lines[i]
     const trimmed = line.trim()
 
-    // ── Active container: verbatim/lstlisting/equation/align/theorem-like ──
+    // ── Active container: verbatim/lstlisting/equation/align ──
     const top = stack[stack.length - 1]
     if (top) {
       const rawTypes: Block["type"][] = [
-        "verbatim", "lstlisting", "equation", "align",
-        "theorem", "definition", "lemma", "corollary", "proof", "remark", "example", "warning", "note",
-        "blockquote",
+        "verbatim", "lstlisting", "equation", "align"
       ]
       if (rawTypes.includes(top.block.type)) {
         if (top.endTag && trimmed.startsWith(top.endTag)) {
@@ -537,7 +598,14 @@ function parseLatexDocument(content: string): Block[] {
 
     // ── Empty line ──
     if (!trimmed) {
-      if (stack.length === 0) rootBlocks.push({ type: "empty" })
+      if (stack.length === 0) {
+        rootBlocks.push({ type: "empty" })
+      } else {
+        const active = stack[stack.length - 1]
+        if (active.block.type !== "itemize" && active.block.type !== "enumerate") {
+          addBlock({ type: "empty" })
+        }
+      }
       i++
       continue
     }
@@ -584,7 +652,7 @@ function parseLatexDocument(content: string): Block[] {
 
         // Quote/blockquote
         if (env === "quote" || env === "quotation" || env === "blockquote") {
-          const b: Block = { type: "blockquote", content: "" }
+          const b: Block = { type: "blockquote", children: [] }
           addBlock(b); stack.push({ block: b, endTag: `\\end{${env}}` })
           i++; continue
         }
@@ -601,12 +669,9 @@ function parseLatexDocument(content: string): Block[] {
           let language = "", caption = ""
           const optMatch = trimmed.match(/\\begin\{lstlisting\}\s*\[([\s\S]*?)\]/)
           if (optMatch) {
-            const pairRx = /(\w+)\s*=\s*(?:\{([^}]*)\}|"([^"]*)"|([^,\s}]+))/g
-            let m; while ((m = pairRx.exec(optMatch[1])) !== null) {
-              const k = m[1].toLowerCase(), v = m[2] ?? m[3] ?? m[4]
-              if (k === "language") language = v
-              else if (k === "caption") caption = v
-            }
+            const opts = parseOptions(optMatch[1])
+            language = opts.language || ""
+            caption = opts.caption || ""
           }
           const b: Block = { type: "lstlisting", content: "", options: { language, caption } }
           addBlock(b); stack.push({ block: b, endTag: "\\end{lstlisting}" })
@@ -827,9 +892,9 @@ function parseTabular(lines: string[]): Block {
   for (const line of lines) {
     const t = line.trim()
     if (!t || t.startsWith("\\hline") || t.startsWith("\\toprule") || t.startsWith("\\midrule") || t.startsWith("\\bottomrule")) continue
-    if (t.startsWith("\\")) continue // skip other LaTeX commands
-    // Split by & (column separator), trim \\ from end
-    const cleaned = t.replace(/\\\\$/, "").trim()
+    if (t.startsWith("\\") && !t.includes("&")) continue // skip other LaTeX commands (not content rows)
+    // Split by & (column separator), trim \\ or \ from end
+    const cleaned = t.replace(/\\+$/, "").trim()
     const cells = cleaned.split("&").map(c => c.trim())
     if (cells.length > 0) rows.push(cells)
   }
@@ -1160,7 +1225,6 @@ function renderBlock(block: Block, index: number, figureNumber?: number): React.
     }
 
     case "blockquote": {
-      const text = block.content?.trim() || ""
       return (
         <blockquote
           key={`bq-${index}`}
@@ -1168,9 +1232,12 @@ function renderBlock(block: Block, index: number, figureNumber?: number): React.
         >
           <Quote className="absolute top-3 right-3 size-4 text-primary/20 select-none" />
           <div className="text-foreground/75 leading-relaxed italic text-[15px] space-y-2">
-            {text.split("\n").filter(Boolean).map((line, li) => (
-              <p key={li}>{parseLatexInline(line.trim())}</p>
-            ))}
+            {block.content?.trim()
+              ? block.content.split("\n").filter(Boolean).map((line, li) => (
+                  <p key={li}>{parseLatexInline(line.trim())}</p>
+                ))
+              : block.children?.map((c, ci) => renderBlock(c, ci, figureNumber))
+            }
           </div>
         </blockquote>
       )
