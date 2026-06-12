@@ -8,9 +8,54 @@ import { Toaster } from "@/components/ui/sonner";
 
 
 export const metadata: Metadata = {
-  title: "Placetrix",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://placetrix.app"),
+  title: {
+    default: "Placetrix - Educational Assessment Platform",
+    template: "%s | Placetrix",
+  },
   description:
-    "Practice mock tests, join study groups, and track your progress with Placetrix.",
+    "Practice mock tests, join study groups, track your progress, and excel in your exams with Placetrix's advanced educational tools.",
+  keywords: [
+    "education",
+    "assessment",
+    "mock tests",
+    "study groups",
+    "exam preparation",
+    "learning platform",
+  ],
+  authors: [{ name: "Placetrix Team" }],
+  creator: "Placetrix",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "Placetrix - Educational Assessment Platform",
+    description: "Practice mock tests, join study groups, and track your progress with Placetrix.",
+    siteName: "Placetrix",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Placetrix - Educational Assessment Platform",
+    description: "Practice mock tests, join study groups, and track your progress with Placetrix.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+  },
+  appleWebApp: {
+    title: "Placetrix",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
