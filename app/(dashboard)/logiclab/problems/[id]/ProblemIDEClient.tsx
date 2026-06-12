@@ -40,6 +40,7 @@ import {
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
+import { getIdeProblemList } from "./actions"
 import { buildStorageUrl } from "@/lib/storage"
 import { useMonaco } from "@monaco-editor/react"
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels"
@@ -341,33 +342,39 @@ export function ProblemIDEClient({
     if (isProblemListOpen && problemList.length === 0) {
       const fetchProblems = async () => {
         setIsLoadingProblems(true)
-        const supabase = createClient() as any
-        
-        const { data: problems } = await supabase
-          .from("coding_problems")
-          .select("id, title, difficulty, created_at")
-          .order("created_at", { ascending: true })
-          
-        const { data: solvedData } = await supabase
-          .from("coding_submissions")
-          .select("problem_id")
-          .eq("user_id", userId)
-          .eq("status", "Accepted")
-          
-        const solvedSet = new Set(solvedData?.map((s: any) => s.problem_id) || [])
-        
-        const enhancedProblems = (problems || []).map((p: any, idx: number) => ({
-          ...p,
-          number: idx + 1,
-          isSolved: solvedSet.has(p.id)
-        }))
-        
-        setProblemList(enhancedProblems)
-        setIsLoadingProblems(false)
+        try {
+          const enhancedProblems = await getIdeProblemList(userId)
+          setProblemList(enhancedProblems)
+        } catch (error) {
+          console.error("Failed to fetch problem list:", error)
+          toast.error("Failed to load problem list")
+        } finally {
+          setIsLoadingProblems(false)
+        }
       }
       fetchProblems()
     }
   }, [isProblemListOpen, problemList.length, userId])
+
+  React.useEffect(() => {
+    if (isProblemListOpen && problemList.length > 0) {
+      setTimeout(() => {
+        const activeLink = document.getElementById("active-problem-link")
+        const scrollArea = document.getElementById("problem-list-scroll-area")
+        const viewport = scrollArea?.querySelector("[data-slot='scroll-area-viewport']")
+        
+        if (activeLink && viewport) {
+          // Calculate exact center position
+          const offsetTop = activeLink.offsetTop
+          const viewportHeight = viewport.clientHeight
+          viewport.scrollTo({ 
+            top: offsetTop - (viewportHeight / 2) + 20, 
+            behavior: "smooth" 
+          })
+        }
+      }, 150)
+    }
+  }, [isProblemListOpen, problemList.length, searchQuery, statusFilter, difficultyFilter])
 
   const filteredProblems = problemList.filter(p => {
     // Text search (Title, Number)
@@ -1846,7 +1853,7 @@ export function ProblemIDEClient({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 w-full min-h-0">
+        <ScrollArea id="problem-list-scroll-area" className="flex-1 w-full min-h-0">
           <div className="py-2">
             {isLoadingProblems ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -1858,6 +1865,7 @@ export function ProblemIDEClient({
                 <Link 
                   href={`/logiclab/problems/${p.id}`}
                   key={p.id}
+                  id={p.id === problem.id ? "active-problem-link" : undefined}
                   onClick={() => setIsProblemListOpen(false)}
                   className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/60 transition-colors ${p.id === problem.id ? 'bg-muted border-l-2 border-emerald-500' : ''}`}
                 >

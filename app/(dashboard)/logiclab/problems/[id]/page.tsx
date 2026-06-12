@@ -63,16 +63,26 @@ export default async function ProblemPage({ params }: { params: Promise<{ id: st
     .order("created_at", { ascending: false })
     .limit(20)
 
-  // Fetch all problem IDs in the same order as directory
-  const { data: allProblems } = await (supabase as any)
+  // Fetch the previous problem
+  const { data: prevData } = await (supabase as any)
     .from("coding_problems")
     .select("id")
+    .lt("created_at", problem.created_at)
     .order("created_at", { ascending: false })
+    .limit(1)
+    .single()
 
-  const problemIds = (allProblems ?? []).map((p: any) => p.id)
-  const currentIndex = problemIds.indexOf(id)
-  const prevProblemId = currentIndex > 0 ? problemIds[currentIndex - 1] : null
-  const nextProblemId = currentIndex < problemIds.length - 1 ? problemIds[currentIndex + 1] : null
+  // Fetch the next problem
+  const { data: nextData } = await (supabase as any)
+    .from("coding_problems")
+    .select("id")
+    .gt("created_at", problem.created_at)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .single()
+
+  const prevProblemId = prevData?.id || null
+  const nextProblemId = nextData?.id || null
 
   return (
     <ProblemIDEClient

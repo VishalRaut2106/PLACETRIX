@@ -41,6 +41,28 @@ const getCachedPotd = unstable_cache(
   { revalidate: 3600 } // Cache for 1 hour
 )
 
+const getCachedGlobalProblems = unstable_cache(
+  async () => {
+    const adminSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    const { data: problems } = await adminSupabase
+      .from("coding_problems")
+      .select("id, title, difficulty, tags, created_at")
+      .order("created_at", { ascending: true })
+
+    const { data: stats } = await adminSupabase
+      .from("problem_global_stats")
+      .select("problem_id, total_submissions, accepted_submissions")
+
+    return { problems: problems || [], stats: stats || [] }
+  },
+  ["global-problems-stats-cache-v1"],
+  { revalidate: 3600 } // Cache for 1 hour
+)
+
 export default async function LogicLabPage(props: {
   searchParams: Promise<SearchParams>
 }) {
@@ -58,16 +80,12 @@ export default async function LogicLabPage(props: {
   const difficulty = params.difficulty || "All"
   const tag = params.tag || "All"
 
+  // 1. Fetch cached global data (0ms, no database load)
+  const { problems, stats: globalStatsRaw } = await getCachedGlobalProblems()
+
+  // 2. Fetch live user data (Lightning fast, filtered by user_id)
   const supabase = (await createServerClient()) as any
-
-  // Fetch all problems
-  const { data: problems } = await (supabase as any)
-    .from("coding_problems")
-    .select("id, title, difficulty, tags, created_at")
-    .order("created_at", { ascending: true })
-
-  // Fetch user's submission stats (best status per problem)
-  const { data: submissions } = await (supabase as any)
+  const { data: submissions } = await supabase
     .from("coding_submissions")
     .select("problem_id, status")
     .eq("user_id", profile.id)
@@ -80,16 +98,13 @@ export default async function LogicLabPage(props: {
     }
   }
 
-  // Count total submissions per problem for acceptance rate
-  const { data: allSubmissions } = await (supabase as any)
-    .from("coding_submissions")
-    .select("problem_id, status")
-
+  // Build a map for acceptance rates using the new View
   const statsMap: Record<string, { total: number; accepted: number }> = {}
-  for (const sub of allSubmissions ?? []) {
-    if (!statsMap[sub.problem_id]) statsMap[sub.problem_id] = { total: 0, accepted: 0 }
-    statsMap[sub.problem_id].total++
-    if (sub.status === "Accepted") statsMap[sub.problem_id].accepted++
+  for (const row of globalStatsRaw) {
+    statsMap[row.problem_id] = { 
+      total: Number(row.total_submissions), 
+      accepted: Number(row.accepted_submissions) 
+    }
   }
 
   const enrichedProblems = (problems ?? []).map((p: any) => ({
