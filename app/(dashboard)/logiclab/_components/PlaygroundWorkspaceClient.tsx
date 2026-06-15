@@ -127,7 +127,6 @@ export default function PlaygroundWorkspaceClient()  {
     setIsMounted(true);
   }, []);
 
-  // Restore / save code per language
   useEffect(() => {
     const saved = localStorage.getItem(`logiclab_playground_code_${selectedLang.value}`);
     setCode(saved ?? CODE_TEMPLATES[selectedLang.value]);
@@ -138,7 +137,30 @@ export default function PlaygroundWorkspaceClient()  {
   }, [code, selectedLang.value]);
 
   // Fullscreen
-  const toggleFullScreen = () => setIsFullScreen((v) => !v);
+  const toggleFullScreen = async () => {
+    if (!document.fullscreenElement) {
+      if (containerRef.current?.requestFullscreen) {
+        await containerRef.current.requestFullscreen().catch((err) => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          setIsFullScreen((v) => !v); // Fallback to CSS fullscreen
+        });
+      } else {
+        setIsFullScreen((v) => !v); // Fallback
+      }
+    } else {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen().catch(err => console.error(err));
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   // Global hotkeys
   useEffect(() => {
@@ -181,10 +203,19 @@ export default function PlaygroundWorkspaceClient()  {
     setRunning(true);
     setResults(null);
     try {
+      let processedCode = code;
+      
+      // Fix for Java: Online compilers (Judge0) strictly execute 'java Main'.
+      // If the user names their class something else (e.g., public class Pyramid), it compiles but fails to run.
+      // We automatically find the first class declaration and forcefully rename it to 'class Main'.
+      if (selectedLang.value === "java") {
+        processedCode = processedCode.replace(/(?:public\s+)?class\s+[a-zA-Z0-9_]+\s*\{/, "class Main {");
+      }
+
       const res = await fetch("/api/logiclab/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_code: code, language_id: selectedLang.id, stdin }),
+        body: JSON.stringify({ source_code: processedCode, language_id: selectedLang.id, stdin }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Sandbox error.");
@@ -580,7 +611,7 @@ export default function PlaygroundWorkspaceClient()  {
       <div className={cn("flex", "items-center", "justify-between", "bg-card", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "px-3")}>
         <div className={cn("flex", "items-center", "gap-1.5", "text-[11px]", "font-bold", "text-foreground")}>
           <IconTerminal2 className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
-          <span>Stdin Input</span>
+          <span>Standard Input (stdin)</span>
         </div>
         <button
           onClick={() => setStdin("")}
@@ -594,7 +625,7 @@ export default function PlaygroundWorkspaceClient()  {
       <textarea
         value={stdin}
         onChange={(e) => setStdin(e.target.value)}
-        placeholder="Type stdin inputs here, one per line..."
+        placeholder="Provide input for your program here.\n\nE.g.\n3\n10 20 30"
         spellCheck={false}
         className={cn("flex-1", "bg-background", "text-foreground/90", "font-mono", "text-xs", "p-3", "resize-none", "focus:outline-none", "placeholder:text-muted-foreground/40")}
       />
@@ -609,22 +640,36 @@ export default function PlaygroundWorkspaceClient()  {
       <div className={cn("flex", "items-center", "justify-between", "bg-card", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "pl-0", "pr-3")}>
         <div className={cn("flex", "items-center", "h-full", "px-4", "gap-1.5", "text-[11px]", "font-bold", "text-foreground")}>
           <IconTerminal2 className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
-          <span>Console Output</span>
+          <span>Standard Output (stdout)</span>
         </div>
-        {results && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCopyOutput}
-            className={cn("h-7", "w-7", "text-zinc-650 dark:text-muted-foreground/80", "hover:text-foreground", "shrink-0")}
-          >
-            {copied ? (
-              <IconCheck className={cn("h-3.5", "w-3.5", "text-emerald-400")} />
-            ) : (
-              <IconCopy className={cn("h-3.5", "w-3.5")} />
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {results && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setResults(null)}
+                title="Clear Output"
+                className={cn("h-7", "w-7", "text-zinc-650 dark:text-muted-foreground/80", "hover:text-rose-500", "shrink-0")}
+              >
+                <IconCircleX className={cn("h-3.5", "w-3.5")} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyOutput}
+                title="Copy Output"
+                className={cn("h-7", "w-7", "text-zinc-650 dark:text-muted-foreground/80", "hover:text-foreground", "shrink-0")}
+              >
+                {copied ? (
+                  <IconCheck className={cn("h-3.5", "w-3.5", "text-emerald-400")} />
+                ) : (
+                  <IconCopy className={cn("h-3.5", "w-3.5")} />
+                )}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Content */}

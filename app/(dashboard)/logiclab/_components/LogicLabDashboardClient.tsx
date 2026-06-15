@@ -572,39 +572,39 @@ export function LogicLabDashboardClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className={cn('flex', 'flex-col', 'gap-6', 'px-4', 'py-6', 'md:px-8', 'md:py-8')}>
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Logic Lab</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className={cn('flex', 'flex-col', 'gap-4', 'sm:flex-row', 'sm:items-center', 'sm:justify-between')}>
+        <div className={cn('flex', 'flex-col', 'gap-1')}>
+          <h1 className={cn('text-3xl', 'font-bold', 'font-cirka', 'tracking-tight', 'text-foreground')}>Logic Lab</h1>
+          <p className={cn('text-sm', 'text-muted-foreground')}>
             Master your coding skills with our curated problem set.
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className={cn('flex', 'items-center', 'gap-2', 'sm:gap-3')}>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowDashboardCards(!showDashboardCards)}
-            className="gap-1.5 shrink-0 px-2.5"
+            className={cn('gap-1.5', 'shrink-0', 'px-2.5')}
             title={showDashboardCards ? "Collapse Dashboard" : "Expand Dashboard"}
           >
             {showDashboardCards ? <ChevronsUp className="size-4" /> : <ChevronsDown className="size-4" />}
-            <span className="text-xs font-semibold hidden sm:inline">
+            <span className={cn('text-xs', 'font-semibold', 'hidden', 'sm:inline')}>
               {showDashboardCards ? "Collapse" : "Expand"}
             </span>
           </Button>
-          <Button asChild variant="outline" size="sm" className="gap-2 shrink-0" title="Playground">
-            <Link href="/logiclab/playground" className="flex items-center justify-center gap-2">
+          <Button asChild variant="outline" size="sm" className={cn('gap-2', 'shrink-0')} title="Playground">
+            <Link href="/logiclab/playground" className={cn('flex', 'items-center', 'justify-center', 'gap-2')}>
               <Terminal className="size-4" />
               <span>Playground</span>
             </Link>
           </Button>
           {isAdmin && (
-            <Button asChild size="icon" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0" title="Create Problem">
-              <Link href="/logiclab/admin" className="flex items-center justify-center">
+            <Button asChild size="icon" className={cn('bg-emerald-600', 'hover:bg-emerald-700', 'text-white', 'shadow-sm', 'shrink-0')} title="Create Problem">
+              <Link href="/logiclab/admin" className={cn('flex', 'items-center', 'justify-center')}>
                 <Plus />
               </Link>
             </Button>
@@ -614,23 +614,23 @@ export function LogicLabDashboardClient({
 
       {/* Metrics Row */}
       {showDashboardCards && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 min-w-0">
+        <div className={cn('grid', 'grid-cols-1', 'lg:grid-cols-3', 'gap-6', 'animate-in', 'fade-in', 'slide-in-from-top-2', 'duration-300', 'min-w-0')}>
           {/* Card 1: Progress & Difficulty */}
-          <Card className="min-w-0 flex flex-col relative transition-all hover:border-border/80 py-0">
-            <CardHeader className="flex flex-row items-center justify-between pt-4 pb-1">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'py-0')}>
+            <CardHeader className={cn('flex', 'flex-row', 'items-center', 'justify-between', 'pt-4', 'pb-1')}>
+              <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
                 Overall Progress
               </CardTitle>
-              <CardAction className="text-xs text-muted-foreground/80 font-medium select-none">
+              <CardAction className={cn('text-xs', 'text-muted-foreground/80', 'font-medium', 'select-none')}>
                 {globalStats.total > 0 ? Math.round((globalStats.solved / globalStats.total) * 100) : 0}% Solved
               </CardAction>
             </CardHeader>
 
-            <CardContent className="flex flex-col flex-1 justify-between gap-5 pb-4">
+            <CardContent className={cn('flex', 'flex-col', 'flex-1', 'justify-between', 'gap-5', 'pb-4')}>
               {/* Main Content: Stats and Chart */}
-              <div className="flex items-center justify-between gap-6 min-w-0 w-full">
+              <div className={cn('flex', 'items-center', 'justify-between', 'gap-6', 'min-w-0', 'w-full')}>
                 {/* Stat rows */}
-                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                <div className={cn('flex', 'flex-col', 'gap-1', 'flex-1', 'min-w-0')}>
                   {/* Easy */}
                   <div
                     className={cn(
@@ -640,13 +640,13 @@ export function LogicLabDashboardClient({
                     onMouseEnter={() => setHoverDifficulty("Easy")}
                     onMouseLeave={() => setHoverDifficulty(null)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="text-muted-foreground font-medium truncate">Easy</span>
+                    <div className={cn('flex', 'items-center', 'gap-2', 'min-w-0')}>
+                      <span className={cn('size-2', 'rounded-full', 'bg-emerald-500', 'shrink-0')} />
+                      <span className={cn('text-muted-foreground', 'font-medium', 'truncate')}>Easy</span>
                     </div>
-                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
-                      <span className="text-emerald-600 dark:text-emerald-400">{globalStats.easy.solved}</span>
-                      <span className="text-xs text-muted-foreground/50">/ {globalStats.easy.total}</span>
+                    <div className={cn('flex', 'items-baseline', 'gap-1', 'shrink-0', 'font-semibold')}>
+                      <span className={cn('text-emerald-600', 'dark:text-emerald-400')}>{globalStats.easy.solved}</span>
+                      <span className={cn('text-xs', 'text-muted-foreground/50')}>/ {globalStats.easy.total}</span>
                     </div>
                   </div>
 
@@ -659,13 +659,13 @@ export function LogicLabDashboardClient({
                     onMouseEnter={() => setHoverDifficulty("Medium")}
                     onMouseLeave={() => setHoverDifficulty(null)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="size-2 rounded-full bg-amber-500 shrink-0" />
-                      <span className="text-muted-foreground font-medium truncate">Medium</span>
+                    <div className={cn('flex', 'items-center', 'gap-2', 'min-w-0')}>
+                      <span className={cn('size-2', 'rounded-full', 'bg-amber-500', 'shrink-0')} />
+                      <span className={cn('text-muted-foreground', 'font-medium', 'truncate')}>Medium</span>
                     </div>
-                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
-                      <span className="text-amber-600 dark:text-amber-400">{globalStats.medium.solved}</span>
-                      <span className="text-xs text-muted-foreground/50">/ {globalStats.medium.total}</span>
+                    <div className={cn('flex', 'items-baseline', 'gap-1', 'shrink-0', 'font-semibold')}>
+                      <span className={cn('text-amber-600', 'dark:text-amber-400')}>{globalStats.medium.solved}</span>
+                      <span className={cn('text-xs', 'text-muted-foreground/50')}>/ {globalStats.medium.total}</span>
                     </div>
                   </div>
 
@@ -678,20 +678,20 @@ export function LogicLabDashboardClient({
                     onMouseEnter={() => setHoverDifficulty("Hard")}
                     onMouseLeave={() => setHoverDifficulty(null)}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="size-2 rounded-full bg-rose-500 shrink-0" />
-                      <span className="text-muted-foreground font-medium truncate">Hard</span>
+                    <div className={cn('flex', 'items-center', 'gap-2', 'min-w-0')}>
+                      <span className={cn('size-2', 'rounded-full', 'bg-rose-500', 'shrink-0')} />
+                      <span className={cn('text-muted-foreground', 'font-medium', 'truncate')}>Hard</span>
                     </div>
-                    <div className="flex items-baseline gap-1 shrink-0 font-semibold">
-                      <span className="text-rose-600 dark:text-rose-400">{globalStats.hard.solved}</span>
-                      <span className="text-xs text-muted-foreground/50">/ {globalStats.hard.total}</span>
+                    <div className={cn('flex', 'items-baseline', 'gap-1', 'shrink-0', 'font-semibold')}>
+                      <span className={cn('text-rose-600', 'dark:text-rose-400')}>{globalStats.hard.solved}</span>
+                      <span className={cn('text-xs', 'text-muted-foreground/50')}>/ {globalStats.hard.total}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Concentric ring chart */}
-                <div className="relative size-24 sm:size-28 shrink-0">
-                  <svg className="w-full h-full drop-shadow-md" viewBox="0 0 100 100" preserveAspectRatio="xMaxYMid meet">
+                <div className={cn('relative', 'size-24', 'sm:size-28', 'shrink-0')}>
+                  <svg className={cn('w-full', 'h-full', 'drop-shadow-md')} viewBox="0 0 100 100" preserveAspectRatio="xMaxYMid meet">
                     <defs>
                       <linearGradient id="easyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#34d399" />
@@ -744,34 +744,34 @@ export function LogicLabDashboardClient({
               </div>
 
               {/* Clean Horizontal Progress Bar for Total Progress */}
-              <div className="mt-auto select-none flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
-                  <span className="font-semibold text-foreground">Total Solved</span>
-                  <span className="font-bold text-foreground">
-                    {globalStats.solved} <span className="text-xs font-normal text-muted-foreground/60">/ {globalStats.total}</span>
+              <div className={cn('mt-auto', 'select-none', 'flex', 'flex-col', 'gap-2')}>
+                <div className={cn('flex', 'items-center', 'justify-between', 'text-xs', 'sm:text-sm', 'text-muted-foreground')}>
+                  <span className={cn('font-semibold', 'text-foreground')}>Total Solved</span>
+                  <span className={cn('font-bold', 'text-foreground')}>
+                    {globalStats.solved} <span className={cn('text-xs', 'font-normal', 'text-muted-foreground/60')}>/ {globalStats.total}</span>
                   </span>
                 </div>
                 <Progress
                   value={globalStats.total > 0 ? (globalStats.solved / globalStats.total) * 100 : 0}
-                  className="h-1.5 bg-muted/60 [&>div]:bg-blue-500 dark:[&>div]:bg-blue-400"
+                  className={cn('h-1.5', 'bg-muted/60', '[&>div]:bg-blue-500', 'dark:[&>div]:bg-blue-400')}
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Card 2: Activity Heat Map */}
-          <Card className="min-w-0 flex flex-col relative transition-all hover:border-border/80 py-0">
-            <CardHeader className="pt-4 pb-1">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'py-0')}>
+            <CardHeader className={cn('pt-4', 'pb-1')}>
+              <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
                 Activity Graph
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="flex flex-col flex-1 justify-between gap-5 pb-4">
+            <CardContent className={cn('flex', 'flex-col', 'flex-1', 'justify-between', 'gap-5', 'pb-4')}>
               {/* Heatmap Grid Container */}
               <div className="w-full">
                 <div
-                  className="grid gap-x-[2px] gap-y-[2px] sm:gap-x-[3px] sm:gap-y-[3px] w-full"
+                  className={cn('grid', 'gap-x-[2px]', 'gap-y-[2px]', 'sm:gap-x-[3px]', 'sm:gap-y-[3px]', 'w-full')}
                   style={{
                     gridTemplateColumns: `auto ${displayColumns.map(c => c === "GAP" ? "minmax(4px, 8px)" : "minmax(0, 1fr)").join(" ")}`
                   }}
@@ -803,9 +803,9 @@ export function LogicLabDashboardClient({
                     }
 
                     return blocks.map((block, i) => (
-                      <div key={`month-block-${i}`} className="relative h-5 flex items-end justify-center pb-1" style={{ gridColumn: `span ${block.span}` }}>
+                      <div key={`month-block-${i}`} className={cn('relative', 'h-5', 'flex', 'items-end', 'justify-center', 'pb-1')} style={{ gridColumn: `span ${block.span}` }}>
                         {block.label && (
-                          <span className="text-[10px] font-semibold text-muted-foreground/70 whitespace-nowrap">
+                          <span className={cn('text-[10px]', 'font-semibold', 'text-muted-foreground/70', 'whitespace-nowrap')}>
                             {block.label}
                           </span>
                         )}
@@ -817,8 +817,8 @@ export function LogicLabDashboardClient({
                   {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => (
                     <React.Fragment key={dayIndex}>
                       {/* Y-Axis Label */}
-                      <div className="relative w-6 sm:w-7">
-                        <span className="absolute inset-y-0 right-2 flex items-center text-[10px] font-medium text-muted-foreground/50 leading-none">
+                      <div className={cn('relative', 'w-6', 'sm:w-7')}>
+                        <span className={cn('absolute', 'inset-y-0', 'right-2', 'flex', 'items-center', 'text-[10px]', 'font-medium', 'text-muted-foreground/50', 'leading-none')}>
                           {dayIndex === 1 ? "Mon" : dayIndex === 3 ? "Wed" : dayIndex === 5 ? "Fri" : ""}
                         </span>
                       </div>
@@ -865,11 +865,11 @@ export function LogicLabDashboardClient({
               </div>
 
               {/* Footer: Streak and Legend */}
-              <div className="mt-auto flex items-end justify-between gap-4 flex-wrap min-w-0 w-full">
+              <div className={cn('mt-auto', 'flex', 'items-end', 'justify-between', 'gap-4', 'flex-wrap', 'min-w-0', 'w-full')}>
                 {/* Legend */}
-                <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground/70 pb-0.5">
+                <div className={cn('flex', 'items-center', 'gap-2', 'text-[10px]', 'font-medium', 'text-muted-foreground/70', 'pb-0.5')}>
                   <span>Less</span>
-                  <div className="flex gap-[3px] items-center">
+                  <div className={cn('flex', 'gap-[3px]', 'items-center')}>
                     <div className={cn("size-[10px] bg-muted", cellRadiusClass)} title="0 submissions" />
                     <div className={cn("size-[10px] bg-rose-400/80 dark:bg-rose-500/60", cellRadiusClass)} title="Attempted" />
                     <div className={cn("size-[10px] bg-sky-300 dark:bg-sky-800", cellRadiusClass)} title="1 submission" />
@@ -881,14 +881,14 @@ export function LogicLabDashboardClient({
                 </div>
 
                 {/* Streak */}
-                <div className="flex items-center gap-2.5 shrink-0 text-sm font-semibold cursor-pointer group/streak">
-                  <div className="flex items-center gap-1.5 text-foreground">
-                    <Flame className="size-4 text-orange-500 fill-orange-500/10 shrink-0 transition-all duration-300 group-hover/streak:scale-125 group-hover/streak:text-orange-600 dark:group-hover/streak:text-orange-400 group-hover/streak:rotate-12 group-hover/streak:filter group-hover/streak:drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                    <span className="transition-colors group-hover/streak:text-orange-500">{streakStats.currentStreak} day streak</span>
+                <div className={cn('flex', 'items-center', 'gap-2.5', 'shrink-0', 'text-sm', 'font-semibold', 'cursor-pointer', 'group/streak')}>
+                  <div className={cn('flex', 'items-center', 'gap-1.5', 'text-foreground')}>
+                    <Flame className={cn('size-4', 'text-orange-500', 'fill-orange-500/10', 'shrink-0', 'transition-all', 'duration-300', 'group-hover/streak:scale-125', 'group-hover/streak:text-orange-600', 'dark:group-hover/streak:text-orange-400', 'group-hover/streak:rotate-12', 'group-hover/streak:filter', 'group-hover/streak:drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]')} />
+                    <span className={cn('transition-colors', 'group-hover/streak:text-orange-500')}>{streakStats.currentStreak} day streak</span>
                   </div>
                   <span className="text-muted-foreground/30">|</span>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Max: <span className="text-foreground font-semibold transition-colors group-hover/streak:text-foreground/80">{streakStats.maxStreak}</span>
+                  <span className={cn('text-xs', 'text-muted-foreground', 'font-medium')}>
+                    Max: <span className={cn('text-foreground', 'font-semibold', 'transition-colors', 'group-hover/streak:text-foreground/80')}>{streakStats.maxStreak}</span>
                   </span>
                 </div>
               </div>
@@ -896,35 +896,35 @@ export function LogicLabDashboardClient({
           </Card>
 
           {/* Card 3: POTD Card */}
-          <Card className="group/potd transition-all hover:border-border/80 min-w-0 flex flex-col relative py-0">
-            <CardHeader className="flex flex-row items-center justify-between pt-4 pb-1">
-              <Link href="/logiclab/dailychallenges" className="hover:opacity-80 transition-opacity cursor-pointer">
-                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:text-orange-500 transition-colors">
+          <Card className={cn('group/potd', 'transition-all', 'hover:border-border/80', 'min-w-0', 'flex', 'flex-col', 'relative', 'py-0')}>
+            <CardHeader className={cn('flex', 'flex-row', 'items-center', 'justify-between', 'pt-4', 'pb-1')}>
+              <Link href="/logiclab/dailychallenges" className={cn('hover:opacity-80', 'transition-opacity', 'cursor-pointer')}>
+                <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'flex', 'items-center', 'gap-1', 'hover:text-orange-500', 'transition-colors')}>
                   Daily Challenge<ChevronRight className="size-3" />
                 </CardTitle>
               </Link>
               {timeLeft && (
-                <CardAction className="text-xs text-muted-foreground/80 flex items-center gap-1 font-medium select-none">
+                <CardAction className={cn('text-xs', 'text-muted-foreground/80', 'flex', 'items-center', 'gap-1', 'font-medium', 'select-none')}>
                   <Clock className="size-3.5" />
                   {timeLeft}
                 </CardAction>
               )}
             </CardHeader>
 
-            <CardContent className="flex flex-col flex-1 justify-between gap-5 pb-4">
-              <div className="flex flex-col gap-4 min-w-0">
+            <CardContent className={cn('flex', 'flex-col', 'flex-1', 'justify-between', 'gap-5', 'pb-4')}>
+              <div className={cn('flex', 'flex-col', 'gap-4', 'min-w-0')}>
                 {activeChallenge ? (
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug group-hover/potd:text-primary transition-colors">
+                  <div className={cn('flex', 'flex-col', 'gap-1.5')}>
+                    <div className={cn('flex', 'items-start', 'justify-between', 'gap-3')}>
+                      <h3 className={cn('font-bold', 'text-lg', 'sm:text-xl', 'text-foreground', 'leading-snug', 'group-hover/potd:text-primary', 'transition-colors')}>
                         {activeChallenge.title}
                       </h3>
                       {activeChallenge.solved_status === "Accepted" && (
-                        <CircleCheck className="size-6 text-emerald-500 shrink-0 mt-0.5" />
+                        <CircleCheck className={cn('size-6', 'text-emerald-500', 'shrink-0', 'mt-0.5')} />
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                    <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-x-2', 'gap-y-1', 'text-xs', 'sm:text-sm', 'text-muted-foreground')}>
                       {/* Difficulty (clean inline text) */}
                       {activeChallenge.difficulty && (
                         <span className={cn(
@@ -953,9 +953,9 @@ export function LogicLabDashboardClient({
 
                     {/* Clean Tags Row */}
                     {activeChallenge.tags && activeChallenge.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <div className={cn('flex', 'flex-wrap', 'gap-1.5', 'pt-0.5')}>
                         {activeChallenge.tags.slice(0, 2).map((t: string) => (
-                          <span key={t} className="text-[11px] bg-muted px-2.5 py-1 rounded-md text-muted-foreground font-medium">
+                          <span key={t} className={cn('text-[11px]', 'bg-muted', 'px-2.5', 'py-1', 'rounded-md', 'text-muted-foreground', 'font-medium')}>
                             {t}
                           </span>
                         ))}
@@ -963,8 +963,8 @@ export function LogicLabDashboardClient({
                     )}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center gap-2 py-4 text-muted-foreground">
-                    <span className="text-sm font-semibold">No Challenge Available</span>
+                  <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'text-center', 'gap-2', 'py-4', 'text-muted-foreground')}>
+                    <span className={cn('text-sm', 'font-semibold')}>No Challenge Available</span>
                     <span className="text-xs">Check back later for today's puzzle.</span>
                   </div>
                 )}
@@ -986,12 +986,12 @@ export function LogicLabDashboardClient({
                 {activeChallenge?.solved_status === "Accepted" ? (
                   <>
                     Review Challenge
-                    <CircleCheck className="size-[18px] transition-transform duration-300 group-hover/potd:scale-110" />
+                    <CircleCheck className={cn('size-[18px]', 'transition-transform', 'duration-300', 'group-hover/potd:scale-110')} />
                   </>
                 ) : (
                   <>
                     Solve Challenge
-                    <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/potd:translate-x-1" />
+                    <ChevronRight className={cn('size-[18px]', 'transition-transform', 'duration-300', 'group-hover/potd:translate-x-1')} />
                   </>
                 )}
               </Button>
@@ -1001,13 +1001,13 @@ export function LogicLabDashboardClient({
       )}
 
       {/* Main Directory Layout */}
-      <div className="flex flex-col gap-6 min-w-0">
+      <div className={cn('flex', 'flex-col', 'gap-6', 'min-w-0')}>
         {/* Toolbar */}
-        <div className="flex items-center gap-3 w-full">
-          <InputGroup className="flex-1 h-10 bg-background rounded-lg">
+        <div className={cn('flex', 'items-center', 'gap-3', 'w-full')}>
+          <InputGroup className={cn('flex-1', 'h-10', 'bg-background', 'rounded-lg')}>
             <InputGroupAddon align="inline-start">
               {isPending ? (
-                <Loader2 className="animate-spin text-muted-foreground" />
+                <Loader2 className={cn('animate-spin', 'text-muted-foreground')} />
               ) : (
                 <Search className="text-muted-foreground" />
               )}
@@ -1024,7 +1024,7 @@ export function LogicLabDashboardClient({
                   onClick={() => handleSearchChange("")}
                   variant="ghost"
                   size="icon-xs"
-                  className="text-muted-foreground hover:text-foreground"
+                  className={cn('text-muted-foreground', 'hover:text-foreground')}
                 >
                   <X />
                 </InputGroupButton>
@@ -1032,7 +1032,7 @@ export function LogicLabDashboardClient({
             )}
           </InputGroup>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className={cn('flex', 'items-center', 'gap-2', 'shrink-0')}>
             <Button
               variant="outline"
               onClick={() => setFilterSheetOpen(true)}
@@ -1042,30 +1042,30 @@ export function LogicLabDashboardClient({
               )}
             >
               <SlidersHorizontal className="size-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <span className={cn('hidden', 'sm:inline')}>Filters</span>
               {activeFilterCount > 0 && (
-                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold px-1 leading-none">
+                <span className={cn('inline-flex', 'h-4', 'min-w-4', 'items-center', 'justify-center', 'rounded-full', 'bg-primary', 'text-primary-foreground', 'text-[9px]', 'font-bold', 'px-1', 'leading-none')}>
                   {activeFilterCount}
                 </span>
               )}
             </Button>
 
-            <Button onClick={handleRandomProblem} variant="outline" className="rounded-full h-10 gap-1.5 shrink-0" title="Pick Random Problem">
+            <Button onClick={handleRandomProblem} variant="outline" className={cn('rounded-full', 'h-10', 'gap-1.5', 'shrink-0')} title="Pick Random Problem">
               <Dices className="size-4" />
-              <span className="hidden sm:inline">Pick Random</span>
+              <span className={cn('hidden', 'sm:inline')}>Pick Random</span>
             </Button>
           </div>
         </div>
 
         {/* Active filter summary strip */}
         {hasActiveFilters && (
-          <div className="flex items-center gap-2 -mt-2">
-            <span className="text-[11px] text-muted-foreground">
+          <div className={cn('flex', 'items-center', 'gap-2', '-mt-2')}>
+            <span className={cn('text-[11px]', 'text-muted-foreground')}>
               {totalCount} of {globalStats.total} problems
             </span>
             <button
               onClick={clearAllFilters}
-              className="text-[11px] text-primary hover:underline font-medium flex items-center gap-0.5"
+              className={cn('text-[11px]', 'text-primary', 'hover:underline', 'font-medium', 'flex', 'items-center', 'gap-0.5')}
             >
               <X className="size-3" />
               Clear all
@@ -1074,25 +1074,25 @@ export function LogicLabDashboardClient({
         )}
 
         {/* Card List & Infinite Scroll */}
-        <div className="relative min-h-[300px]">
+        <div className={cn('relative', 'min-h-[300px]')}>
           {isPending && problems.length === 0 && (
-            <div className="absolute inset-0 z-50 bg-background/50 backdrop-blur-[1px] flex items-center justify-center min-h-[200px]">
-              <div className="flex flex-col items-center gap-3 rounded-xl border bg-card px-6 py-5 shadow-lg">
-                <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <span className="text-sm font-medium text-muted-foreground">Loading problems...</span>
+            <div className={cn('absolute', 'inset-0', 'z-50', 'bg-background/50', 'backdrop-blur-[1px]', 'flex', 'items-center', 'justify-center', 'min-h-[200px]')}>
+              <div className={cn('flex', 'flex-col', 'items-center', 'gap-3', 'rounded-xl', 'border', 'bg-card', 'px-6', 'py-5', 'shadow-lg')}>
+                <Loader2 className={cn('h-8', 'w-8', 'text-primary', 'animate-spin')} />
+                <span className={cn('text-sm', 'font-medium', 'text-muted-foreground')}>Loading problems...</span>
               </div>
             </div>
           )}
 
           <div className={cn("transition-opacity duration-200 flex flex-col gap-2.5", isPending && problems.length === 0 && "opacity-40 pointer-events-none")}>
             {problems.length === 0 && !isPending ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center gap-4 rounded-xl border border-dashed border-border/60">
-                <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
-                  <BookOpen className="h-8 w-8 text-muted-foreground/60" />
+              <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'py-24', 'text-center', 'gap-4', 'rounded-xl', 'border', 'border-dashed', 'border-border/60')}>
+                <div className={cn('h-16', 'w-16', 'rounded-2xl', 'bg-muted', 'flex', 'items-center', 'justify-center')}>
+                  <BookOpen className={cn('h-8', 'w-8', 'text-muted-foreground/60')} />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-lg font-semibold text-foreground">No problems found</p>
-                  <p className="text-sm text-muted-foreground max-w-sm">
+                  <p className={cn('text-lg', 'font-semibold', 'text-foreground')}>No problems found</p>
+                  <p className={cn('text-sm', 'text-muted-foreground', 'max-w-sm')}>
                     We couldn't find any problems matching your current filters. Try adjusting your search or removing some tags.
                   </p>
                 </div>
@@ -1103,97 +1103,116 @@ export function LogicLabDashboardClient({
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className={cn('flex', 'flex-col', 'border', 'border-border/40', 'rounded-xl', 'overflow-hidden', 'shadow-sm', 'bg-background/40')}>
+                {/* Table Header */}
+                <div className={cn('hidden', 'md:flex', 'items-center', 'gap-3', 'px-4', 'py-3.5', 'bg-muted/40', 'border-b', 'border-border/50', 'text-xs', 'font-bold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'select-none')}>
+                  <div className={cn('w-14', 'shrink-0', 'text-center')}>Status</div>
+                  
+                  <div className={cn('flex-1', 'min-w-0', 'pl-4')}>Title</div>
+                  <div className={cn('w-[130px]', 'shrink-0', 'pl-4')}>Acceptance</div>
+                  <div className={cn('w-[120px]', 'shrink-0', 'pl-4')}>Difficulty</div>
+                  <div className={cn('w-[240px]', 'shrink-0', 'pl-4')}>Topic Tags</div>
+                  {isAdmin && <div className={cn('w-[70px]', 'shrink-0')}></div>}
+                  <div className={cn('w-8', 'shrink-0')}></div>
+                </div>
+
                 {problems.map((problem, idx) => {
                   const isSolved = problem.solved_status === "Accepted"
                   const isAttempted = !!(problem.solved_status && problem.solved_status !== "Accepted")
+                  const isEven = idx % 2 === 0;
 
                   return (
-                    <Card
+                    <div
                       key={problem.id}
                       onClick={() => router.push(`/logiclab/problems/${problem.id}`)}
-                      className="rounded-sm group cursor-pointer hover:bg-muted/30 transition-colors duration-150 border-border/50 hover:border-border/80 py-0"
+                      className={cn(
+                        "group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-150",
+                        isEven ? "bg-transparent" : "bg-zinc-100 dark:bg-white/[0.04]",
+                        idx !== problems.length - 1 && "border-b border-border/30"
+                      )}
                     >
-                      <CardContent className="flex items-center gap-3 px-4 py-2.5">
-                        {/* Status icon */}
-                        <div className="shrink-0 flex items-center justify-center w-5">
-                          {isSolved ? (
-                            <CircleCheck className="size-4 text-emerald-500" />
-                          ) : isAttempted ? (
-                            <CircleDot className="size-4 text-amber-500" />
-                          ) : (
-                            <div className="size-3.5 rounded-full border-2 border-muted-foreground/45" />
-                          )}
-                        </div>
-
-                        {/* Number & Title */}
-                        <div className="flex-1 min-w-0 flex items-center gap-2">
-                          <span className="text-xs font-mono font-semibold text-muted-foreground/80 shrink-0">
-                            #{problem.number || idx + 1}
-                          </span>
-                          <span className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors truncate block leading-snug">
-                            {problem.title}
-                          </span>
-                        </div>
-
-                        {/* Acceptance Rate (visible on desktop) */}
-                        <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground/85 w-[140px] shrink-0">
-                          <span>{problem.acceptance_rate !== null ? `${problem.acceptance_rate}% acceptance` : "—"}</span>
-                          {problem.total_submissions > 0 && (
-                            <span className="text-[10px] text-muted-foreground/60">
-                              ({problem.total_submissions})
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Difficulty + Tags */}
-                        <div className="hidden sm:flex items-center gap-2 shrink-0">
-                          <span className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                            problem.difficulty === "Easy" ? "text-emerald-600 bg-emerald-100/80 dark:text-emerald-400 dark:bg-emerald-500/15" :
-                              problem.difficulty === "Medium" ? "text-amber-600 bg-amber-100/80 dark:text-amber-400 dark:bg-amber-500/15" :
-                                "text-rose-600 bg-rose-100/80 dark:text-rose-400 dark:bg-rose-500/15",
-                          )}>
-                            {problem.difficulty}
-                          </span>
-                          {problem.tags?.slice(0, 2).map((tag) => (
-                            <span key={tag} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground/85">
-                              {tag}
-                            </span>
-                          ))}
-                          {problem.tags?.length > 2 && (
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground/60">
-                              +{problem.tags.length - 2}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Admin actions (Edit / Delete) */}
-                        {isAdmin && (
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                            <Link
-                              href={`/logiclab/admin/edit/${problem.id}`}
-                              className="p-1.5 hover:bg-background rounded-md text-muted-foreground hover:text-emerald-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
-                              title="Edit Problem"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Link>
-                            <button
-                              onClick={() => setDeletingProblemId(problem.id)}
-                              className="p-1.5 hover:bg-background rounded-md text-muted-foreground/70 hover:text-rose-500 transition-all cursor-pointer shadow-sm border border-transparent hover:border-border/60"
-                              title="Delete Problem"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                      {/* Status icon */}
+                      <div className={cn('shrink-0', 'flex', 'items-center', 'justify-center', 'w-14')}>
+                        {isSolved ? (
+                          <CircleCheck className={cn('size-4', 'text-emerald-500')} />
+                        ) : isAttempted ? (
+                          <CircleDot className={cn('size-4', 'text-amber-500')} />
+                        ) : (
+                          <div className={cn('size-3.5', 'rounded-full', 'border-2', 'border-muted-foreground/45')} />
                         )}
+                      </div>
 
-                        {/* Chevron indicator */}
-                        <div className="shrink-0 ml-1">
-                          <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground/80 group-hover:translate-x-0.5 transition-all" />
+                      {/* Number & Title */}
+                      <div className={cn('flex-1', 'min-w-0', 'flex', 'items-center', 'gap-3', 'pl-2')}>
+                        <span className={cn('text-xs', 'font-mono', 'font-semibold', 'text-muted-foreground/80', 'shrink-0')}>
+                          #{problem.number || idx + 1}
+                        </span>
+                        <span className={cn('text-sm', 'font-medium', 'text-foreground', 'group-hover:text-foreground', 'transition-colors', 'truncate', 'block', 'leading-snug')}>
+                          {problem.title}
+                        </span>
+                      </div>
+
+                      {/* Acceptance Rate (visible on desktop) */}
+                      <div className={cn('hidden', 'md:flex', 'flex-col', 'justify-center', 'w-[130px]', 'shrink-0', 'pl-4')}>
+                        <span className={cn('text-xs', 'font-medium', 'text-muted-foreground/90')}>{problem.acceptance_rate !== null ? `${problem.acceptance_rate}%` : "—"}</span>
+                        {problem.total_submissions > 0 && (
+                          <span className={cn('text-[10px]', 'text-muted-foreground/50')}>
+                            {problem.total_submissions} submissions
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Difficulty */}
+                      <div className={cn('hidden', 'md:flex', 'items-center', 'w-[120px]', 'shrink-0', 'pl-4')}>
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                          problem.difficulty === "Easy" ? "text-emerald-600 bg-emerald-100/80 dark:text-emerald-400 dark:bg-emerald-500/15" :
+                            problem.difficulty === "Medium" ? "text-amber-600 bg-amber-100/80 dark:text-amber-400 dark:bg-amber-500/15" :
+                              "text-rose-600 bg-rose-100/80 dark:text-rose-400 dark:bg-rose-500/15",
+                        )}>
+                          {problem.difficulty}
+                        </span>
+                      </div>
+
+                      {/* Tags */}
+                      <div className={cn('hidden', 'sm:flex', 'flex-wrap', 'items-center', 'gap-1.5', 'w-[240px]', 'shrink-0', 'pl-4')}>
+                        {problem.tags?.slice(0, 2).map((tag) => (
+                          <span key={tag} className={cn('text-[10px]', 'font-medium', 'px-1.5', 'py-0.5', 'rounded', 'bg-muted', 'text-muted-foreground/85', 'truncate', 'max-w-[80px]')}>
+                            {tag}
+                          </span>
+                        ))}
+                        {problem.tags?.length > 2 && (
+                          <span className={cn('text-[10px]', 'font-medium', 'px-1.5', 'py-0.5', 'rounded', 'bg-muted/60', 'text-muted-foreground/60', 'shrink-0')}>
+                            +{problem.tags.length - 2}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Admin actions (Edit / Delete) */}
+                      {isAdmin && (
+                        <div className={cn('flex', 'items-center', 'justify-end', 'gap-1', 'opacity-0', 'group-hover:opacity-100', 'transition-opacity', 'w-[70px]', 'shrink-0')} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                          <Link
+                            href={`/logiclab/admin/edit/${problem.id}`}
+                            className={cn('p-1.5', 'hover:bg-background', 'rounded-md', 'text-muted-foreground', 'hover:text-emerald-500', 'transition-all', 'cursor-pointer', 'shadow-sm', 'border', 'border-transparent', 'hover:border-border/60')}
+                            title="Edit Problem"
+                          >
+                            <Pencil className={cn('h-3.5', 'w-3.5')} />
+                          </Link>
+                          <button
+                            onClick={() => setDeletingProblemId(problem.id)}
+                            className={cn('p-1.5', 'hover:bg-background', 'rounded-md', 'text-muted-foreground/70', 'hover:text-rose-500', 'transition-all', 'cursor-pointer', 'shadow-sm', 'border', 'border-transparent', 'hover:border-border/60')}
+                            title="Delete Problem"
+                          >
+                            <Trash2 className={cn('h-3.5', 'w-3.5')} />
+                          </button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      )}
+
+                      {/* Chevron indicator */}
+                      <div className={cn('shrink-0', 'flex', 'justify-end', 'w-8')}>
+                        <ChevronRight className={cn('size-4', 'text-muted-foreground/50', 'group-hover:text-muted-foreground/80', 'group-hover:translate-x-0.5', 'transition-all')} />
+                      </div>
+                    </div>
                   )
                 })}
               </div>
@@ -1204,15 +1223,15 @@ export function LogicLabDashboardClient({
 
             {/* Loading more spinner */}
             {isLoadingMore && (
-              <div className="flex items-center justify-center py-4 gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
+              <div className={cn('flex', 'items-center', 'justify-center', 'py-4', 'gap-2', 'text-sm', 'text-muted-foreground')}>
+                <Loader2 className={cn('size-4', 'animate-spin')} />
                 Loading more...
               </div>
             )}
 
             {/* End of list */}
             {!hasMore && !isLoadingMore && problems.length > 0 && (
-              <p className="text-center text-xs text-muted-foreground/50 py-4">
+              <p className={cn('text-center', 'text-xs', 'text-muted-foreground/50', 'py-4')}>
                 All {problems.length} problems loaded
               </p>
             )}
@@ -1223,63 +1242,63 @@ export function LogicLabDashboardClient({
 
       {/* ── Filter Sheet ── */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="right" className="w-[320px] sm:w-[420px] flex flex-col gap-0 p-0">
-          <SheetHeader className="px-6 pt-5 pb-4 pr-10 border-b border-border/50 shrink-0">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-base font-bold">Sort & Filter</SheetTitle>
+        <SheetContent side="right" className={cn('w-[320px]', 'sm:w-[420px]', 'flex', 'flex-col', 'gap-0', 'p-0')}>
+          <SheetHeader className={cn('px-6', 'pt-5', 'pb-4', 'pr-10', 'border-b', 'border-border/50', 'shrink-0')}>
+            <div className={cn('flex', 'items-center', 'justify-between')}>
+              <SheetTitle className={cn('text-base', 'font-bold')}>Sort & Filter</SheetTitle>
               {activeFilterCount > 0 && (
                 <button
                   onClick={clearAllFilters}
-                  className="text-xs text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors"
+                  className={cn('text-xs', 'text-rose-500', 'hover:text-rose-600', 'dark:hover:text-rose-400', 'font-semibold', 'transition-colors')}
                 >
                   Clear all
                 </button>
               )}
             </div>
-            <SheetDescription className="text-xs text-muted-foreground -mt-0.5">
+            <SheetDescription className={cn('text-xs', 'text-muted-foreground', '-mt-0.5')}>
               Refine results or change sorting to find problems easily.
             </SheetDescription>
           </SheetHeader>
 
-          <Tabs defaultValue="filter" className="flex-1 flex flex-col gap-0 min-h-0">
-            <div className="px-6 py-2 border-b border-border/30 bg-muted/20 shrink-0">
-              <TabsList className="grid grid-cols-2 w-full h-9 p-1 bg-muted/60 rounded-lg">
-                <TabsTrigger value="filter" className="text-xs font-semibold">
+          <Tabs defaultValue="filter" className={cn('flex-1', 'flex', 'flex-col', 'gap-0', 'min-h-0')}>
+            <div className={cn('px-6', 'py-2', 'border-b', 'border-border/30', 'bg-muted/20', 'shrink-0')}>
+              <TabsList className={cn('grid', 'grid-cols-2', 'w-full', 'h-9', 'p-1', 'bg-muted/60', 'rounded-lg')}>
+                <TabsTrigger value="filter" className={cn('text-xs', 'font-semibold')}>
                   Filters
                   {activeFilterCount - (activeSort !== "number-asc" ? 1 : 0) > 0 && (
-                    <Badge variant="secondary" className="ml-1.5 px-1 py-0 h-4 min-w-4 text-[9px] font-bold leading-none bg-primary/10 text-primary border-none">
+                    <Badge variant="secondary" className={cn('ml-1.5', 'px-1', 'py-0', 'h-4', 'min-w-4', 'text-[9px]', 'font-bold', 'leading-none', 'bg-primary/10', 'text-primary', 'border-none')}>
                       {activeFilterCount - (activeSort !== "number-asc" ? 1 : 0)}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="sort" className="text-xs font-semibold">
+                <TabsTrigger value="sort" className={cn('text-xs', 'font-semibold')}>
                   Sorting
                   {activeSort !== "number-asc" && (
-                    <span className="ml-1.5 size-1.5 rounded-full bg-primary" />
+                    <span className={cn('ml-1.5', 'size-1.5', 'rounded-full', 'bg-primary')} />
                   )}
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* TAB CONTENT: FILTERS */}
-            <TabsContent value="filter" className="flex-1 overflow-y-auto min-h-0 focus-visible:outline-none">
+            <TabsContent value="filter" className={cn('flex-1', 'overflow-y-auto', 'min-h-0', 'focus-visible:outline-none')}>
               <Accordion type="multiple" defaultValue={["status", "difficulty", "tags"]} className="w-full">
 
                 {/* Accordion 1: Status */}
-                <AccordionItem value="status" className="px-6 border-b border-border/30">
-                  <AccordionTrigger className="py-3.5 hover:no-underline text-xs font-bold uppercase tracking-wider text-foreground">
-                    <span className="flex items-center gap-2">
+                <AccordionItem value="status" className={cn('px-6', 'border-b', 'border-border/30')}>
+                  <AccordionTrigger className={cn('py-3.5', 'hover:no-underline', 'text-xs', 'font-bold', 'uppercase', 'tracking-wider', 'text-foreground')}>
+                    <span className={cn('flex', 'items-center', 'gap-2')}>
                       <ListTodo className="size-3.5" />
                       Status
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="pb-4 pt-1 flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
+                  <AccordionContent className={cn('pb-4', 'pt-1', 'flex', 'flex-col', 'gap-2')}>
+                    <div className={cn('grid', 'grid-cols-2', 'gap-2')}>
                       {[
-                        { value: "all", label: "All Status", icon: <ListTodo className="size-3.5 text-foreground/70" /> },
-                        { value: "solved", label: "Solved Only", icon: <CircleCheck className="size-3.5 text-emerald-500" /> },
-                        { value: "attempted", label: "Attempting", icon: <CircleDot className="size-3.5 text-amber-500" /> },
-                        { value: "unsolved", label: "Unsolved", icon: <CircleDashed className="size-3.5 text-foreground/60" /> },
+                        { value: "all", label: "All Status", icon: <ListTodo className={cn('size-3.5', 'text-foreground/70')} /> },
+                        { value: "solved", label: "Solved Only", icon: <CircleCheck className={cn('size-3.5', 'text-emerald-500')} /> },
+                        { value: "attempted", label: "Attempting", icon: <CircleDot className={cn('size-3.5', 'text-amber-500')} /> },
+                        { value: "unsolved", label: "Unsolved", icon: <CircleDashed className={cn('size-3.5', 'text-foreground/60')} /> },
                       ].map((opt) => (
                         <button
                           key={opt.value}
@@ -1300,15 +1319,15 @@ export function LogicLabDashboardClient({
                 </AccordionItem>
 
                 {/* Accordion 2: Difficulty */}
-                <AccordionItem value="difficulty" className="px-6 border-b border-border/30">
-                  <AccordionTrigger className="py-3.5 hover:no-underline text-xs font-bold uppercase tracking-wider text-foreground">
-                    <span className="flex items-center gap-2">
+                <AccordionItem value="difficulty" className={cn('px-6', 'border-b', 'border-border/30')}>
+                  <AccordionTrigger className={cn('py-3.5', 'hover:no-underline', 'text-xs', 'font-bold', 'uppercase', 'tracking-wider', 'text-foreground')}>
+                    <span className={cn('flex', 'items-center', 'gap-2')}>
                       <Flame className="size-3.5" />
                       Difficulty
                     </span>
                   </AccordionTrigger>
-                  <AccordionContent className="pb-4 pt-1 flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
+                  <AccordionContent className={cn('pb-4', 'pt-1', 'flex', 'flex-col', 'gap-2')}>
+                    <div className={cn('grid', 'grid-cols-2', 'gap-2')}>
                       {[
                         { value: "All", label: "All Levels", color: "bg-foreground/50", text: "text-foreground/80", border: "border-border/40", bg: "bg-muted/20", desc: "No restriction" },
                         { value: "Easy", label: "Easy Level", color: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/10", desc: "Beginner level" },
@@ -1325,11 +1344,11 @@ export function LogicLabDashboardClient({
                               : "bg-muted/20 border-border/40 text-foreground/80 hover:bg-muted/50 hover:text-foreground hover:border-border/80"
                           )}
                         >
-                          <div className="flex items-center gap-1.5 text-xs font-semibold">
+                          <div className={cn('flex', 'items-center', 'gap-1.5', 'text-xs', 'font-semibold')}>
                             <span className={cn("size-2 rounded-full", opt.color)} />
                             <span>{opt.label}</span>
                           </div>
-                          <span className="text-[10px] text-foreground/65 font-normal">{opt.desc}</span>
+                          <span className={cn('text-[10px]', 'text-foreground/65', 'font-normal')}>{opt.desc}</span>
                         </button>
                       ))}
                     </div>
@@ -1338,24 +1357,24 @@ export function LogicLabDashboardClient({
 
                 {/* Accordion 3: Topic Tags */}
                 {allTags.length > 0 && (
-                  <AccordionItem value="tags" className="px-6 border-none">
-                    <AccordionTrigger className="py-3.5 hover:no-underline text-xs font-bold uppercase tracking-wider text-foreground">
-                      <span className="flex items-center gap-2">
+                  <AccordionItem value="tags" className={cn('px-6', 'border-none')}>
+                    <AccordionTrigger className={cn('py-3.5', 'hover:no-underline', 'text-xs', 'font-bold', 'uppercase', 'tracking-wider', 'text-foreground')}>
+                      <span className={cn('flex', 'items-center', 'gap-2')}>
                         <BookOpen className="size-3.5" />
                         Topic Tags
                       </span>
                     </AccordionTrigger>
-                    <AccordionContent className="pb-4 pt-1 flex flex-col gap-3">
+                    <AccordionContent className={cn('pb-4', 'pt-1', 'flex', 'flex-col', 'gap-3')}>
                       {/* Tag Search Input */}
-                      <InputGroup className="bg-muted/25 border-border/40 h-8 rounded-md">
+                      <InputGroup className={cn('bg-muted/25', 'border-border/40', 'h-8', 'rounded-md')}>
                         <InputGroupAddon align="inline-start">
-                          <Search className="size-3.5 text-foreground/50" />
+                          <Search className={cn('size-3.5', 'text-foreground/50')} />
                         </InputGroupAddon>
                         <InputGroupInput
                           placeholder="Search tags..."
                           value={tagSearchInput}
                           onChange={(e) => setTagSearchInput(e.target.value)}
-                          className="text-xs h-full placeholder:text-foreground/45"
+                          className={cn('text-xs', 'h-full', 'placeholder:text-foreground/45')}
                         />
                         {tagSearchInput && (
                           <InputGroupAddon align="inline-end">
@@ -1363,7 +1382,7 @@ export function LogicLabDashboardClient({
                               onClick={() => setTagSearchInput("")}
                               variant="ghost"
                               size="icon-xs"
-                              className="text-foreground/70 hover:text-foreground"
+                              className={cn('text-foreground/70', 'hover:text-foreground')}
                             >
                               <X className="size-3" />
                             </InputGroupButton>
@@ -1372,7 +1391,7 @@ export function LogicLabDashboardClient({
                       </InputGroup>
 
                       {visibleTags.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
+                        <div className={cn('flex', 'flex-wrap', 'gap-1.5', 'pt-1')}>
                           {visibleTags.map((t) => {
                             const isSelected = activeTag === t
                             const count = tagCounts[t] || 0
@@ -1399,7 +1418,7 @@ export function LogicLabDashboardClient({
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs text-foreground/50 italic py-2 text-center">No tags match search query</p>
+                        <p className={cn('text-xs', 'text-foreground/50', 'italic', 'py-2', 'text-center')}>No tags match search query</p>
                       )}
 
                       {allTags.length > 8 && !tagSearchInput && (
@@ -1407,7 +1426,7 @@ export function LogicLabDashboardClient({
                           variant="ghost"
                           size="xs"
                           onClick={() => setShowAllTags(!showAllTags)}
-                          className="w-full text-xs text-foreground/80 hover:text-foreground border border-dashed border-border/30 rounded-md py-1 mt-1"
+                          className={cn('w-full', 'text-xs', 'text-foreground/80', 'hover:text-foreground', 'border', 'border-dashed', 'border-border/30', 'rounded-md', 'py-1', 'mt-1')}
                         >
                           {showAllTags ? "Show Less" : `Show All Topic Tags (${allTags.length})`}
                         </Button>
@@ -1419,11 +1438,11 @@ export function LogicLabDashboardClient({
             </TabsContent>
 
             {/* TAB CONTENT: SORT SETTINGS */}
-            <TabsContent value="sort" className="flex-1 overflow-y-auto px-6 py-5 min-h-0 focus-visible:outline-none">
+            <TabsContent value="sort" className={cn('flex-1', 'overflow-y-auto', 'px-6', 'py-5', 'min-h-0', 'focus-visible:outline-none')}>
               <RadioGroup
                 value={activeSort}
                 onValueChange={(val) => applyFilter("sortBy", val)}
-                className="flex flex-col gap-3"
+                className={cn('flex', 'flex-col', 'gap-3')}
               >
                 {[
                   { value: "number-asc", title: "Number: Low to High", desc: "Start from the first problem" },
@@ -1449,13 +1468,13 @@ export function LogicLabDashboardClient({
                           : "bg-muted/15 border-border/50 text-foreground/80 hover:bg-muted/40 hover:text-foreground hover:border-border/80"
                       )}
                     >
-                      <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-3">
+                      <div className={cn('flex', 'flex-col', 'gap-0.5', 'flex-1', 'min-w-0', 'pr-3')}>
                         <Label className={cn("text-xs font-semibold cursor-pointer block truncate", isSelected ? "text-primary" : "text-foreground")}>
                           {opt.title}
                         </Label>
-                        <span className="text-[10px] text-foreground/65 leading-tight">{opt.desc}</span>
+                        <span className={cn('text-[10px]', 'text-foreground/65', 'leading-tight')}>{opt.desc}</span>
                       </div>
-                      <RadioGroupItem value={opt.value} className="size-4 shrink-0 pointer-events-none" />
+                      <RadioGroupItem value={opt.value} className={cn('size-4', 'shrink-0', 'pointer-events-none')} />
                     </div>
                   )
                 })}
@@ -1465,12 +1484,12 @@ export function LogicLabDashboardClient({
 
           <Separator />
 
-          <div className="px-6 py-4 bg-muted/10 shrink-0">
+          <div className={cn('px-6', 'py-4', 'bg-muted/10', 'shrink-0')}>
             <Button
-              className="w-full rounded-xl font-bold h-10 shadow-md bg-primary hover:bg-primary/95 transition-all text-sm gap-2 cursor-pointer"
+              className={cn('w-full', 'rounded-xl', 'font-bold', 'h-10', 'shadow-md', 'bg-primary', 'hover:bg-primary/95', 'transition-all', 'text-sm', 'gap-2', 'cursor-pointer')}
               onClick={() => setFilterSheetOpen(false)}
             >
-              <CircleCheck className="size-4 opacity-80" />
+              <CircleCheck className={cn('size-4', 'opacity-80')} />
               <span>
                 {isPending
                   ? "Applying..."
@@ -1485,12 +1504,12 @@ export function LogicLabDashboardClient({
       <AlertDialog open={!!deletingProblemId} onOpenChange={(open) => { if (!open) setDeletingProblemId(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-rose-500">
+            <AlertDialogTitle className={cn('flex', 'items-center', 'gap-2', 'text-rose-500')}>
               <AlertTriangle className="size-5" /> Permanent Deletion
             </AlertDialogTitle>
-            <AlertDialogDescription className="flex flex-col gap-3">
+            <AlertDialogDescription className={cn('flex', 'flex-col', 'gap-3')}>
               <span>Are you absolutely sure you want to permanently delete this coding problem?</span>
-              <span className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400 font-medium block">
+              <span className={cn('p-3', 'bg-rose-500/10', 'border', 'border-rose-500/20', 'rounded-lg', 'text-rose-600', 'dark:text-rose-400', 'font-medium', 'block')}>
                 This action cannot be undone. All associated user submissions and attempts will also be deleted.
               </span>
             </AlertDialogDescription>
@@ -1500,9 +1519,9 @@ export function LogicLabDashboardClient({
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
+              className={cn('bg-destructive', 'hover:bg-destructive/90', 'text-destructive-foreground', 'gap-2')}
             >
-              {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              {isDeleting ? <Loader2 className={cn('size-4', 'animate-spin')} /> : <Trash2 className="size-4" />}
               {isDeleting ? "Deleting..." : "Delete Problem"}
             </AlertDialogAction>
           </AlertDialogFooter>
