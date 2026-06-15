@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { buildStorageUrl } from "@/lib/storage"
@@ -13,6 +13,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select"
@@ -97,6 +103,8 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
 
   // ── Modules state ────────────────────────────────────────────────────────────
   const [modules, setModules] = useState<AdminModuleInput[]>(initialModules)
+  const [openModuleId, setOpenModuleId] = useState<string | undefined>(undefined)
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null)
 
   // Course duration is auto-calculated from the sum of all module durations
   const computedDuration = modules.reduce((sum, mod) => {
@@ -168,11 +176,24 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
   }
 
   const addModule = () => {
+    const newId = `temp-${crypto.randomUUID()}`
     setModules([
       ...modules,
-      { id: `temp-${crypto.randomUUID()}`, title: "", description: "", duration: "30", type: "text", content: "" },
+      { id: newId, title: "", description: "", duration: "30", type: "text", content: "" },
     ])
+    setOpenModuleId(newId)
+    setLastAddedId(newId)
   }
+
+  useEffect(() => {
+    if (lastAddedId) {
+      const element = document.getElementById(`module-item-${lastAddedId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+        setLastAddedId(null)
+      }
+    }
+  }, [lastAddedId, modules])
 
   const removeModule = (index: number) => {
     setModules(modules.filter((_, i) => i !== index))
@@ -503,29 +524,45 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4">
+                  <Accordion
+                    type="single"
+                    collapsible
+                    value={openModuleId}
+                    onValueChange={setOpenModuleId}
+                    className="flex flex-col gap-4"
+                  >
                     {modules.map((mod, index) => {
                       const isPreviewActive = activePreviewModuleId === (mod.id ?? String(index))
+                      const moduleId = mod.id ?? String(index)
                       return (
-                        <Card key={mod.id ?? index} className="border-border/50">
-                          {/* Module header */}
-                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                            <div className="flex items-center gap-2">
-                              <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
-                                {index + 1}
-                              </span>
-                              <CardTitle className="text-sm font-semibold">
-                                {mod.title || `Module ${index + 1}`}
-                              </CardTitle>
-                            </div>
-                            <div className="flex items-center gap-1">
+                        <AccordionItem
+                          key={moduleId}
+                          value={moduleId}
+                          id={`module-item-${moduleId}`}
+                          className="border border-border/50 rounded-xl bg-card shadow-sm px-6"
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <AccordionTrigger className="flex-1 py-4 hover:no-underline text-sm font-semibold">
+                              <div className="flex items-center gap-2">
+                                <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                  {index + 1}
+                                </span>
+                                <span>
+                                  {mod.title || `Module ${index + 1}`}
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <div className="flex items-center gap-1 shrink-0 pl-4" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground"
                                 disabled={index === 0}
-                                onClick={() => moveModule(index, "up")}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  moveModule(index, "up")
+                                }}
                               >
                                 <ArrowUp className="h-4 w-4" />
                                 <span className="sr-only">Move Up</span>
@@ -536,7 +573,10 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground"
                                 disabled={index === modules.length - 1}
-                                onClick={() => moveModule(index, "down")}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  moveModule(index, "down")
+                                }}
                               >
                                 <ArrowDown className="h-4 w-4" />
                                 <span className="sr-only">Move Down</span>
@@ -546,16 +586,18 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => removeModule(index)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeModule(index)
+                                }}
                               >
                                 <Trash2 className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
                             </div>
-                          </CardHeader>
+                          </div>
 
-                          {/* Module fields */}
-                          <CardContent className="space-y-4">
+                          <AccordionContent className="flex flex-col gap-4 pt-2 pb-6">
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                               <div className="flex flex-col gap-1.5 md:col-span-2">
                                 <Label htmlFor={`module-title-${index}`}>
@@ -651,11 +693,11 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                                 />
                               )}
                             </div>
-                          </CardContent>
-                        </Card>
+                          </AccordionContent>
+                        </AccordionItem>
                       )
                     })}
-                  </div>
+                  </Accordion>
                 )}
               </CardContent>
             </Card>
