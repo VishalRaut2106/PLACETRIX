@@ -179,7 +179,7 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
     const newId = `temp-${crypto.randomUUID()}`
     setModules([
       ...modules,
-      { id: newId, title: "", description: "", duration: "30", type: "text", content: "" },
+      { id: newId, title: "", description: "", duration: "30", min_duration: 0, type: "text", content: "" },
     ])
     setOpenModuleId(newId)
     setLastAddedId(newId)
@@ -636,7 +636,7 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                           </div>
 
                           <AccordionContent className="flex flex-col gap-4 pt-2 pb-6">
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                               <div className="flex flex-col gap-1.5 md:col-span-2">
                                 <Label htmlFor={`module-title-${index}`}>
                                   Module Title <span className="text-destructive">*</span>
@@ -657,6 +657,20 @@ export function CreateCourseClient({ initialCourse, initialModules = [], adminPr
                                   placeholder="e.g. 45"
                                   value={mod.duration ? String(parseDurationToMinutes(mod.duration)) : ""}
                                   onChange={(e) => updateModuleField(index, "duration", e.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <Label htmlFor={`module-min-duration-${index}`}>Lock Time (in mins)</Label>
+                                <Input
+                                  id={`module-min-duration-${index}`}
+                                  type="number"
+                                  min="0"
+                                  placeholder="e.g. 5"
+                                  value={mod.min_duration !== undefined && mod.min_duration !== null ? String(mod.min_duration) : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    updateModuleField(index, "min_duration", val === "" ? null : parseInt(val, 10));
+                                  }}
                                 />
                               </div>
                             </div>

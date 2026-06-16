@@ -89,6 +89,7 @@ export default async function ModuleDetailPage({ params }: PageProps) {
       type: m.type as any,
       completed: prog ? prog.completed : false,
       duration: m.duration || "",
+      min_duration: m.min_duration ?? null,
       content: m.content || "",
     }
   })
@@ -116,6 +117,7 @@ export default async function ModuleDetailPage({ params }: PageProps) {
     <CandidateModuleClient
       course={formattedCourse as any}
       module={formattedActiveModule as any}
+      isAdmin={profile.account_type === "admin"}
     />
   )
 }

@@ -11,6 +11,7 @@ export interface AdminModuleInput {
   title: string
   description?: string
   duration?: string
+  min_duration?: number | null
   type: string
   content?: string
 }
@@ -71,6 +72,7 @@ export async function createCourseAction(
       title: mod.title,
       description: mod.description || null,
       duration: mod.duration || null,
+      min_duration: mod.min_duration ?? null,
       type: mod.type || "text",
       content: mod.content || null,
       order_index: index,
@@ -161,6 +163,7 @@ export async function updateCourseAction(
         title: mod.title,
         description: mod.description || null,
         duration: mod.duration || null,
+        min_duration: mod.min_duration ?? null,
         type: mod.type || "text",
         content: mod.content || null,
         order_index: index,

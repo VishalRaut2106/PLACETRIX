@@ -210,9 +210,13 @@ export function CandidateCourseDetailClient({ course, isEnrolled, certificateId,
     }
   }
 
-  const handleModuleClick = (moduleId: string) => {
+  const handleModuleClick = (moduleId: string, isUnlocked: boolean = true) => {
     if (!isEnrolled) {
       toast.error("Please enroll in the course first to access its contents.")
+      return
+    }
+    if (!isUnlocked) {
+      toast.error("This module is locked. Please complete the preceding modules first.")
       return
     }
     router.push(`/courses/${course.id}/module/${moduleId}`)
@@ -466,33 +470,31 @@ export function CandidateCourseDetailClient({ course, isEnrolled, certificateId,
         <div className="flex flex-col gap-3">
           {modules.map((mod, index) => {
             const isModCompleted = mod.completed
-            const isNextUp = isEnrolled && nextModule && nextModule.id === mod.id
+            const isUnlocked = isEnrolled && (index === 0 || modules.slice(0, index).every(m => m.completed))
 
             return (
               <div
                 key={mod.id}
                 id={`course-module-item-${mod.id}`}
-                onClick={() => handleModuleClick(mod.id)}
+                onClick={() => handleModuleClick(mod.id, isUnlocked)}
                 className={cn(
                   "group flex items-center justify-between gap-4 p-4 rounded-xl border select-none transition-all duration-200",
                   isEnrolled
                     ? isModCompleted
                       ? "border-emerald-500/15 dark:border-emerald-500/10 bg-emerald-500/[0.02] dark:bg-emerald-500/[0.01] hover:bg-emerald-500/[0.04] cursor-pointer border-l-4 border-l-emerald-500"
-                      : isNextUp
+                      : isUnlocked
                         ? "border-primary/25 bg-primary/[0.02] dark:bg-primary/[0.01] hover:bg-primary/[0.04] cursor-pointer border-l-4 border-l-primary"
-                        : "border-border/60 bg-card hover:border-border hover:shadow-xs cursor-pointer border-l-4 border-l-transparent"
+                        : "border-border/40 bg-muted/10 opacity-60 cursor-not-allowed border-l-4 border-l-transparent"
                     : "border-border/40 bg-muted/10 opacity-70 cursor-not-allowed border-l-4 border-l-transparent"
                 )}
               >
                 {/* Module number / status */}
                 <div className={cn(
                   "flex size-8 items-center justify-center rounded-full text-xs font-bold shrink-0 transition-all duration-200 border",
-                  isEnrolled
+                  isUnlocked
                     ? isModCompleted
                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                      : isNextUp
-                        ? "bg-primary border-primary text-primary-foreground scale-105"
-                        : "bg-muted/60 border-border/40 text-muted-foreground group-hover:bg-primary/10 group-hover:border-primary/20 group-hover:text-primary"
+                      : "bg-primary border-primary text-primary-foreground scale-105"
                     : "bg-muted/40 border-border/20 text-muted-foreground/40"
                 )}>
                   {isModCompleted && isEnrolled ? (
@@ -510,14 +512,14 @@ export function CandidateCourseDetailClient({ course, isEnrolled, certificateId,
                       isEnrolled
                         ? isModCompleted
                           ? "text-muted-foreground line-through decoration-muted-foreground/30"
-                          : isNextUp
+                          : isUnlocked
                             ? "text-foreground font-bold"
                             : "text-foreground group-hover:text-primary"
                         : "text-muted-foreground"
                     )}>
                       {mod.title}
                     </span>
-                    {!isEnrolled && (
+                    {!isUnlocked && (
                       <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground/60 rounded-full border-dashed flex items-center gap-0.5">
                         <Lock className="size-2.5" /> Locked
                       </Badge>
@@ -559,11 +561,11 @@ export function CandidateCourseDetailClient({ course, isEnrolled, certificateId,
                 {/* Arrow/Access Indicator */}
                 <div className={cn(
                   "size-8 flex items-center justify-center rounded-full border shrink-0 transition-all duration-200",
-                  isEnrolled
+                  isUnlocked
                     ? "bg-muted/40 border-border/40 text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary group-hover:translate-x-0.5"
                     : "bg-muted/10 border-border/10 text-muted-foreground/30"
                 )}>
-                  {isEnrolled ? (
+                  {isUnlocked ? (
                     <ChevronRight className="size-4" />
                   ) : (
                     <Lock className="size-3.5" />

@@ -63,6 +63,7 @@ export default async function EditCoursePage({ params }: PageProps) {
     title: m.title,
     description: m.description || "",
     duration: m.duration || "30 min",
+    min_duration: m.min_duration ?? null,
     type: m.type || "text",
     content: m.content || "",
   }))
