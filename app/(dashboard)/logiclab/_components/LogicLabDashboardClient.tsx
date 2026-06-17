@@ -263,11 +263,12 @@ export function LogicLabDashboardClient({
     return `${h}h ${m}m ${s}s`;
   }
 
-  const [timeLeft, setTimeLeft] = useState<string>(calculateTimeLeft)
+  const [timeLeft, setTimeLeft] = useState<string>("")
 
   // UTC Midnight Countdown Timer
   useEffect(() => {
     if (!potd) return;
+    setTimeLeft(calculateTimeLeft());
     const interval = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(interval);
   }, [potd]);

@@ -194,7 +194,39 @@ export default async function LogicLabPage() {
 
   // Fetch initial POTD directly from aggressively cached function
   let initialPotd = await getCachedPotd(todayStr);
-  let fullPotdProblem = initialPotd ? enrichedProblems.find((p: any) => p.id === (initialPotd as any).problem_id) : null;
+  let fullPotdProblem = null;
+
+  if (initialPotd) {
+    const foundInEnriched = enrichedProblems.find((p: any) => p.id === (initialPotd as any).problem_id);
+    if (foundInEnriched) {
+      fullPotdProblem = { ...foundInEnriched };
+    } else {
+      // Fetch the problem details directly from the DB as it is not in the first 20 problems
+      const { data: dbProblem } = await supabase
+        .from("logiclab_problems")
+        .select("id, number, title, difficulty, tags")
+        .eq("id", initialPotd.problem_id)
+        .single();
+
+      if (dbProblem) {
+        const { data: statsRow } = await supabase
+          .from("logiclab_problem_stats")
+          .select("accepted_submissions, total_submissions")
+          .eq("problem_id", initialPotd.problem_id)
+          .maybeSingle();
+
+        const totalSubmissions = statsRow?.total_submissions || 0;
+        const acceptedSubmissions = statsRow?.accepted_submissions || 0;
+        const acceptanceRate = totalSubmissions > 0 ? Math.round((acceptedSubmissions / totalSubmissions) * 100) : null;
+
+        fullPotdProblem = {
+          ...dbProblem,
+          acceptance_rate: acceptanceRate,
+          total_submissions: totalSubmissions,
+        };
+      }
+    }
+  }
 
   if (fullPotdProblem && initialPotd) {
     const { data: potdSub } = await supabase

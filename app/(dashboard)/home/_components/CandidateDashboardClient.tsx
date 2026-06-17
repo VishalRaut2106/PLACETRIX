@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import Link from "next/link"
 import {
   Flame,
@@ -95,6 +96,7 @@ interface CandidateDashboardClientProps {
   jobApplications: JobApplication[]
   liveTests: MockTest[]
   upcomingTests: MockTest[]
+  todayStr: string
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -152,16 +154,18 @@ function ConcentricRing({
         strokeWidth="5"
         className={cn("stroke-muted/20 dark:stroke-muted/10", trackClassName)}
       />
-      <circle
+      <motion.circle
         cx="50"
         cy="50"
         r={radius}
         fill="none"
         strokeWidth="5"
         strokeDasharray={circumference}
-        strokeDashoffset={strokeDashoffset}
+        initial={{ strokeDashoffset: circumference }}
+        animate={{ strokeDashoffset }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
         strokeLinecap="round"
-        className={cn("stroke-primary transition-all duration-1000 ease-out", className)}
+        className={cn("stroke-primary", className)}
       />
     </g>
   )
@@ -176,6 +180,7 @@ export function CandidateDashboardClient({
   jobApplications,
   liveTests,
   upcomingTests,
+  todayStr,
 }: CandidateDashboardClientProps) {
   const [greeting, setGreeting] = useState("Hello")
 
@@ -255,164 +260,171 @@ export function CandidateDashboardClient({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Left Panel: LogicLab Coding Stats (Shadcn default minimal design) */}
-                <Card className="border bg-card/40 shadow-none py-0">
-                  <CardContent className="flex flex-row items-center justify-between gap-6 p-4 md:p-5">
-                    <div className="space-y-4 flex-1">
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          Coding Challenges
-                        </p>
-                        <p className="text-2xl font-bold mt-0.5 text-foreground">
-                          {globalStats.solved} <span className="text-xs font-normal text-muted-foreground">/ {globalStats.total} Solved</span>
-                        </p>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        {/* Easy */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                              <span className="font-medium">Easy</span>
-                            </div>
-                            <span className="font-semibold text-foreground">{globalStats.easy.solved}/{globalStats.easy.total}</span>
-                          </div>
-                          <Progress
-                            value={globalStats.easy.total > 0 ? (globalStats.easy.solved / globalStats.easy.total) * 100 : 0}
-                            className="h-1.5 bg-emerald-500/10 [&>div]:bg-emerald-500"
-                          />
-                        </div>
-                        {/* Medium */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              <span className="font-medium">Medium</span>
-                            </div>
-                            <span className="font-semibold text-foreground">{globalStats.medium.solved}/{globalStats.medium.total}</span>
-                          </div>
-                          <Progress
-                            value={globalStats.medium.total > 0 ? (globalStats.medium.solved / globalStats.medium.total) * 100 : 0}
-                            className="h-1.5 bg-amber-500/10 [&>div]:bg-amber-500"
-                          />
-                        </div>
-                        {/* Hard */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                              <span className="font-medium">Hard</span>
-                            </div>
-                            <span className="font-semibold text-foreground">{globalStats.hard.solved}/{globalStats.hard.total}</span>
-                          </div>
-                          <Progress
-                            value={globalStats.hard.total > 0 ? (globalStats.hard.solved / globalStats.hard.total) * 100 : 0}
-                            className="h-1.5 bg-rose-500/10 [&>div]:bg-rose-500"
-                          />
-                        </div>
-                      </div>
+                {/* Left Panel: LogicLab Coding Stats */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                  whileHover={{ y: -3, scale: 1.01 }}
+                  className="flex flex-row items-center justify-between gap-6 p-5 md:p-6 rounded-2xl bg-muted/15 border border-border/30 hover:border-border/60 hover:bg-muted/20 transition-all duration-300 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)]"
+                >
+                  <div className="space-y-4 flex-1">
+                    <div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        Coding Challenges
+                      </p>
+                      <p className="text-2xl font-bold mt-0.5 text-foreground">
+                        {globalStats.solved} <span className="text-xs font-normal text-muted-foreground">/ {globalStats.total} Solved</span>
+                      </p>
                     </div>
 
-                    <Separator orientation="vertical" className="h-28 hidden sm:block" />
-
-                    {/* SVG Concentric Ring with Shadcn Default Style */}
-                    <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
-                      <svg className="w-full h-full" viewBox="0 0 100 100">
-                        <ConcentricRing
-                          radius={42}
-                          value={globalStats.easy.solved}
-                          max={globalStats.easy.total}
-                          className="stroke-emerald-500"
+                    <div className="space-y-2.5">
+                      {/* Easy */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <span className="font-medium">Easy</span>
+                          </div>
+                          <span className="font-semibold text-foreground">{globalStats.easy.solved}/{globalStats.easy.total}</span>
+                        </div>
+                        <Progress
+                          value={globalStats.easy.total > 0 ? (globalStats.easy.solved / globalStats.easy.total) * 100 : 0}
+                          className="h-1.5 bg-emerald-500/10 [&>div]:bg-emerald-500"
                         />
-                        <ConcentricRing
-                          radius={32}
-                          value={globalStats.medium.solved}
-                          max={globalStats.medium.total}
-                          className="stroke-amber-500"
+                      </div>
+                      {/* Medium */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            <span className="font-medium">Medium</span>
+                          </div>
+                          <span className="font-semibold text-foreground">{globalStats.medium.solved}/{globalStats.medium.total}</span>
+                        </div>
+                        <Progress
+                          value={globalStats.medium.total > 0 ? (globalStats.medium.solved / globalStats.medium.total) * 100 : 0}
+                          className="h-1.5 bg-amber-500/10 [&>div]:bg-amber-500"
                         />
-                        <ConcentricRing
-                          radius={22}
-                          value={globalStats.hard.solved}
-                          max={globalStats.hard.total}
-                          className="stroke-rose-500"
+                      </div>
+                      {/* Hard */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                            <span className="font-medium">Hard</span>
+                          </div>
+                          <span className="font-semibold text-foreground">{globalStats.hard.solved}/{globalStats.hard.total}</span>
+                        </div>
+                        <Progress
+                          value={globalStats.hard.total > 0 ? (globalStats.hard.solved / globalStats.hard.total) * 100 : 0}
+                          className="h-1.5 bg-rose-500/10 [&>div]:bg-rose-500"
                         />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-lg font-bold text-foreground">
-                          {globalStats.total > 0 ? Math.round((globalStats.solved / globalStats.total) * 100) : 0}%
-                        </span>
-                        <span className="text-[9px] text-muted-foreground uppercase font-semibold">Progress</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
 
-                {/* Right Panel: Mock Test Performance (Shadcn default minimal design) */}
-                <Card className="border bg-card/40 shadow-none py-0">
-                  <CardContent className="flex flex-row items-center justify-between gap-6 p-4 md:p-5">
-                    <div className="space-y-4 flex-1">
-                      <div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          Mock Test Performance
-                        </p>
-                        <p className="text-2xl font-bold mt-0.5 text-foreground">
-                          {stats.completed_tests} <span className="text-xs font-normal text-muted-foreground">Tests Taken</span>
-                        </p>
-                      </div>
+                  <Separator orientation="vertical" className="h-28 hidden sm:block bg-border/40" />
 
-                      <div className="space-y-2.5">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span className="font-medium">Test Accuracy</span>
-                            <span className="font-semibold text-foreground">{Math.round(stats.average_score)}%</span>
-                          </div>
-                          <Progress
-                            value={stats.average_score}
-                            className="h-1.5 bg-primary/10 [&>div]:bg-primary"
-                          />
-                        </div>
+                  {/* SVG Concentric Ring with premium motion transition */}
+                  <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      <ConcentricRing
+                        radius={42}
+                        value={globalStats.easy.solved}
+                        max={globalStats.easy.total}
+                        className="stroke-emerald-500"
+                      />
+                      <ConcentricRing
+                        radius={32}
+                        value={globalStats.medium.solved}
+                        max={globalStats.medium.total}
+                        className="stroke-amber-500"
+                      />
+                      <ConcentricRing
+                        radius={22}
+                        value={globalStats.hard.solved}
+                        max={globalStats.hard.total}
+                        className="stroke-rose-500"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-lg font-bold text-foreground">
+                        {globalStats.total > 0 ? Math.round((globalStats.solved / globalStats.total) * 100) : 0}%
+                      </span>
+                      <span className="text-[9px] text-muted-foreground uppercase font-semibold">Progress</span>
+                    </div>
+                  </div>
+                </motion.div>
 
-                        {/* Improvised dividers layout to avoid card nesting overload */}
-                        <div className="grid grid-cols-3 gap-2 mt-4 bg-muted/20 dark:bg-muted/10 rounded-xl p-2.5 border border-border/10 select-none text-center">
-                          <div>
-                            <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Assigned</span>
-                            <span className="text-sm font-bold text-foreground mt-0.5 block">{stats.total_tests}</span>
-                          </div>
-                          <div className="border-x border-border/10">
-                            <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Live</span>
-                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{stats.live_tests}</span>
-                          </div>
-                          <div>
-                            <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Completed</span>
-                            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 block">{stats.completed_tests}</span>
-                          </div>
-                        </div>
-                      </div>
+                {/* Right Panel: Mock Test Performance */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, ease: "easeOut", delay: 0.1 }}
+                  whileHover={{ y: -3, scale: 1.01 }}
+                  className="flex flex-row items-center justify-between gap-6 p-5 md:p-6 rounded-2xl bg-muted/15 border border-border/30 hover:border-border/60 hover:bg-muted/20 transition-all duration-300 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)]"
+                >
+                  <div className="space-y-4 flex-1">
+                    <div>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        Mock Test Performance
+                      </p>
+                      <p className="text-2xl font-bold mt-0.5 text-foreground">
+                        {stats.completed_tests} <span className="text-xs font-normal text-muted-foreground">Tests Taken</span>
+                      </p>
                     </div>
 
-                    <Separator orientation="vertical" className="h-28 hidden sm:block" />
-
-                    {/* Score Radial Ring with Shadcn Default Style */}
-                    <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
-                      <svg className="w-full h-full" viewBox="0 0 100 100">
-                        <ConcentricRing
-                          radius={36}
+                    <div className="space-y-2.5">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span className="font-medium">Test Accuracy</span>
+                          <span className="font-semibold text-foreground">{Math.round(stats.average_score)}%</span>
+                        </div>
+                        <Progress
                           value={stats.average_score}
-                          max={100}
-                          className="stroke-primary"
+                          className="h-1.5 bg-primary/10 [&>div]:bg-primary"
                         />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-lg font-bold text-primary">
-                          {Math.round(stats.average_score)}%
-                        </span>
-                        <span className="text-[9px] text-muted-foreground uppercase font-semibold text-center leading-none mt-0.5">Avg Score</span>
+                      </div>
+                      
+                      {/* Refined stats grid */}
+                      <div className="grid grid-cols-3 gap-2 mt-4 bg-background/50 dark:bg-muted/10 rounded-xl p-2.5 border border-border/20 select-none text-center">
+                        <div>
+                          <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Assigned</span>
+                          <span className="text-sm font-bold text-foreground mt-0.5 block">{stats.total_tests}</span>
+                        </div>
+                        <div className="border-x border-border/20">
+                          <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Live</span>
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{stats.live_tests}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block">Completed</span>
+                          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 block">{stats.completed_tests}</span>
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  <Separator orientation="vertical" className="h-28 hidden sm:block bg-border/40" />
+
+                  {/* Score Radial Ring with dynamic grow transition */}
+                  <div className="relative h-28 w-28 shrink-0 flex items-center justify-center">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      <ConcentricRing
+                        radius={36}
+                        value={stats.average_score}
+                        max={100}
+                        className="stroke-primary"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-lg font-bold text-primary">
+                        {Math.round(stats.average_score)}%
+                      </span>
+                      <span className="text-[9px] text-muted-foreground uppercase font-semibold text-center leading-none mt-0.5">Avg Score</span>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
 
               {/* 14-Day Activity Tracker Section */}
@@ -442,7 +454,7 @@ export function CandidateDashboardClient({
 
                 <div className="flex flex-wrap items-center gap-2">
                   {activityCalendar.map((day) => {
-                    const isToday = new Date(day.date).toDateString() === new Date().toDateString()
+                    const isToday = day.date === todayStr
                     return (
                       <div
                         key={day.date}

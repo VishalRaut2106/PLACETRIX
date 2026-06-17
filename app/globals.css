@@ -406,7 +406,8 @@
 }
 
 .monaco-editor .margin-view-overlays .monaco-error-line-number .line-numbers {
-  color: #f43f5e !important; /* Tailwind rose-500 */
+  color: #f43f5e !important;
+  /* Tailwind rose-500 */
   font-weight: bold !important;
 }
 
@@ -415,18 +416,17 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--muted) 25%,
-    var(--accent) 37%,
-    var(--muted) 63%
-  );
+  background: linear-gradient(90deg,
+      var(--muted) 25%,
+      var(--accent) 37%,
+      var(--muted) 63%);
   background-size: 200% 100%;
   animation: shimmer-sweep 1.6s ease-in-out infinite;
-}
+}

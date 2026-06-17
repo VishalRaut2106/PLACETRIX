@@ -374,6 +374,7 @@ export default async function HomePage() {
         jobApplications={jobApplications}
         liveTests={liveTests}
         upcomingTests={upcomingTests}
+        todayStr={todayStr}
       />
     );
   }
