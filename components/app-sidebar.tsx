@@ -90,8 +90,6 @@ const VALID_INSTITUTE_SUBTYPES: InstituteSubtype[] = ["primary", "staff", "tpo"]
 const NAV_MAIN: Record<AccountType, NavItem[]> = {
   candidate: [
     { title: "Home", url: "/home", icon: Home },
-    { title: "Job Search", url: "/jobs", icon: Search },
-    { title: "My Applications", url: "/applications", icon: ClipboardList },
     { title: "Logic Lab", url: "/logiclab", icon: Code },
     { title: "Courses", url: "/courses", icon: BookOpen, badge: "Beta" },
     { title: "Tests", url: "/tests", icon: BarChart3 },
@@ -131,7 +129,6 @@ const NAV_INSTITUTE_SUBTYPES: Record<InstituteSubtype, NavItem[]> = {
   tpo: [
     { title: "Home", url: "/home", icon: Home },
     { title: "Placement", url: "/placement-management", icon: Trophy },
-    { title: "Drives", url: "/drives", icon: Folder },
   ],
 }
 

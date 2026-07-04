@@ -54,16 +54,6 @@ interface TestStats {
   average_score: number
 }
 
-interface JobApplication {
-  id: string
-  status: string
-  created_at: string
-  title: string
-  company_name: string
-  location: string | null
-  work_mode: string | null
-}
-
 interface MockTest {
   id: string
   title: string
@@ -95,39 +85,11 @@ interface CandidateDashboardClientProps {
     count: number
     status: "none" | "attempted" | "solved"
   }>
-  jobApplications: JobApplication[]
   liveTests: MockTest[]
   upcomingTests: MockTest[]
   todayStr: string
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  applied: {
-    bg: "bg-blue-50 dark:bg-blue-950/20",
-    text: "text-blue-700 dark:text-blue-400 border-blue-200/50 dark:border-blue-800/30",
-    dot: "bg-blue-500",
-  },
-  screening: {
-    bg: "bg-indigo-50 dark:bg-indigo-950/20",
-    text: "text-indigo-700 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/30",
-    dot: "bg-indigo-500",
-  },
-  interviewing: {
-    bg: "bg-amber-50 dark:bg-amber-950/20",
-    text: "text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/30",
-    dot: "bg-amber-500",
-  },
-  offered: {
-    bg: "bg-emerald-50 dark:bg-emerald-950/20",
-    text: "text-emerald-700 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30",
-    dot: "bg-emerald-500",
-  },
-  rejected: {
-    bg: "bg-rose-50 dark:bg-rose-950/20",
-    text: "text-rose-700 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/30",
-    dot: "bg-rose-500",
-  },
-}
 
 function ConcentricRing({
   radius,
@@ -179,7 +141,6 @@ export function CandidateDashboardClient({
   globalStats,
   streakStats,
   activityCalendar,
-  jobApplications,
   liveTests,
   upcomingTests,
   todayStr,
@@ -606,18 +567,6 @@ export function CandidateDashboardClient({
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
               </Link>
 
-              <Link href="/jobs" className="group flex items-center justify-between p-3 rounded-xl border border-border/30 hover:border-amber-500/30 hover:bg-amber-500/[0.02] transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
-                    <Briefcase className="h-4 w-4 text-amber-500" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">Explore Jobs</p>
-                    <p className="text-[10px] text-muted-foreground">Browse corporate job postings</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-              </Link>
 
               <Link href="/tools/resume" className="group flex items-center justify-between p-3 rounded-xl border border-border/30 hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all">
                 <div className="flex items-center gap-3">
@@ -647,98 +596,7 @@ export function CandidateDashboardClient({
             </CardContent>
           </Card>
 
-          {/* Card: Recent Applications Timeline */}
-          <Card className="bg-card/50 backdrop-blur-sm border-border/40 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Recent Applications
-              </CardTitle>
-              <Link href="/applications" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
-                View all
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {jobApplications.length === 0 ? (
-                <Empty className="p-6 border-dashed border-border/30 rounded-xl bg-background/25">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon" className="bg-amber-500/10 text-amber-500 rounded-full">
-                      <Briefcase className="h-5 w-5" strokeWidth={1.5} />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-sm font-semibold">No applications yet</EmptyTitle>
-                    <EmptyDescription className="text-xs">
-                      Find jobs matching your skills and interests.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <EmptyContent>
-                    <Link href="/jobs">
-                      <Button size="sm" variant="outline" className="h-8 text-xs font-medium border-border/40 hover:bg-muted/50">
-                        Find jobs now
-                      </Button>
-                    </Link>
-                  </EmptyContent>
-                </Empty>
-              ) : (
-                <div className="space-y-1">
-                  {jobApplications.map((app, index) => {
-                    const statusColors = STATUS_COLORS[app.status] || STATUS_COLORS.applied
 
-                    return (
-                      <div key={app.id} className="relative flex gap-3 p-2 rounded-xl border border-transparent hover:border-border/30 hover:bg-background/40 transition-all group">
-                        {/* Timeline Line */}
-                        {index < jobApplications.length - 1 && (
-                          <div className="absolute left-[22px] top-10 bottom-0 w-[1px] bg-border/40" />
-                        )}
-
-                        {/* Icon container */}
-                        <div className="h-7 w-7 shrink-0 rounded-full border border-border/40 bg-card flex items-center justify-center font-bold text-xs text-muted-foreground group-hover:border-indigo-500/30 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors z-10">
-                          {app.company_name ? app.company_name.substring(0, 1).toUpperCase() : "?"}
-                        </div>
-
-                        {/* Details */}
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-semibold text-foreground text-xs truncate leading-snug">
-                              {app.title}
-                            </h4>
-                            <span className="text-[9px] text-muted-foreground shrink-0 mt-0.5">
-                              {new Date(app.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
-                            <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.5} />
-                            <span>{app.company_name}</span>
-                            {app.location && (
-                              <>
-                                <span>•</span>
-                                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.5} />
-                                <span className="truncate">{app.location}</span>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Status Badge */}
-                          <div className="pt-1.5">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[9px] px-2.5 py-0.5 border font-medium select-none capitalize gap-1",
-                                statusColors.bg,
-                                statusColors.text
-                              )}
-                            >
-                              <span className={cn("h-1 w-1 rounded-full shrink-0", statusColors.dot)} />
-                              {app.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
       </div>

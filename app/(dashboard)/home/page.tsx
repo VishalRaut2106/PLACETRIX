@@ -264,39 +264,6 @@ export default async function HomePage() {
       });
     }
 
-    // 5. Job Applications
-    const { data: apps } = await (supabase as any)
-      .from("job_applications")
-      .select(`
-        id,
-        status,
-        created_at,
-        job_postings!inner (
-          id,
-          title,
-          job_type,
-          location,
-          work_mode
-        )
-      `)
-      .eq("candidate_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(3);
-
-    const jobApplications = (apps ?? []).map((row: any) => {
-      const jobData = Array.isArray(row.job_postings) ? row.job_postings[0] : row.job_postings;
-
-      return {
-        id: row.id,
-        status: row.status,
-        created_at: row.created_at,
-        title: jobData?.title,
-        company_name: "Unknown Company",
-        location: jobData?.location,
-        work_mode: jobData?.work_mode,
-      };
-    });
-
     // 6. Fetch live/upcoming tests for candidate
     const submittedTestIds = (testAttempts ?? [])
       .map((a: any) => a.test_id);
@@ -361,7 +328,6 @@ export default async function HomePage() {
         globalStats={globalStats}
         streakStats={streakStats}
         activityCalendar={activityCalendar}
-        jobApplications={jobApplications}
         liveTests={liveTests}
         upcomingTests={upcomingTests}
         todayStr={todayStr}
