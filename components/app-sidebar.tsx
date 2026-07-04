@@ -362,8 +362,12 @@ export function NavMain({ items }: { items: NavItem[] }) {
   const { setOpenMobile } = useSidebar()
   const { isActive: isLicenseActive, isAdmin, user } = useLicense()
 
+  const isProfileComplete = user?.account_type === "candidate"
+    ? (user?.profile_complete === true && user?.profile_updated === true)
+    : true
+  const isProfileIncomplete = user?.account_type === "candidate" && !isProfileComplete
   const isCandidateUnverified = user?.account_type === "candidate" && user?.institute_verified !== true
-  const hasAccess = isAdmin || (isLicenseActive && !isCandidateUnverified)
+  const hasAccess = isAdmin || (isLicenseActive && !isCandidateUnverified && !isProfileIncomplete)
 
   return (
     <SidebarGroup>
@@ -397,9 +401,11 @@ export function NavMain({ items }: { items: NavItem[] }) {
                           if (isLocked) {
                             e.preventDefault()
                             e.stopPropagation()
-                            const reason = isCandidateUnverified 
-                              ? "Your account is pending approval by your college TPO."
-                              : "Your institution does not have an active license."
+                            const reason = isProfileIncomplete
+                              ? "Please complete your profile to unlock this feature."
+                              : isCandidateUnverified 
+                                ? "Your account is pending approval by your college TPO."
+                                : "Your institution does not have an active license."
                             toast.error(`Feature Locked`, {
                               description: reason
                             })
@@ -460,9 +466,11 @@ export function NavMain({ items }: { items: NavItem[] }) {
                   onClick={(e) => {
                     if (isLocked) {
                       e.preventDefault()
-                      const reason = isCandidateUnverified 
-                        ? "Your account is pending approval by your college TPO."
-                        : "Your institution does not have an active license."
+                      const reason = isProfileIncomplete
+                        ? "Please complete your profile to unlock this feature."
+                        : isCandidateUnverified 
+                          ? "Your account is pending approval by your college TPO."
+                          : "Your institution does not have an active license."
                       toast.error(`Feature Locked`, {
                         description: reason
                       })

@@ -224,31 +224,6 @@ export function CandidateDashboardClient({
         </CardContent>
       </Card>
 
-      {/* Complete Profile banner (Separate CTA block) */}
-      {!isProfileComplete && (
-        <Alert className="bg-amber-500/[0.03] dark:bg-amber-500/[0.01] border-amber-500/20 text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 md:p-5 rounded-xl shadow-xs">
-          <div className="flex items-start gap-3.5 min-w-0">
-            <div className="p-2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-              <AlertCircle className="h-5 w-5 animate-pulse" strokeWidth={2} />
-            </div>
-            <div className="space-y-1">
-              <AlertTitle className="text-sm font-bold tracking-tight text-amber-900 dark:text-amber-200">
-                Your profile is incomplete!
-              </AlertTitle>
-              <AlertDescription className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
-                Please complete your profile to unlock custom placements, track mock tests, and get verified by your institution.
-              </AlertDescription>
-            </div>
-          </div>
-          <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-zinc-950 rounded-full font-semibold px-5 shrink-0 shadow-xs shadow-amber-500/10">
-            <Link href="/myprofile" className="flex items-center gap-1.5 text-xs">
-              Complete Profile
-              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-            </Link>
-          </Button>
-        </Alert>
-      )}
-
       {/* ─── Main Content ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

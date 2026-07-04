@@ -1,10 +1,12 @@
 "use client";
 
 import { useLicense } from "@/components/license/LicenseProvider";
-import { AlertTriangle, Clock, XCircle, ShieldOff } from "lucide-react";
+import { AlertTriangle, Clock, XCircle, ShieldOff, AlertCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-type BannerVariant = "expired" | "pending" | "none" | "unverified" | "revoked";
+type BannerVariant = "expired" | "pending" | "none" | "unverified" | "revoked" | "incomplete";
 
 interface BannerConfig {
   icon: React.ReactNode;
@@ -54,6 +56,14 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     className:
       "border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300",
   },
+  incomplete: {
+    icon: <AlertCircle className="h-5 w-5 shrink-0 animate-pulse text-amber-600 dark:text-amber-400" />,
+    title: "Your profile is incomplete!",
+    description:
+      "Please complete your profile to unlock custom placements, track mock tests, and get verified by your institution.",
+    className:
+      "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300",
+  },
 };
 
 export function LicenseBanner() {
@@ -63,8 +73,16 @@ export function LicenseBanner() {
 
   let variant: BannerVariant | null = null;
 
-  // 1. License Check
-  if (!license || license.status !== "active") {
+  const isProfileComplete = user?.account_type === "candidate"
+    ? (user?.profile_complete === true && user?.profile_updated === true)
+    : true;
+
+  // 1. Incomplete Profile Check (takes highest priority)
+  if (user?.account_type === "candidate" && !isProfileComplete) {
+    variant = "incomplete";
+  }
+  // 2. License Check
+  else if (!license || license.status !== "active") {
     const status = license?.status ?? null;
     if (status === "expired") {
       variant = "expired";
@@ -76,7 +94,7 @@ export function LicenseBanner() {
       variant = "none";
     }
   } 
-  // 2. Student Verification Check (only if license is active)
+  // 3. Student Verification Check (only if license is active and profile is complete)
   else if (user?.account_type === "candidate" && user?.institute_verified !== true) {
     variant = "unverified";
   }
@@ -88,15 +106,25 @@ export function LicenseBanner() {
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-lg border p-3.5 text-sm",
+        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border p-3.5 text-sm",
         config.className
       )}
     >
-      {config.icon}
-      <div className="min-w-0">
-        <p className="font-semibold leading-none">{config.title}</p>
-        <p className="mt-1 text-xs opacity-80">{config.description}</p>
+      <div className="flex items-start gap-3 min-w-0">
+        {config.icon}
+        <div className="min-w-0">
+          <p className="font-semibold leading-none">{config.title}</p>
+          <p className="mt-1 text-xs opacity-80 leading-relaxed">{config.description}</p>
+        </div>
       </div>
+      {variant === "incomplete" && (
+        <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-zinc-950 rounded-full font-semibold px-5 shrink-0 shadow-xs shadow-amber-500/10 self-start sm:self-center">
+          <Link href="/myprofile" className="flex items-center gap-1.5 text-xs">
+            Complete Profile
+            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }

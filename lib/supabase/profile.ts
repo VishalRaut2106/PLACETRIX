@@ -24,6 +24,7 @@ export interface UserProfile {
   signature_path?: string | null;
   profile_updated?: boolean | null;
   institute_verified?: boolean | null;
+  profile_complete?: boolean | null;
 }
 
 function isDefinitiveRevocation(error: AuthApiError): boolean {
@@ -230,7 +231,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
         .from("profiles")
         .select(`
           username, display_name, avatar_path, account_type, account_subtype, signature_path, institute_id, profile_updated,
-          candidate_profiles!candidate_profiles_profile_id_fkey (institute_verified)
+          candidate_profiles!candidate_profiles_profile_id_fkey (institute_verified, profile_complete)
         `)
         .eq("id", built.id)
         .maybeSingle();
@@ -251,6 +252,8 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
         const cp = dbProfile.candidate_profiles;
         const verified = Array.isArray(cp) ? cp[0]?.institute_verified : cp?.institute_verified;
         built.institute_verified = verified ?? null;
+        const complete = Array.isArray(cp) ? cp[0]?.profile_complete : cp?.profile_complete;
+        built.profile_complete = complete ?? null;
 
         if (dbProfile.signature_path !== undefined) built.signature_path = dbProfile.signature_path;
         built._account_type_missing = false;
