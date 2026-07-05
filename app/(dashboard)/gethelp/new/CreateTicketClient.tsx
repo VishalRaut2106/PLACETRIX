@@ -40,8 +40,12 @@ export function CreateTicketClient({ userProfile }: CreateTicketClientProps) {
         title: fullTitle,
         description: description.trim(),
       });
-      toast.success("Support ticket created successfully!");
-      router.push(`/gethelp/${ticket.id}`);
+      if (ticket && ticket.id) {
+        toast.success("Support ticket created successfully!");
+        router.push(`/gethelp/${ticket.id}`);
+      } else {
+        throw new Error("Failed to create ticket");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to create ticket");
       setIsSubmitting(false);

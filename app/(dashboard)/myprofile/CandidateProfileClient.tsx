@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { jsPDF } from "jspdf";
 import { UserProfile } from "@/lib/supabase/profile";
 import { updateCandidatePersonalDetails } from "./actions";
 import {
@@ -93,6 +94,13 @@ interface InstituteOption {
   affiliation: string | null;
 }
 
+interface EventCertificate {
+  ticketId: string;
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+}
+
 interface Props {
   userProfile: UserProfile;
   initialData: Record<string, any> | null;
@@ -100,6 +108,7 @@ interface Props {
   experienceData: CandidateExperience[];
   projectsData: CandidateProject[];
   certificationsData: CandidateCertification[];
+  eventCertificates?: EventCertificate[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -215,7 +224,8 @@ export function CandidateProfileClient({
   educationData,
   experienceData,
   projectsData,
-  certificationsData
+  certificationsData,
+  eventCertificates = []
 }: Props) {
   const supabase = createClient();
   const router = useRouter();
@@ -1150,6 +1160,97 @@ export function CandidateProfileClient({
         toast.error(err.message || "Failed to delete certification.");
       }
     });
+  };
+
+  const downloadEventCertificate = (cert: EventCertificate) => {
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const width = doc.internal.pageSize.getWidth();
+      const height = doc.internal.pageSize.getHeight();
+
+      // Draw elegant background border
+      doc.setDrawColor(15, 23, 42); // Navy slate
+      doc.setLineWidth(1);
+      doc.rect(10, 10, width - 20, height - 20);
+
+      doc.setDrawColor(194, 120, 3); // Gold accent border
+      doc.setLineWidth(0.5);
+      doc.rect(12, 12, width - 24, height - 24);
+
+      // Certificate Title
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(28);
+      doc.text("CERTIFICATE OF PARTICIPATION", width / 2, 45, { align: "center" });
+
+      // Subtitle
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(14);
+      doc.setTextColor(100, 100, 100);
+      doc.text("This is proudly presented to", width / 2, 60, { align: "center" });
+
+      // Candidate Name
+      const fullName = `${firstName} ${lastName}`.trim() || userProfile.display_name;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.setTextColor(194, 120, 3); // Gold for the name
+      doc.text(fullName, width / 2, 78, { align: "center" });
+
+      // Divider line under name
+      doc.setDrawColor(194, 120, 3);
+      doc.setLineWidth(0.5);
+      doc.line(width / 2 - 40, 84, width / 2 + 40, 84);
+
+      // Description
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(70, 70, 70);
+      doc.text(
+        `for active participation and successful completion of the campus workshop/seminar`,
+        width / 2,
+        96,
+        { align: "center" }
+      );
+
+      // Event Title
+      doc.setFont("helvetica", "bolditalic");
+      doc.setFontSize(18);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`"${cert.eventTitle}"`, width / 2, 110, { align: "center" });
+
+      // Event Date details
+      const eventDateStr = new Date(cert.eventDate).toLocaleDateString("en-IN", {
+        dateStyle: "long",
+      });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Held on ${eventDateStr}`, width / 2, 125, { align: "center" });
+
+      // Bottom Brand Signature
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text("PlaceTrix Platform", width / 2, 160, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text("Verified Academic & Training Record", width / 2, 166, { align: "center" });
+
+      // Save PDF
+      const fileName = `Certificate_${cert.eventTitle.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      doc.save(fileName);
+      toast.success("Certificate downloaded!");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -2144,6 +2245,46 @@ export function CandidateProfileClient({
                     </Button>
                   </div>
                   {idx < certifications.length - 1 && <Separator className="mt-4" />}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+        {/* Events Participation Certificates Card */}
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Events Certificates of Participation</CardTitle>
+              <CardDescription>Verified participation certificates for concluded campus events</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {eventCertificates.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No event participation certificates available yet.</p>
+            ) : (
+              eventCertificates.map((cert, idx) => (
+                <div key={cert.ticketId} className="group relative flex gap-4 items-start pt-1">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-zinc-50 dark:bg-zinc-900/50">
+                    <Award className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="space-y-1 pr-16 flex-1">
+                    <h4 className="text-sm font-semibold leading-none">{cert.eventTitle}</h4>
+                    <p className="text-xs text-muted-foreground font-medium">PlaceTrix Campus Event</p>
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      Attended {new Date(cert.eventDate).toLocaleDateString("en-US", { month: "short", year: "numeric", day: "numeric" })}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => downloadEventCertificate(cert)}
+                        className="p-0 h-auto text-xs text-primary hover:underline gap-1"
+                      >
+                        <FileDown className="h-3 w-3" /> Download Certificate
+                      </Button>
+                    </div>
+                  </div>
+                  {idx < eventCertificates.length - 1 && <Separator className="mt-4" />}
                 </div>
               ))
             )}

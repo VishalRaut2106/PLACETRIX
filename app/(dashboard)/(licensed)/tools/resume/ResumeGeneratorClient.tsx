@@ -868,11 +868,11 @@ export function ResumeGeneratorClient() {
 
       if (profile || candidate) {
         let instituteName = "Institute"
-        if (candidate?.institute_id) {
+        if (profile?.institute_id) {
           const { data: inst } = await supabase
             .from('institutes')
             .select('institute_name')
-            .eq('id', candidate.institute_id)
+            .eq('id', profile.institute_id)
             .maybeSingle()
           if (inst?.institute_name) {
             instituteName = inst.institute_name

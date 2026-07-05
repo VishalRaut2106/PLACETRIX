@@ -75,26 +75,163 @@ export type Database = {
         }
         Relationships: []
       }
+      candidate_certifications: {
+        Row: {
+          certificate_path: string | null
+          created_at: string
+          credential_id: string | null
+          credential_url: string | null
+          does_not_expire: boolean
+          expiration_date: string | null
+          id: string
+          issue_date: string
+          issuing_org: string
+          name: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          certificate_path?: string | null
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          does_not_expire?: boolean
+          expiration_date?: string | null
+          id?: string
+          issue_date: string
+          issuing_org: string
+          name: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          certificate_path?: string | null
+          created_at?: string
+          credential_id?: string | null
+          credential_url?: string | null
+          does_not_expire?: boolean
+          expiration_date?: string | null
+          id?: string
+          issue_date?: string
+          issuing_org?: string
+          name?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_certifications_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_education: {
+        Row: {
+          course_or_stream: string | null
+          created_at: string
+          grade_or_percentage: number
+          id: string
+          institution_name: string
+          passout_year: number
+          profile_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          course_or_stream?: string | null
+          created_at?: string
+          grade_or_percentage: number
+          id?: string
+          institution_name: string
+          passout_year: number
+          profile_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          course_or_stream?: string | null
+          created_at?: string
+          grade_or_percentage?: number
+          id?: string
+          institution_name?: string
+          passout_year?: number
+          profile_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_education_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_experiences: {
+        Row: {
+          company_name: string
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_current: boolean
+          location: string | null
+          profile_id: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          location?: string | null
+          profile_id: string
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          location?: string | null
+          profile_id?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_experiences_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_profiles: {
         Row: {
           aadhaar_number: string | null
+          bio: string | null
           cgpa: number | null
           course_name: string | null
           created_at: string
           current_address: string | null
           date_of_birth: string | null
-          diploma_pass_year: number | null
-          diploma_percentage: number | null
           first_name: string | null
           full_name: string | null
           gender: string | null
           github_url: string | null
-          hsc_pass_year: number | null
-          hsc_percentage: number | null
-          institute_id: string | null
-          institute_verified: boolean | null
-          is_diploma: boolean | null
-          is_hsc: boolean | null
           last_name: string | null
           linkedin_url: string | null
           middle_name: string | null
@@ -102,45 +239,25 @@ export type Database = {
           permanent_address: string | null
           phone_number: string | null
           portfolio_links: string[] | null
-          profile_complete: boolean | null
+          profile_complete: boolean
           profile_id: string
-          profile_image_path: string | null
-          profile_updated: boolean
-          sgpa_sem1: number | null
-          sgpa_sem10: number | null
-          sgpa_sem2: number | null
-          sgpa_sem3: number | null
-          sgpa_sem4: number | null
-          sgpa_sem5: number | null
-          sgpa_sem6: number | null
-          sgpa_sem7: number | null
-          sgpa_sem8: number | null
-          sgpa_sem9: number | null
+          sgpa_semesters: Json | null
           skills: string[] | null
-          ssc_pass_year: number | null
-          ssc_percentage: number | null
           university_prn: string | null
           updated_at: string
         }
         Insert: {
           aadhaar_number?: string | null
+          bio?: string | null
           cgpa?: number | null
           course_name?: string | null
           created_at?: string
           current_address?: string | null
           date_of_birth?: string | null
-          diploma_pass_year?: number | null
-          diploma_percentage?: number | null
           first_name?: string | null
           full_name?: string | null
           gender?: string | null
           github_url?: string | null
-          hsc_pass_year?: number | null
-          hsc_percentage?: number | null
-          institute_id?: string | null
-          institute_verified?: boolean | null
-          is_diploma?: boolean | null
-          is_hsc?: boolean | null
           last_name?: string | null
           linkedin_url?: string | null
           middle_name?: string | null
@@ -148,45 +265,25 @@ export type Database = {
           permanent_address?: string | null
           phone_number?: string | null
           portfolio_links?: string[] | null
-          profile_complete?: boolean | null
+          profile_complete?: boolean
           profile_id: string
-          profile_image_path?: string | null
-          profile_updated?: boolean
-          sgpa_sem1?: number | null
-          sgpa_sem10?: number | null
-          sgpa_sem2?: number | null
-          sgpa_sem3?: number | null
-          sgpa_sem4?: number | null
-          sgpa_sem5?: number | null
-          sgpa_sem6?: number | null
-          sgpa_sem7?: number | null
-          sgpa_sem8?: number | null
-          sgpa_sem9?: number | null
+          sgpa_semesters?: Json | null
           skills?: string[] | null
-          ssc_pass_year?: number | null
-          ssc_percentage?: number | null
           university_prn?: string | null
           updated_at?: string
         }
         Update: {
           aadhaar_number?: string | null
+          bio?: string | null
           cgpa?: number | null
           course_name?: string | null
           created_at?: string
           current_address?: string | null
           date_of_birth?: string | null
-          diploma_pass_year?: number | null
-          diploma_percentage?: number | null
           first_name?: string | null
           full_name?: string | null
           gender?: string | null
           github_url?: string | null
-          hsc_pass_year?: number | null
-          hsc_percentage?: number | null
-          institute_id?: string | null
-          institute_verified?: boolean | null
-          is_diploma?: boolean | null
-          is_hsc?: boolean | null
           last_name?: string | null
           linkedin_url?: string | null
           middle_name?: string | null
@@ -194,35 +291,68 @@ export type Database = {
           permanent_address?: string | null
           phone_number?: string | null
           portfolio_links?: string[] | null
-          profile_complete?: boolean | null
+          profile_complete?: boolean
           profile_id?: string
-          profile_image_path?: string | null
-          profile_updated?: boolean
-          sgpa_sem1?: number | null
-          sgpa_sem10?: number | null
-          sgpa_sem2?: number | null
-          sgpa_sem3?: number | null
-          sgpa_sem4?: number | null
-          sgpa_sem5?: number | null
-          sgpa_sem6?: number | null
-          sgpa_sem7?: number | null
-          sgpa_sem8?: number | null
-          sgpa_sem9?: number | null
+          sgpa_semesters?: Json | null
           skills?: string[] | null
-          ssc_pass_year?: number | null
-          ssc_percentage?: number | null
           university_prn?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "candidate_profiles_institute_id_fkey"
-            columns: ["institute_id"]
-            referencedRelation: "institutes"
+            foreignKeyName: "candidate_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      candidate_projects: {
+        Row: {
+          associated_with: string | null
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          is_ongoing: boolean
+          profile_id: string
+          project_url: string | null
+          skills: string[] | null
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          associated_with?: string | null
+          created_at?: string
+          description: string
+          end_date?: string | null
+          id?: string
+          is_ongoing?: boolean
+          profile_id: string
+          project_url?: string | null
+          skills?: string[] | null
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          associated_with?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          is_ongoing?: boolean
+          profile_id?: string
+          project_url?: string | null
+          skills?: string[] | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "candidate_profiles_profile_id_fkey"
+            foreignKeyName: "candidate_projects_profile_id_fkey"
             columns: ["profile_id"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -354,6 +484,7 @@ export type Database = {
           description: string | null
           duration: string | null
           id: string
+          min_duration: number | null
           order_index: number
           title: string
           type: string
@@ -366,6 +497,7 @@ export type Database = {
           description?: string | null
           duration?: string | null
           id?: string
+          min_duration?: number | null
           order_index?: number
           title: string
           type?: string
@@ -378,6 +510,7 @@ export type Database = {
           description?: string | null
           duration?: string | null
           id?: string
+          min_duration?: number | null
           order_index?: number
           title?: string
           type?: string
@@ -447,35 +580,238 @@ export type Database = {
           },
         ]
       }
-      institute_profiles: {
+      event_question_upvotes: {
         Row: {
+          candidate_id: string
           created_at: string
-          institute_id: string | null
-          profile_id: string
-          profile_updated: boolean
+          question_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          question_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_question_upvotes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_question_upvotes_question_id_fkey"
+            columns: ["question_id"]
+            referencedRelation: "event_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_questions: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          event_id: string
+          id: string
+          is_answered: boolean
+          question: string
+          upvotes_count: number
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          is_answered?: boolean
+          question: string
+          upvotes_count?: number
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          is_answered?: boolean
+          question?: string
+          upvotes_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_questions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_questions_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tickets: {
+        Row: {
+          attendance_status: string
+          candidate_id: string
+          created_at: string
+          event_id: string
+          id: string
+          status: string
           updated_at: string
         }
         Insert: {
+          attendance_status?: string
+          candidate_id: string
           created_at?: string
-          institute_id?: string | null
-          profile_id: string
-          profile_updated?: boolean
+          event_id: string
+          id?: string
+          status?: string
           updated_at?: string
         }
         Update: {
+          attendance_status?: string
+          candidate_id?: string
           created_at?: string
-          institute_id?: string | null
-          profile_id?: string
-          profile_updated?: boolean
+          event_id?: string
+          id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "institute_profiles_institute_id_fkey"
+            foreignKeyName: "event_tickets_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_tickets_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          capacity: number
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          institute_id: string
+          reminder_1h_sent: boolean
+          reminder_24h_sent: boolean
+          status: string
+          targeting_rules: Json
+          title: string
+          updated_at: string
+          venue: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          institute_id: string
+          reminder_1h_sent?: boolean
+          reminder_24h_sent?: boolean
+          status?: string
+          targeting_rules?: Json
+          title: string
+          updated_at?: string
+          venue: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          institute_id?: string
+          reminder_1h_sent?: boolean
+          reminder_24h_sent?: boolean
+          status?: string
+          targeting_rules?: Json
+          title?: string
+          updated_at?: string
+          venue?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_institute_id_fkey"
             columns: ["institute_id"]
             referencedRelation: "institutes"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      institute_licenses: {
+        Row: {
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          institute_id: string
+          notes: string | null
+          plan_name: string
+          starts_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          institute_id: string
+          notes?: string | null
+          plan_name?: string
+          starts_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          institute_id?: string
+          notes?: string | null
+          plan_name?: string
+          starts_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institute_licenses_institute_id_fkey"
+            columns: ["institute_id"]
+            referencedRelation: "institutes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institute_profiles: {
+        Row: {
+          created_at: string | null
+          profile_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          profile_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          profile_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
           {
             foreignKeyName: "institute_profiles_profile_id_fkey"
             columns: ["profile_id"]
@@ -555,119 +891,6 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: []
-      }
-      job_applications: {
-        Row: {
-          candidate_id: string
-          cover_letter: string | null
-          created_at: string
-          id: string
-          job_id: string
-          resume_url: string | null
-          status: Database["public"]["Enums"]["job_application_status"]
-          updated_at: string
-        }
-        Insert: {
-          candidate_id: string
-          cover_letter?: string | null
-          created_at?: string
-          id?: string
-          job_id: string
-          resume_url?: string | null
-          status?: Database["public"]["Enums"]["job_application_status"]
-          updated_at?: string
-        }
-        Update: {
-          candidate_id?: string
-          cover_letter?: string | null
-          created_at?: string
-          id?: string
-          job_id?: string
-          resume_url?: string | null
-          status?: Database["public"]["Enums"]["job_application_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_applications_candidate_id_fkey"
-            columns: ["candidate_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_applications_job_id_fkey"
-            columns: ["job_id"]
-            referencedRelation: "job_postings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      job_postings: {
-        Row: {
-          application_count: number | null
-          application_deadline: string | null
-          created_at: string
-          description: string | null
-          id: string
-          job_type: Database["public"]["Enums"]["job_type"]
-          location: string | null
-          recruiter_id: string
-          requirements: string | null
-          salary_currency: string | null
-          salary_max: number | null
-          salary_min: number | null
-          skills: string[] | null
-          status: Database["public"]["Enums"]["job_posting_status"]
-          title: string
-          updated_at: string
-          work_mode: Database["public"]["Enums"]["work_mode"]
-        }
-        Insert: {
-          application_count?: number | null
-          application_deadline?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_type?: Database["public"]["Enums"]["job_type"]
-          location?: string | null
-          recruiter_id: string
-          requirements?: string | null
-          salary_currency?: string | null
-          salary_max?: number | null
-          salary_min?: number | null
-          skills?: string[] | null
-          status?: Database["public"]["Enums"]["job_posting_status"]
-          title: string
-          updated_at?: string
-          work_mode?: Database["public"]["Enums"]["work_mode"]
-        }
-        Update: {
-          application_count?: number | null
-          application_deadline?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          job_type?: Database["public"]["Enums"]["job_type"]
-          location?: string | null
-          recruiter_id?: string
-          requirements?: string | null
-          salary_currency?: string | null
-          salary_max?: number | null
-          salary_min?: number | null
-          skills?: string[] | null
-          status?: Database["public"]["Enums"]["job_posting_status"]
-          title?: string
-          updated_at?: string
-          work_mode?: Database["public"]["Enums"]["work_mode"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_postings_recruiter_id_fkey"
-            columns: ["recruiter_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       logiclab_daily_challenge_submissions: {
         Row: {
@@ -893,6 +1116,7 @@ export type Database = {
       logiclab_problems: {
         Row: {
           boilerplates: Json
+          constraints: Json | null
           created_at: string
           created_by: string | null
           description: string
@@ -909,6 +1133,7 @@ export type Database = {
         }
         Insert: {
           boilerplates?: Json
+          constraints?: Json | null
           created_at?: string
           created_by?: string | null
           description: string
@@ -925,6 +1150,7 @@ export type Database = {
         }
         Update: {
           boilerplates?: Json
+          constraints?: Json | null
           created_at?: string
           created_by?: string | null
           description?: string
@@ -941,61 +1167,6 @@ export type Database = {
         }
         Relationships: []
       }
-      placement_records: {
-        Row: {
-          candidate_id: string
-          company_name: string | null
-          created_at: string
-          ctc: number | null
-          drive_tag: string | null
-          id: string
-          job_role: string | null
-          location: string | null
-          offer_letter_date: string | null
-          offer_type: string | null
-          updated_at: string
-        }
-        Insert: {
-          candidate_id: string
-          company_name?: string | null
-          created_at?: string
-          ctc?: number | null
-          drive_tag?: string | null
-          id?: string
-          job_role?: string | null
-          location?: string | null
-          offer_letter_date?: string | null
-          offer_type?: string | null
-          updated_at?: string
-        }
-        Update: {
-          candidate_id?: string
-          company_name?: string | null
-          created_at?: string
-          ctc?: number | null
-          drive_tag?: string | null
-          id?: string
-          job_role?: string | null
-          location?: string | null
-          offer_letter_date?: string | null
-          offer_type?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "placement_records_candidate_id_fkey"
-            columns: ["candidate_id"]
-            referencedRelation: "candidate_profiles"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "placement_records_candidate_id_fkey"
-            columns: ["candidate_id"]
-            referencedRelation: "placement_management_view"
-            referencedColumns: ["profile_id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           account_subtype: string | null
@@ -1005,7 +1176,10 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          institute_id: string | null
+          institute_verified: boolean | null
           is_active: boolean
+          profile_updated: boolean | null
           signature_path: string | null
           updated_at: string
           username: string | null
@@ -1018,7 +1192,10 @@ export type Database = {
           display_name?: string | null
           email: string
           id: string
+          institute_id?: string | null
+          institute_verified?: boolean | null
           is_active?: boolean
+          profile_updated?: boolean | null
           signature_path?: string | null
           updated_at?: string
           username?: string | null
@@ -1031,12 +1208,22 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          institute_id?: string | null
+          institute_verified?: boolean | null
           is_active?: boolean
+          profile_updated?: boolean | null
           signature_path?: string | null
           updated_at?: string
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_institute_id_fkey"
+            columns: ["institute_id"]
+            referencedRelation: "institutes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_tags: {
         Row: {
@@ -1078,86 +1265,14 @@ export type Database = {
           },
         ]
       }
-      recruiter_profiles: {
-        Row: {
-          company_description: string | null
-          company_logo_path: string | null
-          company_name: string
-          company_size: string | null
-          company_website: string | null
-          created_at: string
-          department: string | null
-          designation: string | null
-          headquarters_city: string | null
-          headquarters_country: string | null
-          headquarters_state: string | null
-          industry: string | null
-          linkedin_url: string | null
-          phone_number: string | null
-          profile_complete: boolean | null
-          profile_id: string
-          profile_updated: boolean | null
-          updated_at: string
-        }
-        Insert: {
-          company_description?: string | null
-          company_logo_path?: string | null
-          company_name: string
-          company_size?: string | null
-          company_website?: string | null
-          created_at?: string
-          department?: string | null
-          designation?: string | null
-          headquarters_city?: string | null
-          headquarters_country?: string | null
-          headquarters_state?: string | null
-          industry?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          profile_complete?: boolean | null
-          profile_id: string
-          profile_updated?: boolean | null
-          updated_at?: string
-        }
-        Update: {
-          company_description?: string | null
-          company_logo_path?: string | null
-          company_name?: string
-          company_size?: string | null
-          company_website?: string | null
-          created_at?: string
-          department?: string | null
-          designation?: string | null
-          headquarters_city?: string | null
-          headquarters_country?: string | null
-          headquarters_state?: string | null
-          industry?: string | null
-          linkedin_url?: string | null
-          phone_number?: string | null
-          profile_complete?: boolean | null
-          profile_id?: string
-          profile_updated?: boolean | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recruiter_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       staff_profiles: {
         Row: {
           created_at: string
           department: string | null
           designation: string | null
           employee_id: string | null
-          institute_id: string | null
           linkedin_url: string | null
           profile_id: string
-          profile_updated: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1165,10 +1280,8 @@ export type Database = {
           department?: string | null
           designation?: string | null
           employee_id?: string | null
-          institute_id?: string | null
           linkedin_url?: string | null
           profile_id: string
-          profile_updated?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1176,19 +1289,11 @@ export type Database = {
           department?: string | null
           designation?: string | null
           employee_id?: string | null
-          institute_id?: string | null
           linkedin_url?: string | null
           profile_id?: string
-          profile_updated?: boolean | null
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "staff_profiles_institute_id_fkey"
-            columns: ["institute_id"]
-            referencedRelation: "institutes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "staff_profiles_profile_id_fkey"
             columns: ["profile_id"]
@@ -1685,10 +1790,8 @@ export type Database = {
           department: string | null
           designation: string | null
           employee_id: string | null
-          institute_id: string | null
           linkedin_url: string | null
           profile_id: string
-          profile_updated: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1696,10 +1799,8 @@ export type Database = {
           department?: string | null
           designation?: string | null
           employee_id?: string | null
-          institute_id?: string | null
           linkedin_url?: string | null
           profile_id: string
-          profile_updated?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1707,19 +1808,11 @@ export type Database = {
           department?: string | null
           designation?: string | null
           employee_id?: string | null
-          institute_id?: string | null
           linkedin_url?: string | null
           profile_id?: string
-          profile_updated?: boolean | null
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "tpo_profiles_institute_id_fkey"
-            columns: ["institute_id"]
-            referencedRelation: "institutes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "tpo_profiles_profile_id_fkey"
             columns: ["profile_id"]
@@ -1796,31 +1889,6 @@ export type Database = {
             foreignKeyName: "coding_submissions_problem_id_fkey"
             columns: ["problem_id"]
             referencedRelation: "logiclab_problems"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      placement_management_view: {
-        Row: {
-          company_name: string | null
-          course_name: string | null
-          ctc: number | null
-          display_name: string | null
-          institute_id: string | null
-          passout_year: number | null
-          profile_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "candidate_profiles_institute_id_fkey"
-            columns: ["institute_id"]
-            referencedRelation: "institutes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "candidate_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2053,6 +2121,8 @@ export type Database = {
       }
       get_test_attempt_stats: { Args: { p_test_id: string }; Returns: Json }
       get_user_global_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_user_institute_id: { Args: { p_user_id: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
       revoke_session: { Args: { p_session_id: string }; Returns: undefined }
       revoke_sessions_batch: {
         Args: { p_session_ids: string[] }
@@ -2089,13 +2159,26 @@ export type Database = {
         Args: { p_note_id: string; p_user_id: string }
         Returns: boolean
       }
+      update_logiclab_user_activity_rpc: {
+        Args: {
+          p_activity_date: string
+          p_difficulty: string
+          p_is_solved: boolean
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
+      account_type_enum: "candidate" | "institute" | "admin"
       attempt_status:
         | "in_progress"
         | "submitted"
         | "abandoned"
         | "auto_submitted"
+      education_type_enum: "ssc" | "hsc" | "diploma" | "ug" | "pg" | "other"
+      gender_enum: "M" | "F" | "O"
+      institute_subtype_enum: "primary" | "staff" | "tpo"
       job_application_status:
         | "applied"
         | "reviewing"
@@ -2779,12 +2862,16 @@ export const Constants = {
   },
   public: {
     Enums: {
+      account_type_enum: ["candidate", "institute", "admin"],
       attempt_status: [
         "in_progress",
         "submitted",
         "abandoned",
         "auto_submitted",
       ],
+      education_type_enum: ["ssc", "hsc", "diploma", "ug", "pg", "other"],
+      gender_enum: ["M", "F", "O"],
+      institute_subtype_enum: ["primary", "staff", "tpo"],
       job_application_status: [
         "applied",
         "reviewing",
@@ -2807,4 +2894,3 @@ export const Constants = {
     },
   },
 } as const
-

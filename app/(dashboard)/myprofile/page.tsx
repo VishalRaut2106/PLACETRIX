@@ -28,14 +28,38 @@ export default async function MyProfilePage() {
       { data: candidateEducation },
       { data: candidateExperiences },
       { data: candidateProjects },
-      { data: candidateCertifications }
+      { data: candidateCertifications },
+      { data: eventTickets }
     ] = await Promise.all([
       (supabase as any).from("candidate_profiles").select("*").eq("profile_id", profile.id).maybeSingle(),
       (supabase as any).from("candidate_education").select("*").eq("profile_id", profile.id).order("passout_year", { ascending: false }),
       (supabase as any).from("candidate_experiences").select("*").eq("profile_id", profile.id).order("start_date", { ascending: false }),
       (supabase as any).from("candidate_projects").select("*").eq("profile_id", profile.id).order("start_date", { ascending: false }),
       (supabase as any).from("candidate_certifications").select("*").eq("profile_id", profile.id).order("issue_date", { ascending: false }),
+      (supabase as any)
+        .from("event_tickets")
+        .select(`
+          id,
+          event:events!inner(
+            id,
+            title,
+            date,
+            status
+          )
+        `)
+        .eq("candidate_id", profile.id)
+        .eq("attendance_status", "Present")
+        .eq("events.status", "Concluded")
     ]);
+
+    const eventCertificates = (eventTickets ?? [])
+      .filter((t: any) => t.event)
+      .map((t: any) => ({
+        ticketId: t.id,
+        eventId: t.event.id,
+        eventTitle: t.event.title,
+        eventDate: t.event.date,
+      }));
 
     if (candidateProfile?.aadhaar_number) {
       try {
@@ -55,6 +79,7 @@ export default async function MyProfilePage() {
         experienceData={candidateExperiences ?? []}
         projectsData={candidateProjects ?? []}
         certificationsData={candidateCertifications ?? []}
+        eventCertificates={eventCertificates}
       />
     )
   }
