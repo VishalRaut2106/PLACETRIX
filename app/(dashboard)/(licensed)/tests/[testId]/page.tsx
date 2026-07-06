@@ -287,12 +287,12 @@ export default async function TestDetailPage({
 
   const serverNow = new Date().toISOString()
 
-  if (profile.account_type === "candidate") {
+  if (profile.account_type === "institute_candidate") {
     const { test, attempt } = await fetchCandidateView(testId, profile.id)
     return <CandidateTestDetailClient test={test} attempt={attempt} serverNow={serverNow} />
   }
 
-  if (profile.account_type === "institute" && (profile.account_subtype === "staff" || profile.account_subtype === "tpo" || profile.account_subtype === "primary")) {
+  if (profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer" || profile.account_type === "institute_primary") {
     const instituteId = profile.institute_id
     if (!instituteId) redirect("/home")
     const test = await fetchInstituteView(testId, instituteId)

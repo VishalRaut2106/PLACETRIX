@@ -9,8 +9,12 @@ import { headers } from "next/headers";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-export type AccountType = "candidate" | "institute" | "admin";
-export type InstituteSubtype = "primary" | "staff" | "tpo";
+export type AccountType =
+  | "admin"
+  | "institute_candidate"
+  | "institute_primary"
+  | "institute_staff"
+  | "institute_placement_officer";
 
 export interface UserProfile {
   id: string;
@@ -19,7 +23,6 @@ export interface UserProfile {
   avatar_path: string | null;
   username: string | null;
   account_type: AccountType;
-  account_subtype: InstituteSubtype | null;
   institute_id: string | null;
   signature_path?: string | null;
   profile_updated?: boolean | null;
@@ -100,7 +103,6 @@ function profileFromClaims(
     avatar_path: (meta.avatar_path as string) ?? (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
     username: (meta.username as string) ?? null,
     account_type: account_type as AccountType,
-    account_subtype: (meta.account_subtype as InstituteSubtype) ?? null,
     institute_id: (meta.institute_id as string) ?? null,
     signature_path: (meta.signature_path as string) ?? null,
   };
@@ -134,8 +136,7 @@ function profileFromAuthUser(
       ?? "User",
     avatar_path: (meta.avatar_path as string) ?? (meta.avatar_url as string) ?? (meta.picture as string) ?? null,
     username: (meta.username as string) ?? null,
-    account_type: (account_type ?? "candidate") as AccountType,
-    account_subtype: (meta.account_subtype as InstituteSubtype) ?? null,
+    account_type: (account_type ?? "institute_candidate") as AccountType,
     institute_id: (meta.institute_id as string) ?? null,
     signature_path: (meta.signature_path as string) ?? null,
     // Internal flag: if true, caller should resolve account_type from DB.
@@ -230,7 +231,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
       const { data: dbProfile, error: dbError } = await (supabase as any)
         .from("profiles")
         .select(`
-          username, display_name, avatar_path, account_type, account_subtype, signature_path, profile_updated, institute_id, institute_verified,
+          username, display_name, avatar_path, account_type, signature_path, profile_updated, institute_id, institute_verified,
           candidate_profiles!candidate_profiles_profile_id_fkey (profile_complete)
         `)
         .eq("id", built.id)
@@ -245,7 +246,6 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
         if (dbProfile.display_name !== undefined) built.display_name = dbProfile.display_name;
         if (dbProfile.avatar_path !== undefined) built.avatar_path = dbProfile.avatar_path;
         if (dbProfile.account_type !== undefined) built.account_type = dbProfile.account_type as AccountType;
-        if (dbProfile.account_subtype !== undefined) built.account_subtype = dbProfile.account_subtype as InstituteSubtype | null;
         
         built.institute_verified = dbProfile.institute_verified ?? null;
         

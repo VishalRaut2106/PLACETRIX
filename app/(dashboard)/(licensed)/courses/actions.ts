@@ -236,7 +236,7 @@ export async function deleteCourseAction(courseId: string) {
 export async function enrollInCourseAction(courseId: string) {
   const profile = await getUserProfile()
   if (!profile) throw new Error("Unauthorized: Please log in to enroll.")
-  if (profile.account_type !== "candidate") {
+  if (profile.account_type !== "institute_candidate") {
     throw new Error("Only candidates can enroll in courses.")
   }
 

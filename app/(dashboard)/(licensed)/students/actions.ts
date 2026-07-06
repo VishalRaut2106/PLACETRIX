@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 
 export async function toggleStudentVerification(studentId: string, verified: boolean) {
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute" || profile.account_subtype !== "primary") {
+  if (!profile || profile.account_type !== "institute_primary") {
     throw new Error("Unauthorized")
   }
 

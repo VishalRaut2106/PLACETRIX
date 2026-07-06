@@ -73,12 +73,12 @@ export function LicenseBanner() {
 
   let variant: BannerVariant | null = null;
 
-  const isProfileComplete = user?.account_type === "candidate"
+  const isProfileComplete = user?.account_type === "institute_candidate"
     ? (user?.profile_complete === true && user?.profile_updated === true)
     : true;
 
   // 1. Incomplete Profile Check (takes highest priority)
-  if (user?.account_type === "candidate" && !isProfileComplete) {
+  if (user?.account_type === "institute_candidate" && !isProfileComplete) {
     variant = "incomplete";
   }
   // 2. License Check
@@ -95,7 +95,7 @@ export function LicenseBanner() {
     }
   } 
   // 3. Student Verification Check (only if license is active and profile is complete)
-  else if (user?.account_type === "candidate" && user?.institute_verified !== true) {
+  else if (user?.account_type === "institute_candidate" && user?.institute_verified !== true) {
     variant = "unverified";
   }
 

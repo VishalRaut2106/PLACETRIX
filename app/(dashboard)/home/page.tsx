@@ -110,7 +110,7 @@ export default async function HomePage() {
   const supabase = await createClient();
 
   // ── Candidate ──────────────────────────────────────────────────────────────
-  if (profile.account_type === "candidate") {
+  if (profile.account_type === "institute_candidate") {
     const { data: homeStatsData } = await (supabase as any).rpc("get_candidate_home_stats" as any, {
       p_profile_id: profile.id,
     });
@@ -336,13 +336,13 @@ export default async function HomePage() {
   }
 
   // ── Institute ──────────────────────────────────────────────────────────────
-  if (profile.account_type === "institute") {
+  if (profile.account_type === "institute_primary" || profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer") {
     // Staff and TPO users resolve their parent institute's ID
     const instituteId = profile.institute_id
 
     // Resolve the primary profile ID for this institute to get stats
     let primaryProfileId = profile.id
-    if (profile.account_subtype !== "primary" && instituteId) {
+    if (profile.account_type !== "institute_primary" && instituteId) {
       const { data: primaryLink } = await (supabase as any)
         .from("institute_profiles")
         .select("profile_id")
@@ -376,9 +376,9 @@ export default async function HomePage() {
       ? "You haven't set up your institution profile yet. Add your details to get started."
       : ""
 
-    const subtypeLabel = profile.account_subtype === "staff"
+    const subtypeLabel = profile.account_type === "institute_staff"
       ? "Staff"
-      : profile.account_subtype === "tpo"
+      : profile.account_type === "institute_placement_officer"
         ? "TPO"
         : "Institute"
 
@@ -394,7 +394,7 @@ export default async function HomePage() {
 
         <div className="space-y-6">
           {/* ── Profile banner (only for primary) ─────────────────────────── */}
-          {profile.account_subtype === "primary" && !profileReady && (
+          {profile.account_type === "institute_primary" && !profileReady && (
             <div className="rounded-lg border bg-card p-4 flex items-start justify-between gap-4">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium">Your institution profile isn't complete yet</p>
@@ -410,7 +410,7 @@ export default async function HomePage() {
           )}
 
           {/* ── Test Stats (visible to staff and primary) ─────────────────── */}
-          {stats && (profile.account_subtype === "staff" || profile.account_subtype === "primary") && (
+          {stats && (profile.account_type === "institute_staff" || profile.account_type === "institute_primary") && (
             <div className="space-y-3">
               <SectionHeader title="Tests Overview" href="/tests" />
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -463,8 +463,8 @@ export default async function HomePage() {
       pendingTicketsCount,
       recentTicketsRes
     ] = await Promise.all([
-      (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "candidate"),
-      (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "institute"),
+      (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "institute_candidate"),
+      (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "institute_primary"),
       (supabase as any).from("tickets").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
       (supabase as any).from("tickets").select("*").order("created_at", { ascending: false }).limit(5),
     ]);

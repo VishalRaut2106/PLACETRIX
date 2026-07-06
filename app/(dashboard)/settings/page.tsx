@@ -22,7 +22,7 @@ export default async function SettingsPage() {
     )
   }
 
-  if (profile.account_type === "candidate") {
+  if (profile.account_type === "institute_candidate") {
     const { data: candidateProfile } = await (supabase as any)
       .from("candidate_profiles")
       .select("*")
@@ -37,10 +37,11 @@ export default async function SettingsPage() {
     )
   }
 
-  if (profile.account_type === "institute") {
-    if (profile.account_subtype === "staff" || profile.account_subtype === "tpo") {
-      return <StaffSettingsClient userProfile={profile} />
-    }
+  if (profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer") {
+    return <StaffSettingsClient userProfile={profile} />
+  }
+
+  if (profile.account_type === "institute_primary") {
 
     // Primary institute view
     const instituteId = profile.institute_id

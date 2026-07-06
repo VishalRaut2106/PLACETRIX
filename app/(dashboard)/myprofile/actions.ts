@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export async function updateCandidatePersonalDetails(payload: any) {
   const profile = await getUserProfile();
-  if (!profile || profile.account_type !== "candidate") {
+  if (!profile || profile.account_type !== "institute_candidate") {
     throw new Error("Unauthorized");
   }
 

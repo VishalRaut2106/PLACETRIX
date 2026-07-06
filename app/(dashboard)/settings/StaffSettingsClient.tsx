@@ -267,7 +267,7 @@ export function StaffSettingsClient({ userProfile }: Props) {
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your {userProfile.account_subtype === "tpo" ? "TPO" : "Staff"} profile preferences</p>
+        <p className="text-sm text-muted-foreground">Manage your {userProfile.account_type === "institute_placement_officer" ? "TPO" : "Staff"} profile preferences</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>

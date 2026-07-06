@@ -32,7 +32,7 @@ export interface ExportFilters {
 
 export async function upsertPlacementInfo(input: UpsertPlacementInfoInput) {
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute" || (profile.account_subtype !== "tpo" && profile.account_subtype !== "primary")) {
+  if (!profile || (profile.account_type !== "institute_placement_officer" && profile.account_type !== "institute_primary")) {
     throw new Error("Unauthorized")
   }
 
@@ -85,7 +85,7 @@ export async function bulkSetPlacementStatus(
   if (candidateUuids.length === 0) return
 
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute" || (profile.account_subtype !== "tpo" && profile.account_subtype !== "primary")) {
+  if (!profile || (profile.account_type !== "institute_placement_officer" && profile.account_type !== "institute_primary")) {
     throw new Error("Unauthorized")
   }
 
@@ -133,7 +133,7 @@ export async function bulkSetPlacementStatus(
 
 export async function exportPlacementData(filters: ExportFilters): Promise<Record<string, any>[]> {
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute" || (profile.account_subtype !== "tpo" && profile.account_subtype !== "primary")) {
+  if (!profile || (profile.account_type !== "institute_placement_officer" && profile.account_type !== "institute_primary")) {
     throw new Error("Unauthorized")
   }
 

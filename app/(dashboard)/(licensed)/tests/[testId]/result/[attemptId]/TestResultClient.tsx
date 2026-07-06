@@ -232,7 +232,7 @@ function QuestionReviewItem({
 interface Props {
   test: CandidateTestDetail
   attempt: CandidateAttemptDetail
-  accountType: "candidate" | "institute" | "recruiter"
+  accountType: "institute_candidate" | "institute" | "recruiter"
   serverNow: string
 }
 
@@ -321,7 +321,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
         </div>
 
         {/* ── Results hidden ──────────────────────────────────────────────── */}
-        {!test.results_available && accountType === "candidate" ? (
+        {!test.results_available && accountType === "institute_candidate" ? (
           <Card className="rounded-xl p-0">
             <CardContent className="space-y-2.5 p-5">
               <div className="flex items-start gap-2">

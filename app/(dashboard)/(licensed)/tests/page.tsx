@@ -364,7 +364,7 @@ export default async function TestsPage(props: {
 
   const nowStr = new Date().toISOString()
 
-  if (profile.account_type === "candidate") {
+  if (profile.account_type === "institute_candidate") {
     const { tests, count, tabCounts } = await fetchCandidateTests(
       profile.id,
       nowStr,
@@ -387,7 +387,7 @@ export default async function TestsPage(props: {
     )
   }
 
-  if (profile.account_type === "institute" && (profile.account_subtype === "staff" || profile.account_subtype === "tpo" || profile.account_subtype === "primary")) {
+  if (profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer" || profile.account_type === "institute_primary") {
     // Staff/TPO/Primary users query tests by their parent institute's profile id
     const instituteId = profile.institute_id
     if (!instituteId) redirect("/home")

@@ -10,7 +10,7 @@ import type { EventFormData, TicketStatus } from "./types"
 async function requireStaff() {
   const profile = await getUserProfile()
   if (!profile) throw new Error("Unauthorized: Please log in.")
-  if (!["institute", "admin"].includes(profile.account_type)) {
+  if (!["institute_primary", "institute_staff", "institute_placement_officer", "admin"].includes(profile.account_type)) {
     throw new Error("Unauthorized: Only institute staff can perform this action.")
   }
   return profile
@@ -19,7 +19,7 @@ async function requireStaff() {
 async function requireCandidate() {
   const profile = await getUserProfile()
   if (!profile) throw new Error("Unauthorized: Please log in.")
-  if (profile.account_type !== "candidate") {
+  if (profile.account_type !== "institute_candidate") {
     throw new Error("Only candidates can perform this action.")
   }
   return profile

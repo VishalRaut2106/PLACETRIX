@@ -27,7 +27,7 @@ export interface CreateStaffInput {
 
 export async function getStaffMembers(): Promise<StaffMember[]> {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute" || profile.account_subtype !== "primary") {
+  if (!profile || profile.account_type !== "institute_primary") {
     throw new Error("Unauthorized")
   }
 
@@ -36,17 +36,23 @@ export async function getStaffMembers(): Promise<StaffMember[]> {
   const [{ data: staff }, { data: tpo }] = await Promise.all([
     (supabase as any)
       .from("staff_profiles")
-      .select("institute_id, profiles!inner(id, email, display_name, account_subtype, is_active, created_at)")
+      .select("institute_id, profiles!inner(id, email, display_name, account_type, is_active, created_at)")
       .eq("institute_id", profile.institute_id),
     (supabase as any)
       .from("tpo_profiles")
-      .select("institute_id, profiles!inner(id, email, display_name, account_subtype, is_active, created_at)")
+      .select("institute_id, profiles!inner(id, email, display_name, account_type, is_active, created_at)")
       .eq("institute_id", profile.institute_id),
   ])
 
   const allStaff = [
-    ...(staff ?? []).map((s: any) => s.profiles),
-    ...(tpo ?? []).map((t: any) => t.profiles)
+    ...(staff ?? []).map((s: any) => ({
+      ...s.profiles,
+      account_subtype: s.profiles.account_type === "institute_staff" ? "staff" : "tpo"
+    })),
+    ...(tpo ?? []).map((t: any) => ({
+      ...t.profiles,
+      account_subtype: t.profiles.account_type === "institute_staff" ? "staff" : "tpo"
+    }))
   ];
 
   allStaff.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -58,7 +64,7 @@ export async function getStaffMembers(): Promise<StaffMember[]> {
 
 export async function createStaffAccount(input: CreateStaffInput): Promise<{ success: boolean; error?: string }> {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute" || profile.account_subtype !== "primary") {
+  if (!profile || profile.account_type !== "institute_primary") {
     return { success: false, error: "Unauthorized" }
   }
 
@@ -83,8 +89,7 @@ export async function createStaffAccount(input: CreateStaffInput): Promise<{ suc
     email_confirm: true,
     user_metadata: {
       display_name: input.displayName.trim(),
-      account_type: "institute",
-      account_subtype: input.subtype,
+      account_type: input.subtype === "staff" ? "institute_staff" : "institute_placement_officer",
     },
   })
 
@@ -102,8 +107,7 @@ export async function createStaffAccount(input: CreateStaffInput): Promise<{ suc
   const { error: updateError } = await (adminSupabase as any)
     .from("profiles")
     .update({
-      account_type: "institute",
-      account_subtype: input.subtype,
+      account_type: input.subtype === "staff" ? "institute_staff" : "institute_placement_officer",
       display_name: input.displayName.trim(),
     })
     .eq("id", newUserId)
@@ -135,7 +139,7 @@ export async function updateStaffRole(
   newSubtype: "staff" | "tpo"
 ): Promise<{ success: boolean; error?: string }> {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute" || profile.account_subtype !== "primary") {
+  if (!profile || profile.account_type !== "institute_primary") {
     return { success: false, error: "Unauthorized" }
   }
 
@@ -168,7 +172,7 @@ export async function updateStaffRole(
 
   const { error } = await (adminSupabase as any)
     .from("profiles")
-    .update({ account_subtype: newSubtype })
+    .update({ account_type: newSubtype === "staff" ? "institute_staff" : "institute_placement_officer" })
     .eq("id", staffId)
 
   if (error) {
@@ -187,7 +191,7 @@ export async function toggleStaffActive(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute" || profile.account_subtype !== "primary") {
+  if (!profile || profile.account_type !== "institute_primary") {
     return { success: false, error: "Unauthorized" }
   }
 

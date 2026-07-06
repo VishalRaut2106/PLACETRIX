@@ -10,7 +10,7 @@ export default async function LogicLabLayout({
   if (!profile) redirect("/auth/login")
 
   // Block institute primary and TPO from LogicLab; staff can access
-  if (profile.account_type === "institute" && profile.account_subtype !== "staff") {
+  if (profile.account_type === "institute_primary" || profile.account_type === "institute_placement_officer") {
     redirect("/home")
   }
 

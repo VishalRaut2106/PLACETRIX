@@ -42,7 +42,7 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
   }
 
   // ─── Staff View ────────────────────────────────────────────────────────────
-  if (profile.account_type === "institute" || profile.account_type === "admin") {
+  if (profile.account_type !== "institute_candidate") {
     // Fetch tickets with candidate info
     const { data: tickets } = await (supabase as any)
       .from("event_tickets")

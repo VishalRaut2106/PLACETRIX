@@ -38,12 +38,12 @@ export default async function AdminPage() {
   const { data: rawAllProfiles } = await (supabase as any)
     .from("profiles" as any)
     .select("id, display_name, email, account_type")
-    .in("account_type", ["candidate", "user", null])
+    .in("account_type", ["institute_candidate", "user", null])
     .limit(1000)
 
   let profileMap: Record<string, { display_name: string; email: string; account_type: string }> = {}
     ; (rawAllProfiles || []).forEach((p: any) => {
-      profileMap[p.id] = { display_name: p.display_name || "", email: p.email || "", account_type: p.account_type || "candidate" }
+      profileMap[p.id] = { display_name: p.display_name || "", email: p.email || "", account_type: p.account_type || "institute_candidate" }
     })
 
   // Fetch any missing profiles for users who have submitted (e.g. admins testing)
@@ -57,7 +57,7 @@ export default async function AdminPage() {
       .in("id", missingUserIds)
 
       ; (missingProfiles || []).forEach((p: any) => {
-        profileMap[p.id] = { display_name: p.display_name || "", email: p.email || "", account_type: p.account_type || "candidate" }
+        profileMap[p.id] = { display_name: p.display_name || "", email: p.email || "", account_type: p.account_type || "institute_candidate" }
       })
   }
 

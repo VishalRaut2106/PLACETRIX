@@ -1169,7 +1169,6 @@ export type Database = {
       }
       profiles: {
         Row: {
-          account_subtype: string | null
           account_type: string
           avatar_path: string | null
           created_at: string
@@ -1185,7 +1184,6 @@ export type Database = {
           username: string | null
         }
         Insert: {
-          account_subtype?: string | null
           account_type?: string
           avatar_path?: string | null
           created_at?: string
@@ -1201,7 +1199,6 @@ export type Database = {
           username?: string | null
         }
         Update: {
-          account_subtype?: string | null
           account_type?: string
           avatar_path?: string | null
           created_at?: string

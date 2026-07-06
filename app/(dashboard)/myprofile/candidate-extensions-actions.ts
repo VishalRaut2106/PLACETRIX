@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 // Ensure candidate is authenticated and authorized
 async function getAuthorizedCandidate() {
   const profile = await getUserProfile();
-  if (!profile || profile.account_type !== "candidate") {
+  if (!profile || profile.account_type !== "institute_candidate") {
     throw new Error("Unauthorized");
   }
   return profile;

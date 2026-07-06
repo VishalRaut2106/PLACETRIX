@@ -22,7 +22,7 @@ export default async function MyProfilePage() {
     )
   }
 
-  if (profile.account_type === "candidate") {
+  if (profile.account_type === "institute_candidate") {
     const [
       { data: candidateProfile },
       { data: candidateEducation },
@@ -84,24 +84,25 @@ export default async function MyProfilePage() {
     )
   }
 
-  if (profile.account_type === "institute") {
-    if (profile.account_subtype === "staff") {
-      const { data: staffProfile } = await (supabase as any)
-        .from("staff_profiles")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .maybeSingle()
-      return <StaffProfileClient userProfile={profile} initialData={staffProfile ?? null} />
-    }
+  if (profile.account_type === "institute_staff") {
+    const { data: staffProfile } = await (supabase as any)
+      .from("staff_profiles")
+      .select("*")
+      .eq("profile_id", profile.id)
+      .maybeSingle()
+    return <StaffProfileClient userProfile={profile} initialData={staffProfile ?? null} />
+  }
 
-    if (profile.account_subtype === "tpo") {
-      const { data: tpoProfile } = await (supabase as any)
-        .from("tpo_profiles")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .maybeSingle()
-      return <TpoProfileClient userProfile={profile} initialData={tpoProfile ?? null} />
-    }
+  if (profile.account_type === "institute_placement_officer") {
+    const { data: tpoProfile } = await (supabase as any)
+      .from("tpo_profiles")
+      .select("*")
+      .eq("profile_id", profile.id)
+      .maybeSingle()
+    return <TpoProfileClient userProfile={profile} initialData={tpoProfile ?? null} />
+  }
+
+  if (profile.account_type === "institute_primary") {
 
     const instituteId = profile.institute_id
     let instituteProfile = null

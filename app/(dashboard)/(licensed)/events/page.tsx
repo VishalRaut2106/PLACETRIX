@@ -17,7 +17,7 @@ export default async function EventsPage() {
   const supabase = await createClient()
 
   // ─── Staff / Institute view ──────────────────────────────────────────────
-  if (profile.account_type === "institute" || profile.account_type === "admin") {
+  if (profile.account_type !== "institute_candidate") {
     const { data: events, error } = await (supabase as any)
       .from("events")
       .select(`

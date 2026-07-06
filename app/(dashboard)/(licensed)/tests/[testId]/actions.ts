@@ -23,7 +23,7 @@ async function requireAuth(): Promise<string> {
 
 async function assertOwner(testId: string): Promise<string> {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute") {
+  if (!profile || (profile.account_type !== "institute_primary" && profile.account_type !== "institute_staff" && profile.account_type !== "institute_placement_officer")) {
     throw new Error("Forbidden")
   }
 

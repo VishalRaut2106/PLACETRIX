@@ -503,7 +503,7 @@ function LoginContent() {
               isLoading || isGoogleLoading ? "pointer-events-none opacity-50" : ""
             }`}
           >
-            Create one
+            Contact your institute for credentials
           </Link>
         </p>
         <p className="text-muted-foreground text-xs text-center">
