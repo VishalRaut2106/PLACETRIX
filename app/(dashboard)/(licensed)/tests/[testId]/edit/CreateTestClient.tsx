@@ -788,7 +788,8 @@ function QuestionSheet({
   const validate = (): string[] => {
     const e: string[] = []
     if (!form.question_text.trim()) e.push("Question text is required.")
-    if (form.options.some((o) => !o.option_text.trim())) e.push("All options must have text.")
+    if (form.options.some((o) => !o.option_text.trim() && !o.pendingImageUrl && !o.media_url))
+      e.push("All options must have text or an image.")
     if (!form.options.some((o) => o.is_correct)) e.push("Mark at least one correct answer.")
     if (form.question_type === "single_correct" && form.options.filter((o) => o.is_correct).length > 1)
       e.push("Single-answer type can only have one correct option.")
@@ -1479,9 +1480,9 @@ function validateItem(item: any, idx: number): ImportPreviewQuestion {
   } else if (rawOptions.length < 2) {
     errors.push(`options needs at least 2 items (found ${rawOptions.length})`)
   } else {
-    const emptyCount = rawOptions.filter((o: any) => !String(o?.option_text ?? "").trim()).length
+    const emptyCount = rawOptions.filter((o: any) => !String(o?.option_text ?? "").trim() && !o?.media_url).length
     if (emptyCount > 0)
-      errors.push(`${emptyCount} option${emptyCount > 1 ? "s have" : " has"} empty option_text`)
+      errors.push(`${emptyCount} option${emptyCount > 1 ? "s have" : " has"} empty option_text and no media_url`)
     const correctCount = rawOptions.filter((o: any) => o?.is_correct === true).length
     if (correctCount === 0) errors.push("at least one option must have is_correct: true")
   }
@@ -1510,6 +1511,7 @@ function validateItem(item: any, idx: number): ImportPreviewQuestion {
     _key: crypto.randomUUID(),
     option_text: String(o.option_text ?? "").trim(),
     is_correct: Boolean(o.is_correct),
+    media_url: o.media_url ? String(o.media_url).trim() : null,
   }))
 
   if (qType === "single_correct") {
