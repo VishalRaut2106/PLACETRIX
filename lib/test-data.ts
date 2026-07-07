@@ -10,7 +10,7 @@ export async function getTestQuestions(testId: string): Promise<AttemptQuestion[
   const { data: rawQuestions, error: qError } = await (supabase as any)
     .from("test_questions")
     .select(
-      `id, question_text, question_type, marks, order_index,
+      `id, question_text, question_type, marks, order_index, media_url,
        test_question_options (id, option_text, order_index),
        question_tags (
          test_question_tags (id, name)
@@ -30,6 +30,7 @@ export async function getTestQuestions(testId: string): Promise<AttemptQuestion[
     question_type: q.question_type as "single_correct" | "multiple_correct",
     marks: q.marks,
     order_index: q.order_index,
+    media_url: q.media_url ?? null,
     options: ((q.test_question_options as any[]) ?? [])
       .map((o: any) => ({
         id: o.id,

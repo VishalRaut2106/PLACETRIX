@@ -190,6 +190,15 @@ function QuestionReviewItem({
 
       <AccordionContent className="px-4 pb-4 pt-0">
         <Separator className="mb-3" />
+        {answer.media_url && (
+          <div className="mb-4 border rounded-xl overflow-hidden max-w-lg bg-muted/10 p-2">
+            <img
+              src={answer.media_url}
+              alt="Question illustration"
+              className="max-h-64 w-auto object-contain mx-auto rounded-lg"
+            />
+          </div>
+        )}
         <div className="space-y-2.5">
           {(answer.options ?? []).map((opt) => (
             <OptionItem

@@ -43,6 +43,7 @@ export interface CandidateAnswerDetail {
   explanation: string | null
   options: CandidateOption[]
   tags: Pick<TagRow, "id" | "name">[]
+  media_url?: string | null
 }
 
 export interface CandidateAttemptDetail
@@ -88,7 +89,7 @@ export type InstituteOption = Pick<
 export interface InstituteQuestion
   extends Pick<
     QuestionRow,
-    "id" | "question_text" | "question_type" | "marks" | "order_index" | "explanation"
+    "id" | "question_text" | "question_type" | "marks" | "order_index" | "explanation" | "media_url"
   > {
   question_type: "single_correct" | "multiple_correct"  // narrow
   options: InstituteOption[]

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useTransition, useRef } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -141,6 +142,37 @@ export function CreateTestClient({
 
   const canSave = titleValid && dateRangeValid
 
+  // Helper to upload all pending images in batch
+  const uploadPendingImages = async (currentQuestions: LocalQuestion[]): Promise<LocalQuestion[]> => {
+    const supabase = createClient()
+    const updatedQuestions = [...currentQuestions]
+    
+    const uploadPromises = updatedQuestions.map(async (q, idx) => {
+      if (q.pendingImageFile) {
+        const file = q.pendingImageFile
+        const fileExt = file.name.split(".").pop() ?? "png"
+        const filePath = `test-questions/${testId}/${q.id}/${crypto.randomUUID()}.${fileExt}`
+        
+        const { error } = await supabase.storage.from("test-questions").upload(filePath, file)
+        if (error) {
+          throw new Error(`Failed to upload image for question ${idx + 1}: ${error.message}`)
+        }
+        
+        const { data: { publicUrl } } = supabase.storage.from("test-questions").getPublicUrl(filePath)
+        
+        return {
+          ...q,
+          media_url: publicUrl,
+          pendingImageFile: null,
+          pendingImageUrl: null
+        }
+      }
+      return q
+    })
+    
+    return Promise.all(uploadPromises)
+  }
+
   // ── Draft save ──────────────────────────────────────────────────────────────
   const handleSaveDraft = useCallback(async () => {
     if (!canSave) {
@@ -149,7 +181,9 @@ export function CreateTestClient({
     }
     setIsSaving(true)
     try {
-      await onSaveDraft(testId, settingsForDb(settings), questions)
+      const uploadedQuestions = await uploadPendingImages(questions)
+      setQuestions(uploadedQuestions)
+      await onSaveDraft(testId, settingsForDb(settings), uploadedQuestions)
       toast.success("Draft saved.")
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to save draft.")
@@ -166,7 +200,9 @@ export function CreateTestClient({
     }
     setIsPublishing(true)
     try {
-      await onPublish(testId, settingsForDb(settings), questions)
+      const uploadedQuestions = await uploadPendingImages(questions)
+      setQuestions(uploadedQuestions)
+      await onPublish(testId, settingsForDb(settings), uploadedQuestions)
     } catch (err: any) {
       if (err?.message === "NEXT_REDIRECT") throw err
       toast.error(err?.message ?? "Failed to publish.")
@@ -598,6 +634,9 @@ const EMPTY_FORM: QuestionForm = {
   explanation: "",
   options: makeOptions(),
   tag_names: [],
+  media_url: null,
+  pendingImageFile: null,
+  pendingImageUrl: null,
 }
 
 function QuestionSheet({
@@ -620,6 +659,28 @@ function QuestionSheet({
 
   const set = <K extends keyof QuestionForm>(k: K, v: QuestionForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB.")
+      return
+    }
+    set("pendingImageFile", file)
+    set("pendingImageUrl", URL.createObjectURL(file))
+    set("media_url", null)
+  }
+
+  const handleRemoveImage = () => {
+    set("pendingImageFile", null)
+    set("pendingImageUrl", null)
+    set("media_url", null)
+  }
 
   const validate = (): string[] => {
     const e: string[] = []
@@ -678,6 +739,48 @@ function QuestionSheet({
               rows={3}
               className="resize-none text-sm"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Question Image <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+            {form.pendingImageUrl || form.media_url ? (
+              <div className="relative w-full border rounded-lg p-2 bg-muted/20 flex flex-col items-center gap-2">
+                <img
+                  src={form.pendingImageUrl || form.media_url || undefined}
+                  alt="Question"
+                  className="max-h-48 object-contain rounded-md"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveImage}
+                  className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                >
+                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  Remove Image
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="question-image-upload"
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 rounded-lg p-4 cursor-pointer w-full bg-muted/5 transition-colors"
+                >
+                  <div className="flex flex-col items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
+                    <Upload className="h-5 w-5" />
+                    <span className="text-xs font-medium">Click to select an image (PNG, JPG, WEBP)</span>
+                  </div>
+                  <input
+                    id="question-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    className="hidden"
+                  />
+                </Label>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -1682,6 +1785,9 @@ function QuestionsPanel({
       explanation: form.explanation,
       tag_names: form.tag_names,
       options: form.options,
+      media_url: form.media_url,
+      pendingImageFile: form.pendingImageFile,
+      pendingImageUrl: form.pendingImageUrl,
     }
 
     setQuestions((prev) =>
@@ -1836,6 +1942,9 @@ function QuestionsPanel({
               explanation: editingQuestion.explanation,
               options: editingQuestion.options,
               tag_names: editingQuestion.tag_names,
+              media_url: editingQuestion.media_url,
+              pendingImageFile: editingQuestion.pendingImageFile,
+              pendingImageUrl: editingQuestion.pendingImageUrl,
             }
             : undefined
         }

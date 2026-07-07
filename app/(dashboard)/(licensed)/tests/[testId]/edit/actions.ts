@@ -34,6 +34,9 @@ export type LocalQuestion = {
   tag_names: string[]
   options: OptionForm[]
   explanation: string
+  media_url?: string | null
+  pendingImageFile?: File | null
+  pendingImageUrl?: string | null
 }
 
 export type QuestionForm = {
@@ -43,6 +46,9 @@ export type QuestionForm = {
   explanation: string
   options: OptionForm[]
   tag_names: string[]
+  media_url?: string | null
+  pendingImageFile?: File | null
+  pendingImageUrl?: string | null
 }
 
 export type AiGenerateForm = {
@@ -95,6 +101,7 @@ async function saveTestToDb(
       marks: q.marks,
       explanation: q.explanation?.trim() || null,
       tag_names: q.tag_names,
+      media_url: q.media_url || null,
       options: q.options.map((opt) => ({
         id: opt._key,
         option_text: opt.option_text,
@@ -134,7 +141,7 @@ export async function loadTestAction(
       time_limit_seconds, available_from, available_until, status,
       shuffle_questions, shuffle_options, strict_mode,
       test_questions (
-        id, question_text, question_type, marks, order_index, explanation,
+        id, question_text, question_type, marks, order_index, explanation, media_url,
         test_question_options ( id, option_text, is_correct, order_index ),
         question_tags ( test_question_tags ( id, name ) )
       )
@@ -169,6 +176,7 @@ export async function loadTestAction(
         marks: q.marks,
         order_index: q.order_index,
         explanation: q.explanation ?? "",
+        media_url: q.media_url ?? null,
         tag_names: (q.question_tags ?? [])
           .map((qt: any) => qt.test_question_tags?.name)
           .filter(Boolean),

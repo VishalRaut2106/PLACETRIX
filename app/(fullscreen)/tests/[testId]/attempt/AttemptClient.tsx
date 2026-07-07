@@ -432,6 +432,16 @@ function QuestionView({
                     <MathText>{question.question_text}</MathText>
                 </p>
 
+                {question.media_url && (
+                    <div className="my-4 border rounded-xl overflow-hidden max-w-lg bg-muted/10 p-2">
+                        <img
+                            src={question.media_url}
+                            alt="Question illustration"
+                            className="max-h-80 w-auto object-contain mx-auto rounded-lg"
+                        />
+                    </div>
+                )}
+
                 {question.tags.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
                         <Tag className="h-3 w-3 shrink-0 text-muted-foreground/60" />

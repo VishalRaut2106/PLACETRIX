@@ -48,7 +48,7 @@ async function fetchCandidateView(
         shuffle_questions, shuffle_options,
         institute:institutes(institute_name, logo_path),
         test_questions (
-          id, question_text, marks, explanation, order_index,
+          id, question_text, marks, explanation, order_index, media_url,
           test_question_options (id, option_text, is_correct, order_index),
           question_tags (test_question_tags (id, name))
         ),
@@ -141,6 +141,7 @@ async function fetchCandidateView(
       selected_option_ids: (ans?.selected_option_ids as string[]) ?? [],
       time_spent_seconds: ans?.time_spent_seconds ?? null,
       explanation: (q.explanation as string) ?? null,
+      media_url: q.media_url ?? null,
       options: sortedOptions.map((o: any) => ({
         id: o.id,
         option_text: o.option_text,
@@ -195,7 +196,7 @@ async function fetchInstituteView(
       available_from, available_until, status, results_available, institute_id,
       institute:institutes(institute_name),
       test_questions (
-        id, question_text, question_type, marks, order_index, explanation, 
+        id, question_text, question_type, marks, order_index, explanation, media_url,
         test_question_options (id, option_text, is_correct, order_index),
         question_tags (test_question_tags (id, name))
       )
@@ -239,6 +240,7 @@ async function fetchInstituteView(
     marks: q.marks,
     order_index: q.order_index,
     explanation: (q.explanation as string) ?? null,
+    media_url: q.media_url ?? null,
     options: ((q.test_question_options as any[]) ?? []).map((o) => ({
       id: o.id,
       option_text: o.option_text,

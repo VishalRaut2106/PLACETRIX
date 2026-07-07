@@ -26,6 +26,7 @@ export interface AttemptQuestion {
     option_text: string
     order_index: number
   }[]
+  media_url?: string | null
 }
 
 export interface AttemptInfo {
