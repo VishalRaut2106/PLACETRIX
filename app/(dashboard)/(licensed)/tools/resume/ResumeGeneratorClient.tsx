@@ -867,7 +867,7 @@ export function ResumeGeneratorClient() {
         (supabase as any).from('candidate_experiences').select('*').eq('profile_id', user.id).order('start_date', { ascending: false }),
         (supabase as any).from('candidate_projects').select('*').eq('profile_id', user.id).order('start_date', { ascending: false }),
         (supabase as any).from('candidate_certifications').select('*').eq('profile_id', user.id).order('issue_date', { ascending: false }),
-        (supabase as any).from('candidate_skills').select('skills!inner(name)').eq('profile_id', user.id)
+        (supabase as any).from('candidate_skills').select('skills!inner(name, category)').eq('profile_id', user.id)
       ])
 
       if (profile || candidate) {
@@ -938,30 +938,53 @@ export function ResumeGeneratorClient() {
           // 2. Build Work Experience list
           let newExp = prev.experience;
           if (candidateExp && candidateExp.length > 0) {
-            newExp = candidateExp.map((exp: any) => ({
-              id: uid(),
-              company: exp.company_name,
-              title: exp.title,
-              location: exp.location || "",
-              startDate: exp.start_date ? new Date(exp.start_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
-              endDate: exp.is_current ? "Present" : exp.end_date ? new Date(exp.end_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
-              current: exp.is_current,
-              bullets: exp.description ? exp.description.split("\n").filter((line: any) => line.trim()) : [""]
-            }))
+            newExp = candidateExp.map((exp: any) => {
+              const bullets = exp.description
+                ? exp.description
+                    .split("\n")
+                    .map((line: string) => line.trim().replace(/^[\s\-\*\•\+\u2022\u2023\u25E6\u2043\u25CB\u25AA\u25FE\u2B1B\u2B1C\u25A0\u25A1]+/g, "").trim())
+                    .filter(Boolean)
+                : [""];
+              return {
+                id: uid(),
+                company: exp.company_name,
+                title: exp.title,
+                location: exp.location || "",
+                startDate: exp.start_date ? new Date(exp.start_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
+                endDate: exp.is_current ? "Present" : exp.end_date ? new Date(exp.end_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "",
+                current: exp.is_current,
+                bullets: bullets.length > 0 ? bullets : [""]
+              };
+            });
           }
 
           // 3. Build Projects list
           let newProj = prev.projects;
           if (candidateProj && candidateProj.length > 0) {
-            newProj = candidateProj.map((proj: any) => ({
-              id: uid(),
-              name: proj.title,
-              techStack: proj.skills ? proj.skills.join(", ") : "",
-              dateRange: proj.start_date ? `${new Date(proj.start_date).toLocaleDateString("en-US", { month: "short", year: "numeric" })} – ${proj.is_ongoing ? "Present" : proj.end_date ? new Date(proj.end_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ""}` : "",
-              liveUrl: proj.project_url || "",
-              repoUrl: "",
-              bullets: proj.description ? proj.description.split("\n").filter((line: any) => line.trim()) : [""]
-            }))
+            newProj = candidateProj.map((proj: any) => {
+              const bullets = proj.description
+                ? proj.description
+                    .split("\n")
+                    .map((line: string) => line.trim().replace(/^[\s\-\*\•\+\u2022\u2023\u25E6\u2043\u25CB\u25AA\u25FE\u2B1B\u2B1C\u25A0\u25A1]+/g, "").trim())
+                    .filter(Boolean)
+                : [""];
+              
+              const url = proj.project_url || "";
+              const isRepo = /github\.com|gitlab\.com|bitbucket\.org/i.test(url);
+              const name = proj.associated_with
+                ? `${proj.title} @ ${proj.associated_with}`
+                : proj.title;
+
+              return {
+                id: uid(),
+                name: name,
+                techStack: proj.skills ? proj.skills.join(", ") : "",
+                dateRange: proj.start_date ? `${new Date(proj.start_date).toLocaleDateString("en-US", { month: "short", year: "numeric" })} – ${proj.is_ongoing ? "Present" : proj.end_date ? new Date(proj.end_date).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ""}` : "",
+                liveUrl: isRepo ? "" : url,
+                repoUrl: isRepo ? url : "",
+                bullets: bullets.length > 0 ? bullets : [""]
+              };
+            });
           }
 
           // 4. Build Certifications list
@@ -976,9 +999,28 @@ export function ResumeGeneratorClient() {
             }))
           }
 
-          const skillNames = (candidateSkills || [])
-            .map((s: any) => s.skills?.name)
-            .filter(Boolean) as string[];
+          // Group Skills by Category
+          const groupedSkillsMap: Record<string, string[]> = {};
+          if (candidateSkills && candidateSkills.length > 0) {
+            candidateSkills.forEach((s: any) => {
+              const skillName = s.skills?.name;
+              const category = s.skills?.category || "Core Skills";
+              if (skillName) {
+                if (!groupedSkillsMap[category]) {
+                  groupedSkillsMap[category] = [];
+                }
+                groupedSkillsMap[category].push(skillName);
+              }
+            });
+          }
+
+          const newSkills = Object.keys(groupedSkillsMap).length > 0
+            ? Object.entries(groupedSkillsMap).map(([category, names]) => ({
+                id: uid(),
+                category: category,
+                skills: names.join(", ")
+              }))
+            : prev.skills;
 
           return {
             ...prev,
@@ -992,13 +1034,13 @@ export function ResumeGeneratorClient() {
               portfolio: candidate?.portfolio_links?.[0] || prev.personal.portfolio,
               tagline: prev.personal.tagline
             },
+            summaryEnabled: !!candidate?.bio || prev.summaryEnabled,
+            summaryContent: candidate?.bio || prev.summaryContent,
             education: newEdu,
             experience: newExp,
             projects: newProj,
             certifications: newCert,
-            skills: skillNames.length > 0 ? [
-              { id: uid(), category: "Core Skills", skills: skillNames.join(", ") }
-            ] : prev.skills
+            skills: newSkills
           }
         })
         toast.success("Resume data auto-filled from your profile!")

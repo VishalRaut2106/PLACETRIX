@@ -186,25 +186,25 @@ export function CandidateDashboardClient({
         animate="show"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
       >
-        
+
         {/* Cell 1: Welcome & Streak (col-span-3 - natural height header) */}
         <motion.div variants={itemVariants} className="lg:col-span-3 md:col-span-2 col-span-1">
           <Card className="relative overflow-hidden bg-card border border-border/40 shadow-sm rounded-2xl group hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0">
             {/* Glowing gradients */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.08] via-purple-500/[0.03] to-sky-500/[0.06] pointer-events-none" />
-            
+
             {/* Tech Dot Pattern */}
             <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#334155_1.5px,transparent_1.5px)] [background-size:20px_20px] opacity-60 pointer-events-none" />
-            
+
             {/* Dynamic background blur blobs (Indigo, Purple, and Sky Blue) */}
             <div className="absolute top-0 right-0 -mt-6 -mr-6 w-44 h-44 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/25 transition-all duration-300 pointer-events-none" />
             <div className="absolute right-1/4 top-1/4 w-32 h-32 bg-sky-500/15 rounded-full blur-3xl group-hover:bg-sky-500/20 transition-all duration-300 pointer-events-none" />
             <div className="absolute bottom-0 left-1/3 -mb-6 w-36 h-36 bg-purple-500/15 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-300 pointer-events-none" />
-            
+
             <CardContent className="p-5 relative z-10 flex flex-col justify-start gap-3.5">
               {streakStats.currentStreak > 0 && (
                 <div className="flex items-center gap-2">
-                  <motion.div 
+                  <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     className="flex items-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-500/15 px-3 py-1 rounded-full border border-orange-500/30"
@@ -222,7 +222,7 @@ export function CandidateDashboardClient({
                   Track your Placements, Mock Tests, and Progress in Coding Challenges all from One Dashboard.
                 </p>
               </div>
-              
+
               {!isProfileComplete && (
                 <div className="pt-1">
                   <Link href="/myprofile">
@@ -242,9 +242,9 @@ export function CandidateDashboardClient({
           <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
             <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Coding Challenges
+                Logic Lab Challenges
               </div>
-              
+
               <div className="flex items-center justify-between gap-4 flex-1">
                 <div className="space-y-2 flex-1">
                   <div>
@@ -353,7 +353,7 @@ export function CandidateDashboardClient({
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Mock Test Performance
               </div>
-              
+
               <div className="flex items-center justify-between gap-4 flex-1">
                 <div className="space-y-2 flex-1">
                   <div>

@@ -96,7 +96,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
   institute_candidate: [
     { title: "Home", url: "/home", icon: Home },
     { title: "Logic Lab", url: "/logiclab", icon: Code },
-    { title: "Courses", url: "/courses", icon: BookOpen, badge: "Beta" },
+    { title: "Courses", url: "/courses", icon: BookOpen },
     { title: "Tests", url: "/tests", icon: BarChart3 },
     { title: "Events", url: "/events", icon: Calendar },
     { title: "Tools", url: "/tools", icon: Wrench },
@@ -108,7 +108,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
   institute_staff: [
     { title: "Home", url: "/home", icon: Home },
     { title: "Tests", url: "/tests", icon: BarChart3 },
-    { title: "Courses", url: "/courses", icon: BookOpen, badge: "Beta" },
+    { title: "Courses", url: "/courses", icon: BookOpen },
     { title: "Events", url: "/events", icon: Calendar },
   ],
   institute_placement_officer: [
@@ -120,7 +120,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
     { title: "Analytics", url: "/analytics", icon: FileBarChart },
     { title: "Users", url: "/users", icon: Users },
     { title: "Licenses", url: "/licenses", icon: ShieldCheck },
-    { title: "Courses", url: "/courses", icon: BookOpen, badge: "Beta" },
+    { title: "Courses", url: "/courses", icon: BookOpen },
     { title: "LogicLab", url: "/logiclab/admin", icon: Code },
     { title: "Support Queue", url: "/support", icon: CircleHelp },
   ],
