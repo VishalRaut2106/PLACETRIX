@@ -319,11 +319,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
   const { setOpenMobile } = useSidebar()
   const { isActive: isLicenseActive, isAdmin, user } = useLicense()
 
-  const isProfileComplete = user?.account_type === "institute_candidate"
-    ? (user?.profile_complete === true && user?.profile_updated === true)
-    : true
-  const isProfileIncomplete = user?.account_type === "institute_candidate" && !isProfileComplete
-  const hasAccess = isAdmin || (isLicenseActive && !isProfileIncomplete)
+  const hasAccess = isAdmin || isLicenseActive
 
   return (
     <SidebarGroup>
@@ -357,9 +353,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                           if (isLocked) {
                             e.preventDefault()
                             e.stopPropagation()
-                            const reason = isProfileIncomplete
-                              ? "Please complete your profile to unlock this feature."
-                              : "Your institution does not have an active license."
+                            const reason = "Your institution does not have an active license."
                             toast.error(`Feature Locked`, {
                               description: reason
                             })
@@ -420,9 +414,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                   onClick={(e) => {
                     if (isLocked) {
                       e.preventDefault()
-                      const reason = isProfileIncomplete
-                        ? "Please complete your profile to unlock this feature."
-                        : "Your institution does not have an active license."
+                      const reason = "Your institution does not have an active license."
                       toast.error(`Feature Locked`, {
                         description: reason
                       })

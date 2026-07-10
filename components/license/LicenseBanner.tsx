@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-type BannerVariant = "expired" | "pending" | "none" | "revoked" | "incomplete";
+type BannerVariant = "expired" | "pending" | "none" | "revoked";
 
 interface BannerConfig {
   icon: React.ReactNode;
@@ -49,14 +49,6 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     className:
       "border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/10",
   },
-  incomplete: {
-    icon: <AlertCircle className="h-5 w-5 shrink-0 animate-pulse text-warning" />,
-    title: "Your profile is incomplete!",
-    description:
-      "Please complete your profile to unlock custom placements, track mock tests, and get verified by your institution.",
-    className:
-      "border-warning/20 bg-warning/10 text-warning dark:border-warning/30 dark:bg-warning/10",
-  },
 };
 
 export function LicenseBanner() {
@@ -66,16 +58,8 @@ export function LicenseBanner() {
 
   let variant: BannerVariant | null = null;
 
-  const isProfileComplete = user?.account_type === "institute_candidate"
-    ? (user?.profile_complete === true && user?.profile_updated === true)
-    : true;
-
-  // 1. Incomplete Profile Check (takes highest priority)
-  if (user?.account_type === "institute_candidate" && !isProfileComplete) {
-    variant = "incomplete";
-  }
-  // 2. License Check
-  else if (!license || license.status !== "active") {
+  // 1. License Check
+  if (!license || license.status !== "active") {
     const status = license?.status ?? null;
     if (status === "expired") {
       variant = "expired";
@@ -107,14 +91,6 @@ export function LicenseBanner() {
           <p className="mt-1 text-xs opacity-80 leading-relaxed">{config.description}</p>
         </div>
       </div>
-      {variant === "incomplete" && (
-        <Button asChild size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-full font-semibold px-5 shrink-0 shadow-xs shadow-warning/10 self-start sm:self-center">
-          <Link href="/myprofile" className="flex items-center gap-1.5 text-xs">
-            Complete Profile
-            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-          </Link>
-        </Button>
-      )}
     </div>
   );
 }

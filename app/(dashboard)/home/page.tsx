@@ -328,7 +328,6 @@ export default async function HomePage() {
       full_name: profile.full_name || null,
       first_name: profile.first_name || null,
       last_name: profile.last_name || null,
-      profile_complete: profile.profile_complete || false,
       profile_updated: profile.profile_updated || false,
       institute_id: profile.institute_id || null,
     };

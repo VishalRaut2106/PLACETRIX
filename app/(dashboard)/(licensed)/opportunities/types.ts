@@ -3,33 +3,43 @@
 export type OpportunityStatus = "Draft" | "Published" | "Concluded"
 export type OpportunityType = "on_campus" | "off_campus" | "internship" | "ppo" | "freelance"
 export type ApplicationStatus = "Applied" | "Shortlisted" | "Interviewing" | "Offered" | "Rejected"
+export type CompensationType = "full_time" | "internship" | "stipend_with_ppo" | "freelance"
 
-export interface OpportunityTargetingRules {
-  courses: string[]        // list of eligible course_ids or names
-  passout_years: number[]  // list of eligible years
-  min_cgpa: number         // minimum CGPA required (0 for none)
-  max_backlogs: number     // maximum backlogs allowed
+export interface CompanyProfile {
+  id: string
+  institute_id: string
+  name: string
+  logo_url: string | null
+  website: string | null
+  description: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface OpportunityListItem {
   id: string
   institute_id: string
+  company_id: string
+  company?: CompanyProfile | null // Joined relation
   title: string
-  company_name: string
-  company_logo_url: string | null
   job_role: string
   job_description: string | null
-  type: OpportunityType
   location: string | null
-  ctc: number | null
+  
+  // Compensation details
+  compensation_type: CompensationType
+  ctc_lpa: number | null
+  stipend_monthly: number | null
+  bond_details: string | null
+  
   application_link: string | null
   deadline: string // ISO string
   status: OpportunityStatus
-  targeting_rules: OpportunityTargetingRules
+  min_cgpa: number
+  
   created_at: string
   updated_at: string
   created_by: string | null
-  // Computed
   applications_count?: number
 }
 
@@ -41,14 +51,13 @@ export interface OpportunityApplication {
   status: ApplicationStatus
   created_at: string
   updated_at: string
-  // Joined from profiles/academic details
+  // Joined from profiles
   candidate_name?: string
   candidate_email?: string
   candidate_phone?: string | null
   candidate_course?: string | null
   candidate_passout_year?: number | null
   candidate_cgpa?: number | null
-  candidate_backlogs?: number | null
 }
 
 export interface CandidateOpportunityListItem extends OpportunityListItem {
@@ -58,16 +67,24 @@ export interface CandidateOpportunityListItem extends OpportunityListItem {
 }
 
 export interface OpportunityFormData {
+  company_id: string // selected company UUID or "new"
+  new_company_name?: string // if company_id === "new"
+  new_company_logo_url?: string | null
+  new_company_website?: string | null
+  new_company_description?: string | null
+  
   title: string
-  company_name: string
-  company_logo_url: string | null
   job_role: string
   job_description: string
-  type: OpportunityType
   location: string
-  ctc: number | null
+  
+  compensation_type: CompensationType
+  ctc_lpa: number | null
+  stipend_monthly: number | null
+  bond_details: string | null
+  
   application_link: string | null
   deadline: string
   status: OpportunityStatus
-  targeting_rules: OpportunityTargetingRules
+  min_cgpa: number
 }

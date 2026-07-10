@@ -3,6 +3,8 @@
 
 import { useState, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,22 +14,134 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { 
   Briefcase, Search, MapPin, DollarSign, Calendar, CheckCircle2, 
-  XCircle, FileText, ChevronRight, Upload, Info, Loader2 
+  XCircle, FileText, ChevronRight, Upload, Info, Loader2, Building2,
+  Clock, LayoutList, X
 } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 import { buildStorageUrl } from "@/lib/storage"
 import { applyToOpportunityAction } from "./actions"
 import type { CandidateOpportunityListItem } from "./types"
 
+// ─── Stat Chip ───────────────────────────────────────────────────────────────
+function StatChip({
+  icon,
+  children,
+  tone = "neutral",
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+  tone?: "neutral" | "sky" | "emerald" | "amber" | "violet" | "rose"
+}) {
+  const tones = {
+    neutral: "border-border/60 bg-muted/50 text-muted-foreground",
+    sky: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+    amber: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
+    violet: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
+    rose: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
+  } as const
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+        tones[tone]
+      )}
+    >
+      {icon}
+      <span className="truncate">{children}</span>
+    </span>
+  )
+}
+
+// ─── Opportunity Card ─────────────────────────────────────────────────────────
+function OpportunityCard({
+  opp,
+  isEligible,
+  onSelect
+}: {
+  opp: CandidateOpportunityListItem
+  isEligible: boolean
+  onSelect: (opp: CandidateOpportunityListItem) => void
+}) {
+  const deadlineDate = new Date(opp.deadline)
+  const isExpired = deadlineDate < new Date()
+  const companyName = opp.company?.name || "Unknown Company"
+
+  return (
+    <Card className="overflow-hidden border-border/70 bg-card p-0 hover:shadow-md cursor-pointer transition-all duration-200 hover:border-primary/20" onClick={() => onSelect(opp)}>
+      <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:gap-4 md:p-5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="min-w-0 text-sm md:text-base font-semibold leading-tight text-foreground">
+              {opp.title}
+            </h3>
+            {opp.my_application_id ? (
+              <Badge className="gap-1 border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 text-[11px] px-2 py-0.5">
+                Applied
+              </Badge>
+            ) : isEligible ? (
+              <Badge className="gap-1 border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300 text-[11px] px-2 py-0.5">
+                Eligible
+              </Badge>
+            ) : (
+              <Badge className="gap-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 text-[11px] px-2 py-0.5">
+                Not Eligible
+              </Badge>
+            )}
+          </div>
+
+          <p className={cn(
+            "mt-1 line-clamp-1 text-xs leading-5 text-muted-foreground",
+            opp.job_role ? "" : "italic text-muted-foreground/60"
+          )}>
+            {companyName} • {opp.job_role}
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatChip icon={<MapPin className="h-3.5 w-3.5" />} tone="neutral">
+              {opp.location || "Remote"}
+            </StatChip>
+            
+            <StatChip icon={<DollarSign className="h-3.5 w-3.5" />} tone="sky">
+              {opp.compensation_type === "full_time" && opp.ctc_lpa ? `${opp.ctc_lpa} LPA` : ""}
+              {opp.compensation_type === "internship" && opp.stipend_monthly ? `₹${opp.stipend_monthly.toLocaleString()}/mo` : ""}
+              {opp.compensation_type === "stipend_with_ppo" && `₹${opp.stipend_monthly?.toLocaleString()}/mo + PPO`}
+              {opp.compensation_type === "freelance" && (opp.ctc_lpa ? `${opp.ctc_lpa} LPA` : "Freelance")}
+              {!opp.ctc_lpa && !opp.stipend_monthly && "Unpaid"}
+            </StatChip>
+
+            <StatChip icon={<Building2 className="h-3.5 w-3.5" />} tone="amber">
+              CGPA: {opp.min_cgpa > 0 ? `>= ${opp.min_cgpa}` : "None"}
+            </StatChip>
+
+            <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone={isExpired ? "rose" : "neutral"}>
+              {isExpired ? "Expired" : `Deadline: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
+            </StatChip>
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center justify-between gap-4 md:flex-col md:items-end md:justify-center shrink-0">
+          {opp.my_application_id ? (
+            <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
+              {opp.my_application_status === "Offered" ? "Offered (Placed)" : opp.my_application_status}
+            </span>
+          ) : (
+            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={(e) => { e.stopPropagation(); onSelect(opp); }}>
+              View Details <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 interface OpportunitiesCandidateClientProps {
   opportunities: CandidateOpportunityListItem[]
   candidateAcademic: {
-    course_id: string | null
-    course_name: string | null
-    passout_year: number | null
     cgpa: number | null
   }
   profileId: string
@@ -44,7 +158,6 @@ export function OpportunitiesCandidateClient({
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilterTab, setActiveFilterTab] = useState<"all" | "eligible" | "applied">("all")
 
   // Drawer / Application dialog states
   const [selectedOpp, setSelectedOpp] = useState<CandidateOpportunityListItem | null>(null)
@@ -56,15 +169,9 @@ export function OpportunitiesCandidateClient({
   const stats = useMemo(() => {
     const totalCount = opportunities.length
     
-    // Check eligibility logic
+    // Check eligibility logic (only CGPA checks)
     const eligibleCount = opportunities.filter(opp => {
-      const rules = opp.targeting_rules ?? { courses: [], passout_years: [], min_cgpa: 0 }
-      
-      const courseMatch = !rules.courses?.length || (candidateAcademic.course_id && rules.courses.includes(candidateAcademic.course_id))
-      const yearMatch = !rules.passout_years?.length || (candidateAcademic.passout_year && rules.passout_years.includes(candidateAcademic.passout_year))
-      const cgpaMatch = !rules.min_cgpa || (candidateAcademic.cgpa != null && candidateAcademic.cgpa >= rules.min_cgpa)
-      
-      return courseMatch && yearMatch && cgpaMatch
+      return !opp.min_cgpa || (candidateAcademic.cgpa != null && candidateAcademic.cgpa >= opp.min_cgpa)
     }).length
 
     const appliedCount = opportunities.filter(opp => opp.my_application_id !== null).length
@@ -74,20 +181,14 @@ export function OpportunitiesCandidateClient({
 
   // Get specific eligibility detailed check for an opportunity
   const checkEligibility = (opp: CandidateOpportunityListItem) => {
-    const rules = opp.targeting_rules ?? { courses: [], passout_years: [], min_cgpa: 0 }
-    
-    const courseOk = !rules.courses?.length || (candidateAcademic.course_id && rules.courses.includes(candidateAcademic.course_id))
-    const yearOk = !rules.passout_years?.length || (candidateAcademic.passout_year && rules.passout_years.includes(candidateAcademic.passout_year))
-    const cgpaOk = !rules.min_cgpa || (candidateAcademic.cgpa != null && candidateAcademic.cgpa >= rules.min_cgpa)
+    const cgpaOk = !opp.min_cgpa || (candidateAcademic.cgpa != null && candidateAcademic.cgpa >= opp.min_cgpa)
     
     return {
-      course: { ok: !!courseOk, label: `Course: ${candidateAcademic.course_name || "N/A"}` },
-      year: { ok: !!yearOk, label: `Graduation Year: ${candidateAcademic.passout_year || "N/A"}` },
       cgpa: { 
         ok: !!cgpaOk, 
-        label: `CGPA: ${candidateAcademic.cgpa != null ? candidateAcademic.cgpa.toFixed(2) : "N/A"} (Min required: ${rules.min_cgpa})` 
+        label: `CGPA requirement: ${opp.min_cgpa > 0 ? `${opp.min_cgpa} or above` : "None"} (Your CGPA: ${candidateAcademic.cgpa != null ? candidateAcademic.cgpa.toFixed(2) : "N/A"})` 
       },
-      isEligible: !!(courseOk && yearOk && cgpaOk)
+      isEligible: !!cgpaOk
     }
   }
 
@@ -149,182 +250,75 @@ export function OpportunitiesCandidateClient({
   // Search filter and tab logic
   const filteredOpps = useMemo(() => {
     return opportunities.filter(opp => {
+      const companyName = opp.company?.name || ""
       const matchSearch = 
         opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        opp.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         opp.job_role.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const elg = checkEligibility(opp)
-      const matchTab = 
-        activeFilterTab === "all" ||
-        (activeFilterTab === "eligible" && elg.isEligible) ||
-        (activeFilterTab === "applied" && opp.my_application_id !== null)
-
-      return matchSearch && matchTab
+      return matchSearch
     })
-  }, [opportunities, searchQuery, activeFilterTab, candidateAcademic])
+  }, [opportunities, searchQuery])
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Opportunities</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Explore on-campus placement drives, internships, and external openings tailored for you.
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Opportunities</h1>
+        <p className="text-sm text-muted-foreground">
+          {opportunities.length} open drive{opportunities.length !== 1 ? "s" : ""} total
+          {stats.eligibleCount > 0 && (
+            <span className="ml-2 inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {stats.eligibleCount} eligible for you
+            </span>
+          )}
         </p>
       </div>
 
-      {/* Stats Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border border-primary/10 bg-primary/[0.01]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Open Roles</CardTitle>
-            <Briefcase className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCount}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">Currently active drives</p>
-          </CardContent>
-        </Card>
-        <Card className="border border-emerald-500/10 bg-emerald-500/[0.01]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Eligible Roles</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.eligibleCount}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">You meet all eligibility criteria</p>
-          </CardContent>
-        </Card>
-        <Card className="border border-blue-500/10 bg-blue-500/[0.01]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Applied</CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.appliedCount}</div>
-            <p className="text-xs text-muted-foreground mt-0.5">Applications submitted</p>
-          </CardContent>
-        </Card>
+      {/* Search Filter Only */}
+      <div className="relative w-full sm:max-w-xs">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search opportunities..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 pr-9"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-2.5 top-2.5 h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
-      {/* Tabs & Search Filter */}
-      <Tabs value={activeFilterTab} onValueChange={(v) => setActiveFilterTab(v as any)}>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search companies, roles, tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <TabsList className="bg-muted p-1 rounded-lg">
-            <TabsTrigger value="all" className="text-xs font-medium cursor-pointer">
-              All Job Postings
-            </TabsTrigger>
-            <TabsTrigger value="eligible" className="text-xs font-medium cursor-pointer">
-              Eligible Only
-            </TabsTrigger>
-            <TabsTrigger value="applied" className="text-xs font-medium cursor-pointer">
-              My Applications
-            </TabsTrigger>
-          </TabsList>
+      {/* Listings Display */}
+      {filteredOpps.length === 0 ? (
+        <Card className="p-12 text-center border-dashed">
+          <Briefcase className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="font-semibold text-lg">No opportunities found</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+            There are no job postings matching your selection at the moment. Try adjusting your search.
+          </p>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3 w-full">
+          {filteredOpps.map((opp) => {
+            const elg = checkEligibility(opp)
+            return (
+              <OpportunityCard
+                key={opp.id}
+                opp={opp}
+                isEligible={elg.isEligible}
+                onSelect={setSelectedOpp}
+              />
+            )
+          })}
         </div>
-
-        {/* Listings Display */}
-        <TabsContent value={activeFilterTab} className="mt-6 space-y-4">
-          {filteredOpps.length === 0 ? (
-            <Card className="p-12 text-center border-dashed">
-              <Briefcase className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg">No opportunities found</h3>
-              <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                There are no jobs listed under this category at the moment. Please check back later.
-              </p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredOpps.map((opp) => {
-                const elg = checkEligibility(opp)
-                const isExpired = new Date(opp.deadline) < new Date()
-
-                return (
-                  <Card 
-                    key={opp.id} 
-                    onClick={() => setSelectedOpp(opp)}
-                    className="hover:shadow-md cursor-pointer transition-all duration-200 border hover:border-primary/20 flex flex-col justify-between"
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <Badge variant="outline" className="mb-2 uppercase text-[10px]">
-                            {opp.type.replace("_", " ")}
-                          </Badge>
-                          <h2 className="font-semibold text-lg line-clamp-1">{opp.title}</h2>
-                          <p className="text-sm font-medium text-muted-foreground line-clamp-1">
-                            {opp.company_name} • {opp.job_role}
-                          </p>
-                        </div>
-                        {opp.my_application_id ? (
-                          <Badge className="bg-emerald-500/10 text-emerald-600 border-none uppercase text-[10px]">
-                            Applied
-                          </Badge>
-                        ) : elg.isEligible ? (
-                          <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px]">
-                            Eligible
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-500/5 text-red-500 border-red-500/20 text-[10px]">
-                            Not Eligible
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 pt-0">
-                      {/* Specs */}
-                      <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>{opp.location || "Remote"}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign className="h-3.5 w-3.5" />
-                          <span>{opp.ctc ? `${opp.ctc} LPA` : "Not Disclosed"}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 col-span-2">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span className={cn(isExpired && "text-red-500 font-medium")}>
-                            Deadline: {new Date(opp.deadline).toLocaleDateString("en-IN", { dateStyle: "medium" })}
-                            {isExpired && " (Expired)"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Application Info Footer */}
-                      {opp.my_application_id && (
-                        <div className="border-t pt-3 flex items-center justify-between text-xs mt-2">
-                          <span className="text-muted-foreground">Application Status:</span>
-                          <span className={cn(
-                            "font-semibold uppercase text-[10px] rounded-full px-2 py-0.5",
-                            opp.my_application_status === "Applied" && "bg-blue-500/10 text-blue-600",
-                            opp.my_application_status === "Shortlisted" && "bg-yellow-500/10 text-yellow-600",
-                            opp.my_application_status === "Interviewing" && "bg-purple-500/10 text-purple-600",
-                            opp.my_application_status === "Offered" && "bg-emerald-500/10 text-emerald-600",
-                            opp.my_application_status === "Rejected" && "bg-red-500/10 text-red-600"
-                          )}>
-                            {opp.my_application_status === "Offered" ? "Offered (Placed)" : opp.my_application_status}
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      )}
 
       {/* Sheet: Job Details Drawer */}
       <Sheet open={!!selectedOpp} onOpenChange={(open) => !open && setSelectedOpp(null)}>
@@ -332,6 +326,7 @@ export function OpportunitiesCandidateClient({
           {selectedOpp && (() => {
             const elg = checkEligibility(selectedOpp)
             const isExpired = new Date(selectedOpp.deadline) < new Date()
+            const companyName = selectedOpp.company?.name || "Unknown Company"
 
             return (
               <div className="h-full flex flex-col justify-between">
@@ -339,7 +334,7 @@ export function OpportunitiesCandidateClient({
                   <SheetHeader className="pb-4 border-b">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="uppercase text-[10px]">
-                        {selectedOpp.type.replace("_", " ")}
+                        {selectedOpp.compensation_type.replace("_", " ")}
                       </Badge>
                       {selectedOpp.my_application_id && (
                         <Badge className="bg-emerald-500/15 text-emerald-600 text-[10px] border-none uppercase">
@@ -349,7 +344,7 @@ export function OpportunitiesCandidateClient({
                     </div>
                     <SheetTitle className="text-xl font-bold">{selectedOpp.title}</SheetTitle>
                     <SheetDescription className="text-sm font-medium text-muted-foreground">
-                      {selectedOpp.company_name} • {selectedOpp.job_role}
+                      {companyName} • {selectedOpp.job_role}
                     </SheetDescription>
                   </SheetHeader>
 
@@ -362,11 +357,24 @@ export function OpportunitiesCandidateClient({
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground font-medium uppercase text-[9px] tracking-wider mb-0.5">Package / CTC</p>
+                      <p className="text-muted-foreground font-medium uppercase text-[9px] tracking-wider mb-0.5">Package Details</p>
                       <p className="font-semibold text-foreground flex items-center gap-1">
-                        <DollarSign className="h-3 w-3 text-primary" /> {selectedOpp.ctc ? `${selectedOpp.ctc} LPA` : "Not Disclosed"}
+                        <DollarSign className="h-3 w-3 text-primary" />
+                        {selectedOpp.compensation_type === "full_time" && selectedOpp.ctc_lpa ? `${selectedOpp.ctc_lpa} LPA` : ""}
+                        {selectedOpp.compensation_type === "internship" && selectedOpp.stipend_monthly ? `₹${selectedOpp.stipend_monthly.toLocaleString()}/mo` : ""}
+                        {selectedOpp.compensation_type === "stipend_with_ppo" && `₹${selectedOpp.stipend_monthly?.toLocaleString()}/mo + PPO`}
+                        {selectedOpp.compensation_type === "freelance" && (selectedOpp.ctc_lpa ? `${selectedOpp.ctc_lpa} LPA` : "Project Rate")}
+                        {!selectedOpp.ctc_lpa && !selectedOpp.stipend_monthly && "Unpaid / Disclosed later"}
                       </p>
                     </div>
+                    {selectedOpp.bond_details && (
+                      <div className="col-span-2 border-t pt-3 mt-1">
+                        <p className="text-muted-foreground font-medium uppercase text-[9px] tracking-wider mb-0.5">Service Agreement / Bond</p>
+                        <p className="font-semibold text-foreground flex items-center gap-1">
+                          <Building2 className="h-3 w-3 text-primary" /> {selectedOpp.bond_details}
+                        </p>
+                      </div>
+                    )}
                     <div className="col-span-2 border-t pt-3 mt-1">
                       <p className="text-muted-foreground font-medium uppercase text-[9px] tracking-wider mb-0.5">Apply Before</p>
                       <p className="font-semibold text-foreground flex items-center gap-1">
@@ -386,26 +394,6 @@ export function OpportunitiesCandidateClient({
                     </h4>
 
                     <div className="space-y-2 text-xs">
-                      {/* Course verification */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{elg.course.label}</span>
-                        {elg.course.ok ? (
-                          <span className="text-emerald-600 font-semibold flex items-center gap-0.5"><CheckCircle2 className="h-3.5 w-3.5" /> Ok</span>
-                        ) : (
-                          <span className="text-red-500 font-semibold flex items-center gap-0.5"><XCircle className="h-3.5 w-3.5" /> Ineligible</span>
-                        )}
-                      </div>
-
-                      {/* Year verification */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{elg.year.label}</span>
-                        {elg.year.ok ? (
-                          <span className="text-emerald-600 font-semibold flex items-center gap-0.5"><CheckCircle2 className="h-3.5 w-3.5" /> Ok</span>
-                        ) : (
-                          <span className="text-red-500 font-semibold flex items-center gap-0.5"><XCircle className="h-3.5 w-3.5" /> Ineligible</span>
-                        )}
-                      </div>
-
                       {/* CGPA verification */}
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">{elg.cgpa.label}</span>
@@ -420,15 +408,37 @@ export function OpportunitiesCandidateClient({
                     <div className="border-t pt-3 mt-2 text-center">
                       {elg.isEligible ? (
                         <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1">
-                          <CheckCircle2 className="h-4 w-4" /> You meet all eligibility criteria for this posting!
+                          <CheckCircle2 className="h-4 w-4" /> You meet the eligibility criteria for this posting!
                         </p>
                       ) : (
                         <p className="text-red-500 dark:text-red-400 font-semibold text-xs flex items-center justify-center gap-1">
-                          <XCircle className="h-4 w-4" /> You do not meet some eligibility requirements.
+                          <XCircle className="h-4 w-4" /> You do not meet the minimum CGPA requirement.
                         </p>
                       )}
                     </div>
                   </div>
+
+                  {/* Company Profile (if present) */}
+                  {selectedOpp.company && (
+                    <div className="space-y-2 border rounded-lg p-4 bg-muted/5">
+                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                        <Building2 className="h-4 w-4 text-primary" /> About {selectedOpp.company.name}
+                      </h4>
+                      {selectedOpp.company.website && (
+                        <a 
+                          href={selectedOpp.company.website} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-xs text-primary hover:underline font-medium block mt-1"
+                        >
+                          Visit Company Website
+                        </a>
+                      )}
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-2">
+                        {selectedOpp.company.description || "No company description provided."}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Job Description details */}
                   <div className="space-y-2">

@@ -62,7 +62,6 @@ interface CandidateDashboardClientProps {
     full_name: string | null
     first_name: string | null
     last_name: string | null
-    profile_complete: boolean | null
     profile_updated: boolean
     institute_id: string | null
   }
@@ -173,7 +172,7 @@ export function CandidateDashboardClient({
 
   const computedFirstName = profile.full_name ? profile.full_name.split(' ')[0] : null
   const profileName = computedFirstName || profile.username || "Candidate"
-  const isProfileComplete = profile.profile_complete === true && profile.profile_updated === true
+  const isProfileComplete = profile.profile_updated === true
 
   return (
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full animate-in fade-in duration-500">

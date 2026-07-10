@@ -28,15 +28,14 @@ export default async function OpportunitiesPage() {
 
   // ─── Staff / Placement Officer / Admin View ───────────────────────────────
   if (profile.account_type !== "institute_candidate") {
-    // Enforce access control: only primary and placement officers can view
     if (!["institute_primary", "institute_placement_officer", "admin"].includes(profile.account_type)) {
       redirect("/home")
     }
 
-    // Fetch opportunities
+    // Fetch opportunities joining their company profile
     const { data: opps } = await (supabase as any)
       .from("opportunities")
-      .select("*")
+      .select("*, company:companies(*)")
       .eq("institute_id", instituteId)
       .order("created_at", { ascending: false })
 
@@ -46,7 +45,7 @@ export default async function OpportunitiesPage() {
     const applicationsMap: Record<string, OpportunityApplication[]> = {}
 
     if (oppIds.length > 0) {
-      // Fetch applications with candidate profile details & semester grades
+      // Fetch applications with candidate profiles
       const { data: apps } = await (supabase as any)
         .from("opportunity_applications")
         .select(`
@@ -58,8 +57,7 @@ export default async function OpportunitiesPage() {
             phone_number,
             candidate_academic_details(
               passout_year,
-              course_id,
-              course:institute_courses(id, course_name)
+              course:institute_courses(course_name)
             ),
             candidate_semester_grades(sgpa)
           )
@@ -102,12 +100,12 @@ export default async function OpportunitiesPage() {
       }
     }
 
-    // Fetch eligible courses for the dropdown selector
-    const { data: courses } = await (supabase as any)
-      .from("institute_courses")
-      .select("id, course_name")
+    // Fetch list of saved companies for dropdown selection
+    const { data: companies } = await (supabase as any)
+      .from("companies")
+      .select("*")
       .eq("institute_id", instituteId)
-      .order("course_name")
+      .order("name")
 
     // Map computed applications count
     const oppListWithCount = oppList.map(opp => ({
@@ -119,21 +117,12 @@ export default async function OpportunitiesPage() {
       <OpportunitiesStaffClient
         opportunities={oppListWithCount}
         applications={applicationsMap}
-        courses={courses || []}
+        companies={companies || []}
       />
     )
   }
 
   // ─── Candidate View ───────────────────────────────────────────────────────
-  // Fetch candidate academic details
-  const { data: cadRow } = await (supabase as any)
-    .from("candidate_academic_details")
-    .select("passout_year, course_id, course:institute_courses(course_name)")
-    .eq("profile_id", profile.id)
-    .maybeSingle()
-
-  const cad = Array.isArray(cadRow) ? cadRow[0] : cadRow
-
   // Fetch candidate grades to compute current CGPA
   const { data: gradesRow } = await (supabase as any)
     .from("candidate_semester_grades")
@@ -144,16 +133,13 @@ export default async function OpportunitiesPage() {
   const candidateCgpa = sgpas.length > 0 ? sgpas.reduce((acc: number, v: number) => acc + v, 0) / sgpas.length : null
 
   const candidateAcademic = {
-    course_id: cad?.course_id || null,
-    course_name: cad?.course?.course_name || null,
-    passout_year: cad?.passout_year || null,
     cgpa: candidateCgpa
   }
 
-  // Fetch published opportunities
+  // Fetch published opportunities joining company profiles
   const { data: opps } = await (supabase as any)
     .from("opportunities")
-    .select("*")
+    .select("*, company:companies(*)")
     .eq("institute_id", instituteId)
     .eq("status", "Published")
     .order("deadline", { ascending: true })

@@ -118,7 +118,6 @@ export default async function MyProfilePage() {
       linkedin_url: profile.linkedin_url,
       github_url: profile.github_url,
       portfolio_links: profile.portfolio_links,
-      profile_complete: profile.profile_complete,
       course_id: academicDetails?.course_id ?? null,
       course_name: courseName ?? null,
       passout_year: academicDetails?.passout_year ?? null,

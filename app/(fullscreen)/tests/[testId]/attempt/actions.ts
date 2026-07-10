@@ -46,9 +46,7 @@ export async function startAttemptAction(testId: string): Promise<AttemptInfo> {
     (supabase as any)
       .from("profiles")
       .select(`
-        institute_id,
-        profile_updated,
-        profile_complete
+        institute_id
       `)
       .eq("id", userId)
       .maybeSingle(),
@@ -78,14 +76,6 @@ export async function startAttemptAction(testId: string): Promise<AttemptInfo> {
 
   const test = testRes.data
   const existingAttempt = existingRes.data
-  const profileComplete = profileRes.data?.profile_complete;
-
-  if (
-    !profileComplete ||
-    !profileRes.data?.profile_updated
-  ) {
-    throw new Error("Profile is incomplete")
-  }
 
   if (
     !test ||

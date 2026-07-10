@@ -32,22 +32,47 @@ export async function createOpportunityAction(data: OpportunityFormData) {
   const profile = await requirePlacementStaff()
   const supabase = await createClient()
 
+  let finalCompanyId = data.company_id
+
+  // 1. Handle New Company Upsert
+  if (data.company_id === "new" && data.new_company_name) {
+    const { data: comp, error: compErr } = await (supabase as any)
+      .from("companies")
+      .insert({
+        institute_id: profile.institute_id,
+        name: data.new_company_name.trim(),
+        logo_url: data.new_company_logo_url || null,
+        website: data.new_company_website || null,
+        description: data.new_company_description || null
+      })
+      .select("id")
+      .maybeSingle()
+
+    if (compErr || !comp) {
+      console.error("Error creating company:", compErr)
+      throw new Error(compErr?.message || "Failed to create company profile.")
+    }
+    finalCompanyId = comp.id
+  }
+
+  // 2. Insert Opportunity
   const { data: opp, error } = await (supabase as any)
     .from("opportunities")
     .insert({
       institute_id: profile.institute_id,
+      company_id: finalCompanyId,
       title: data.title,
-      company_name: data.company_name,
-      company_logo_url: data.company_logo_url || null,
       job_role: data.job_role,
       job_description: data.job_description || null,
-      type: data.type,
       location: data.location || null,
-      ctc: data.ctc ?? null,
+      compensation_type: data.compensation_type,
+      ctc_lpa: data.ctc_lpa ?? null,
+      stipend_monthly: data.stipend_monthly ?? null,
+      bond_details: data.bond_details || null,
       application_link: data.application_link || null,
       deadline: data.deadline,
       status: data.status,
-      targeting_rules: data.targeting_rules,
+      min_cgpa: data.min_cgpa || 0,
       created_by: profile.id
     })
     .select("id")
@@ -63,24 +88,49 @@ export async function createOpportunityAction(data: OpportunityFormData) {
 }
 
 export async function updateOpportunityAction(oppId: string, data: OpportunityFormData) {
-  await requirePlacementStaff()
+  const profile = await requirePlacementStaff()
   const supabase = await createClient()
 
+  let finalCompanyId = data.company_id
+
+  // 1. Handle New Company Upsert
+  if (data.company_id === "new" && data.new_company_name) {
+    const { data: comp, error: compErr } = await (supabase as any)
+      .from("companies")
+      .insert({
+        institute_id: profile.institute_id,
+        name: data.new_company_name.trim(),
+        logo_url: data.new_company_logo_url || null,
+        website: data.new_company_website || null,
+        description: data.new_company_description || null
+      })
+      .select("id")
+      .maybeSingle()
+
+    if (compErr || !comp) {
+      console.error("Error creating company:", compErr)
+      throw new Error(compErr?.message || "Failed to create company profile.")
+    }
+    finalCompanyId = comp.id
+  }
+
+  // 2. Update Opportunity
   const { error } = await (supabase as any)
     .from("opportunities")
     .update({
+      company_id: finalCompanyId,
       title: data.title,
-      company_name: data.company_name,
-      company_logo_url: data.company_logo_url || null,
       job_role: data.job_role,
       job_description: data.job_description || null,
-      type: data.type,
       location: data.location || null,
-      ctc: data.ctc ?? null,
+      compensation_type: data.compensation_type,
+      ctc_lpa: data.ctc_lpa ?? null,
+      stipend_monthly: data.stipend_monthly ?? null,
+      bond_details: data.bond_details || null,
       application_link: data.application_link || null,
       deadline: data.deadline,
       status: data.status,
-      targeting_rules: data.targeting_rules,
+      min_cgpa: data.min_cgpa || 0,
       updated_at: new Date().toISOString()
     })
     .eq("id", oppId)
@@ -142,7 +192,7 @@ export async function applyToOpportunityAction(oppId: string, resumeUrl: string)
   // 1. Fetch opportunity details
   const { data: opp, error: fetchErr } = await (supabase as any)
     .from("opportunities")
-    .select("*")
+    .select("status, deadline, min_cgpa")
     .eq("id", oppId)
     .maybeSingle()
 
@@ -150,45 +200,19 @@ export async function applyToOpportunityAction(oppId: string, resumeUrl: string)
   if (opp.status !== "Published") throw new Error("Opportunity is not accepting applications.")
   if (new Date(opp.deadline) < new Date()) throw new Error("Application deadline has passed.")
 
-  // 2. Validate Eligibility criteria
-  // Fetch academic details
-  const { data: academic } = await (supabase as any)
-    .from("candidate_academic_details")
-    .select("passout_year, course_id")
-    .eq("profile_id", profile.id)
-    .maybeSingle()
+  // 2. Validate CGPA eligibility criteria
+  if (opp.min_cgpa && opp.min_cgpa > 0) {
+    // Fetch grades to compute CGPA
+    const { data: grades } = await (supabase as any)
+      .from("candidate_semester_grades")
+      .select("sgpa")
+      .eq("profile_id", profile.id)
 
-  // Fetch grades to compute CGPA
-  const { data: grades } = await (supabase as any)
-    .from("candidate_semester_grades")
-    .select("sgpa")
-    .eq("profile_id", profile.id)
+    const sgpas = (grades || []).map((g: any) => parseFloat(g.sgpa)).filter((v: number) => !isNaN(v))
+    const calculatedCgpa = sgpas.length > 0 ? sgpas.reduce((acc: number, v: number) => acc + v, 0) / sgpas.length : 0
 
-  const sgpas = (grades || []).map((g: any) => parseFloat(g.sgpa)).filter((v: number) => !isNaN(v))
-  const calculatedCgpa = sgpas.length > 0 ? sgpas.reduce((acc: number, v: number) => acc + v, 0) / sgpas.length : 0
-
-  const rules = opp.targeting_rules ?? { courses: [], passout_years: [], min_cgpa: 0, max_backlogs: 0 }
-
-  // Check course match (if rules exist)
-  if (rules.courses && rules.courses.length > 0) {
-    const courseId = academic?.course_id
-    if (!courseId || !rules.courses.includes(courseId)) {
-      throw new Error("You are not eligible: Your course is not eligible for this opportunity.")
-    }
-  }
-
-  // Check passout year match (if rules exist)
-  if (rules.passout_years && rules.passout_years.length > 0) {
-    const year = academic?.passout_year
-    if (!year || !rules.passout_years.includes(year)) {
-      throw new Error("You are not eligible: Your graduation year is not eligible.")
-    }
-  }
-
-  // Check CGPA match (if rules exist)
-  if (rules.min_cgpa && rules.min_cgpa > 0) {
-    if (calculatedCgpa < rules.min_cgpa) {
-      throw new Error(`You are not eligible: Minimum CGPA required is ${rules.min_cgpa}. Your CGPA is ${calculatedCgpa.toFixed(2)}.`)
+    if (calculatedCgpa < opp.min_cgpa) {
+      throw new Error(`You are not eligible: Minimum CGPA required is ${opp.min_cgpa}. Your CGPA is ${calculatedCgpa.toFixed(2)}.`)
     }
   }
 
