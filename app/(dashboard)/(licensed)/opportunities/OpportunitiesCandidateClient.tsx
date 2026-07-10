@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet"
 import { 
-  Briefcase, Search, MapPin, IndianRupee, Calendar, CheckCircle2, 
-  Clock, X, SlidersHorizontal, Building2, Loader2
+  Briefcase, Search, MapPin, Calendar, CheckCircle2, 
+  Clock, X, SlidersHorizontal, Loader2
 } from "lucide-react"
 import type { CandidateOpportunityListItem } from "./types"
 
@@ -126,10 +126,6 @@ function OpportunityCard({
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
                 <span>{opp.location || "Remote"}</span>
                 <span>•</span>
-                <span>{compString}</span>
-                <span>•</span>
-                <span>CGPA: {opp.min_cgpa > 0 ? `>= ${opp.min_cgpa}` : "None"}</span>
-                <span>•</span>
                 <span className={cn(isExpired && "text-rose-600 dark:text-rose-400 font-medium")}>
                   {isExpired ? "Expired" : `Ends: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
                 </span>
@@ -169,28 +165,11 @@ function OpportunityCard({
               <StatChip icon={<MapPin className="h-3.5 w-3.5" />} tone="neutral">
                 {opp.location || "Remote"}
               </StatChip>
-              
-              <StatChip icon={<IndianRupee className="h-3.5 w-3.5" />} tone="sky">
-                {compString}
-              </StatChip>
-
-              <StatChip icon={<Building2 className="h-3.5 w-3.5" />} tone="amber">
-                CGPA: {opp.min_cgpa > 0 ? `>= ${opp.min_cgpa}` : "None"}
-              </StatChip>
 
               <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone={isExpired ? "rose" : "neutral"}>
                 {isExpired ? "Expired" : `Deadline: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
               </StatChip>
             </div>
-          </div>
-
-          <div className="shrink-0">
-            {opp.my_application_id && (
-              <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4" />
-                {opp.my_application_status === "Offered" ? "Offered" : opp.my_application_status}
-              </span>
-            )}
           </div>
         </div>
       </Link>

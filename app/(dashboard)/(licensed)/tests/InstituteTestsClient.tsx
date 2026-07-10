@@ -139,57 +139,71 @@ function MetaItem({
 }
 
 // Institute access/status — isolated so the parent card layout never shifts
-function AccessStatus({
-  status,
-  test,
-  compact = false,
-}: {
-  status: DerivedInstituteStatus
-  test: InstituteTest
-  compact?: boolean
-}) {
+function AccessStatusChip({ test }: { test: InstituteTest }) {
+  const status = test.derived_status
+
+  if (status === "past") {
+    return (
+      <StatChip
+        icon={test.results_available ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+        tone={test.results_available ? "emerald" : "neutral"}
+      >
+        {test.results_available ? "Results visible" : "Results hidden"}
+      </StatChip>
+    )
+  }
+
+  if (status === "draft") {
+    return (
+      <StatChip icon={<PenLine className="h-3.5 w-3.5" />} tone="amber">
+        Draft
+      </StatChip>
+    )
+  }
+
+  if (status === "live") {
+    return (
+      <StatChip icon={<PlayCircle className="h-3.5 w-3.5" />} tone="emerald">
+        Available now
+      </StatChip>
+    )
+  }
+
+  return null
+}
+
+function renderMobileAccessStatus(test: InstituteTest) {
+  const status = test.derived_status
+
   if (status === "past") {
     return (
       <span className={cn(
-        "flex items-center gap-1.5 font-medium text-xs",
-        test.results_available
-          ? "text-emerald-600 dark:text-emerald-400"
-          : "text-muted-foreground"
+        "font-medium",
+        test.results_available ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
       )}>
-        {test.results_available
-          ? (compact ? "Results visible" : <><Eye className="h-3.5 w-3.5" /> Results visible</>)
-          : (compact ? "Results hidden" : <><EyeOff className="h-3.5 w-3.5" /> Results hidden</>)
-        }
+        {test.results_available ? "Results visible" : "Results hidden"}
       </span>
     )
   }
+
   if (status === "upcoming") {
+    if (test.available_from) return null
     return (
-      <span className="font-medium text-foreground text-xs">
-        {compact ? (
-          "Upcoming"
-        ) : test.available_from ? (
-          <>Opens {formatDateTime(test.available_from)}</>
-        ) : (
-          <span className="italic text-muted-foreground/60">Opening time not set</span>
-        )}
+      <span className="text-sky-600 dark:text-sky-400 font-medium">
+        Upcoming
       </span>
     )
   }
+
   if (status === "draft") {
-    return (
-      <span className="font-medium text-muted-foreground text-xs italic">
-        {compact ? "Draft" : "Draft — not published"}
-      </span>
-    )
+    return <span className="text-amber-600 dark:text-amber-400 font-medium">Draft</span>
   }
-  // live
-  return (
-    <span className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400 text-xs">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-      {compact ? "Live" : "Available now"}
-    </span>
-  )
+
+  if (status === "live") {
+    return <span className="text-emerald-600 dark:text-emerald-400 font-medium">Available now</span>
+  }
+
+  return null
 }
 
 function StatChip({
@@ -277,11 +291,13 @@ function TestCard({ test }: { test: InstituteTest }) {
                     <span>Ended: {formatDateTime(test.available_until)}</span>
                   </>
                 )}
+                {renderMobileAccessStatus(test) && (
+                  <>
+                    <span>•</span>
+                    {renderMobileAccessStatus(test)}
+                  </>
+                )}
               </div>
-            </div>
-            
-            <div className="flex items-center gap-1.5 shrink-0 text-right">
-              <AccessStatus status={test.derived_status} test={test} compact />
             </div>
           </div>
         </div>
@@ -352,11 +368,9 @@ function TestCard({ test }: { test: InstituteTest }) {
                   No schedule set
                 </StatChip>
               )}
-            </div>
-          </div>
 
-          <div className="shrink-0">
-            <AccessStatus status={test.derived_status} test={test} />
+              <AccessStatusChip test={test} />
+            </div>
           </div>
         </div>
       </Link>

@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet"
 import { 
-  Briefcase, Plus, Search, MapPin, IndianRupee, Calendar, Users, 
-  X, Building2, Clock, Loader2, SlidersHorizontal, CheckCircle2
+  Briefcase, Plus, Search, MapPin, Calendar, 
+  X, Clock, Loader2, SlidersHorizontal, CheckCircle2
 } from "lucide-react"
 import type { 
   OpportunityListItem, 
@@ -123,12 +123,6 @@ function OpportunityCard({
 
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
                 <span>{opp.location || "Remote"}</span>
-                <span>•</span>
-                <span>{compString}</span>
-                <span>•</span>
-                <span>CGPA: {opp.min_cgpa > 0 ? `>= ${opp.min_cgpa}` : "None"}</span>
-                <span>•</span>
-                <span>{opp.applications_count || 0} applicants</span>
               </div>
             </div>
           </div>
@@ -157,26 +151,11 @@ function OpportunityCard({
               <StatChip icon={<MapPin className="h-3.5 w-3.5" />} tone="neutral">
                 {opp.location || "Remote"}
               </StatChip>
-              
-              <StatChip icon={<IndianRupee className="h-3.5 w-3.5" />} tone="sky">
-                {compString}
-              </StatChip>
-
-              <StatChip icon={<Building2 className="h-3.5 w-3.5" />} tone="amber">
-                CGPA Cutoff: {opp.min_cgpa > 0 ? `>= ${opp.min_cgpa}` : "None"}
-              </StatChip>
 
               <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone={isExpired ? "rose" : "neutral"}>
                 {isExpired ? "Expired" : `Deadline: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
               </StatChip>
             </div>
-          </div>
-
-          <div className="flex flex-row items-center gap-4 shrink-0">
-            <span className="inline-flex items-center gap-1.5 font-medium text-muted-foreground text-xs">
-              <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-              {opp.applications_count || 0} applicants
-            </span>
           </div>
         </div>
       </Link>

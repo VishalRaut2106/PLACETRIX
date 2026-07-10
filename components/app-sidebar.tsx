@@ -106,6 +106,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
     { title: "Home", url: "/home", icon: Home },
     { title: "Users", url: "/users", icon: Users },
     { title: "Opportunities", url: "/opportunities", icon: Briefcase },
+    { title: "Companies", url: "/companies", icon: Building2 },
   ],
   institute_staff: [
     { title: "Home", url: "/home", icon: Home },
@@ -116,6 +117,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
   institute_placement_officer: [
     { title: "Home", url: "/home", icon: Home },
     { title: "Opportunities", url: "/opportunities", icon: Briefcase },
+    { title: "Companies", url: "/companies", icon: Building2 },
   ],
   admin: [
     { title: "Home", url: "/home", icon: Home },

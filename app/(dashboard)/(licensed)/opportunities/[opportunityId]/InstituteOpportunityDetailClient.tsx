@@ -11,10 +11,17 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { 
   Briefcase, MapPin, IndianRupee, Calendar, Users, 
   Trash2, Edit3, Download, Building2, Search, X,
-  Clock, ArrowLeft, CheckCircle2, Info
+  Clock, ArrowLeft, CheckCircle2, Info, MoreHorizontal, Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 import { deleteOpportunityAction, updateApplicationStatusAction } from "../actions"
@@ -162,16 +169,43 @@ export function InstituteOpportunityDetailClient({
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2 self-end">
-          <Button variant="outline" size="sm" asChild className="gap-1.5 h-9">
-            <Link href={`/opportunities/${opportunity.id}/edit`}>
-              <Edit3 className="h-4 w-4" /> Edit Opportunity
-            </Link>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleDelete} className="gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 h-9" disabled={isPending}>
-            <Trash2 className="h-4 w-4" /> Delete Posting
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 self-end h-9"
+              disabled={isPending}
+            >
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+              Actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={() => router.push(`/opportunities/${opportunity.id}/edit`)}
+              disabled={isPending}
+            >
+              <Edit3 className="mr-2 h-3.5 w-3.5" />
+              Edit Opportunity
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Delete Posting
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Page Header */}
