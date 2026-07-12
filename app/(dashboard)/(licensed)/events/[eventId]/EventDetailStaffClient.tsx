@@ -75,6 +75,7 @@ import { buildStorageUrl } from "@/lib/storage"
 import { markAttendanceAction, deleteEventAction, concludeEventAction } from "../actions"
 import type { EventTicket, EventStatus, TicketStatus, AttendanceStatus, EventAgendaItem } from "../types"
 import { ExportEventAttendeesModal } from "./ExportEventAttendeesModal"
+import { QRCheckInScanner } from "./QRCheckInScanner"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -661,6 +662,7 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
         <TabsContent value="attendees" className="m-0 space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
+              <QRCheckInScanner onCheckIn={onCheckIn} />
               <ManualCheckInDialog onCheckIn={onCheckIn} />
               {filteredTickets.length > 0 && (
                 <ExportEventAttendeesModal tickets={filteredTickets} eventName={event.title} />
