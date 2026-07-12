@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,125 +9,380 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body,html{width:100%;}
-    body{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;background-color:#f5f5f5;font-family:'Outfit','Helvetica Neue',Helvetica,Arial,sans-serif;color:#0a0a0a;}
-    table{border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;}
-    a{text-decoration:none;}
-    .wrapper{width:100%;background-color:#f5f5f5;padding:40px 16px;}
-    .card{max-width:560px;margin:0 auto;background:#ffffff;border-radius:20px;border:1px solid #e0e0e0;overflow:hidden;box-shadow:0 8px 32px -4px rgba(0,0,0,0.10),0 2px 8px -1px rgba(0,0,0,0.06);}
-    .hdr{background:#0a0a0a;padding:32px 40px 28px;text-align:center;}
-    .logo-wrap{display:inline-flex;align-items:center;gap:10px;}
-    .logo-svg{width:40px;height:auto;}
-    .brand{font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;}
-    .badge{background:#f0f0f0;border-bottom:1px solid #e0e0e0;padding:12px 40px;text-align:center;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#666666;}
-    .body{padding:40px 40px 32px;}
-    .body h1{font-size:26px;font-weight:700;color:#0a0a0a;line-height:1.3;margin-bottom:12px;letter-spacing:-0.4px;}
-    .body p{font-size:15px;line-height:1.7;color:#444444;margin-bottom:16px;}
-    .email-change-visual{background:#fafafa;border:1px solid #ebebeb;border-radius:14px;padding:20px 24px;margin:20px 0;text-align:center;}
-    .email-pill{display:inline-block;padding:8px 16px;border-radius:50px;font-size:14px;font-weight:600;}
-    .old-email{background:#f0f0f0;color:#888888;text-decoration:line-through;}
-    .arrow{font-size:20px;color:#aaaaaa;margin:0 12px;}
-    .new-email{background:#0a0a0a;color:#ffffff;}
-    .info-block{background:#fafafa;border:1px solid #ebebeb;border-radius:12px;padding:16px 20px;margin-bottom:20px;}
-    .info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:14px;}
-    .info-row:last-child{border-bottom:none;padding-bottom:0;}
-    .info-key{color:#888888;}
-    .info-val{color:#0a0a0a;font-weight:600;}
-    .btn-wrap{text-align:center;margin:28px 0;}
-    .btn{display:inline-block;background:#0a0a0a;color:#ffffff !important;font-size:15px;font-weight:600;padding:14px 36px;border-radius:50px;letter-spacing:0.2px;}
-    .divider{border:none;border-top:1px solid #ebebeb;margin:28px 0;}
-    .link-box{background:#f5f5f5;border:1px solid #e0e0e0;border-radius:12px;padding:14px 18px;word-break:break-all;font-size:12px;color:#444444;line-height:1.5;}
-    .link-box a{color:#0a0a0a;font-weight:600;}
-    .expire-note{font-size:13px;color:#888888;text-align:center;margin-top:-12px;}
-    .alert-banner{background:#fff8e6;border:1px solid #ffe199;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#7a5800;line-height:1.6;}
-    .footer{background:#f5f5f5;border-top:1px solid #e0e0e0;padding:24px 40px;text-align:center;}
-    .footer p{font-size:12px;color:#aaaaaa;line-height:1.6;margin-bottom:6px;}
-    .footer p:last-child{margin-bottom:0;}
-    .footer a{color:#666666;text-decoration:underline;}
-    @media only screen and (max-width:600px){.body{padding:28px 24px 24px;}.hdr{padding:24px 24px 20px;}.badge{padding:10px 24px;}.footer{padding:20px 24px;}.body h1{font-size:22px;}.email-change-visual{padding:16px;}.arrow{display:block;margin:8px 0;}}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body,
+    html {
+      width: 100%;
+    }
+
+    body {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+      background-color: #f5f5f5;
+      font-family: 'Outfit', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #0a0a0a;
+    }
+
+    table {
+      border-collapse: collapse;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    .wrapper {
+      width: 100%;
+      background-color: #f5f5f5;
+      padding: 40px 16px;
+    }
+
+    .card {
+      max-width: 560px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e0e0e0;
+      overflow: hidden;
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.10), 0 2px 8px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .hdr {
+      background: #0a0a0a;
+      padding: 32px 40px 28px;
+      text-align: center;
+    }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-svg {
+      width: 40px;
+      height: auto;
+    }
+
+    .brand {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .badge {
+      background: #f0f0f0;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 12px 40px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #666666;
+    }
+
+    .body {
+      padding: 40px 40px 32px;
+    }
+
+    .body h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #0a0a0a;
+      line-height: 1.3;
+      margin-bottom: 12px;
+      letter-spacing: -0.4px;
+    }
+
+    .body p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #444444;
+      margin-bottom: 16px;
+    }
+
+    .email-change-visual {
+      background: #fafafa;
+      border: 1px solid #ebebeb;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .email-pill {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .old-email {
+      background: #f0f0f0;
+      color: #888888;
+      text-decoration: line-through;
+    }
+
+    .arrow {
+      font-size: 20px;
+      color: #aaaaaa;
+      margin: 0 12px;
+    }
+
+    .new-email {
+      background: #0a0a0a;
+      color: #ffffff;
+    }
+
+    .info-block {
+      background: #fafafa;
+      border: 1px solid #ebebeb;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .info-key {
+      color: #888888;
+    }
+
+    .info-val {
+      color: #0a0a0a;
+      font-weight: 600;
+    }
+
+    .btn-wrap {
+      text-align: center;
+      margin: 28px 0;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #0a0a0a;
+      color: #ffffff !important;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 36px;
+      border-radius: 50px;
+      letter-spacing: 0.2px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #ebebeb;
+      margin: 28px 0;
+    }
+
+    .link-box {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      word-break: break-all;
+      font-size: 12px;
+      color: #444444;
+      line-height: 1.5;
+    }
+
+    .link-box a {
+      color: #0a0a0a;
+      font-weight: 600;
+    }
+
+    .expire-note {
+      font-size: 13px;
+      color: #888888;
+      text-align: center;
+      margin-top: -12px;
+    }
+
+    .alert-banner {
+      background: #fff8e6;
+      border: 1px solid #ffe199;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #7a5800;
+      line-height: 1.6;
+    }
+
+    .footer {
+      background: #f5f5f5;
+      border-top: 1px solid #e0e0e0;
+      padding: 24px 40px;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: #aaaaaa;
+      line-height: 1.6;
+      margin-bottom: 6px;
+    }
+
+    .footer p:last-child {
+      margin-bottom: 0;
+    }
+
+    .footer a {
+      color: #666666;
+      text-decoration: underline;
+    }
+
+    @media only screen and (max-width:600px) {
+      .body {
+        padding: 28px 24px 24px;
+      }
+
+      .hdr {
+        padding: 24px 24px 20px;
+      }
+
+      .badge {
+        padding: 10px 24px;
+      }
+
+      .footer {
+        padding: 20px 24px;
+      }
+
+      .body h1 {
+        font-size: 22px;
+      }
+
+      .email-change-visual {
+        padding: 16px;
+      }
+
+      .arrow {
+        display: block;
+        margin: 8px 0;
+      }
+    }
   </style>
 </head>
+
 <body>
-<div class="wrapper">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr><td>
-      <div class="card">
+  <div class="wrapper">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td>
+          <div class="card">
 
-        <!-- Header -->
-        <div class="hdr">
-          <div class="logo-wrap">
-            <svg class="logo-svg" viewBox="0 0 234 139" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3.78965 131.389L49.3376 57.9376C53.1673 51.7618 59.9207 48 67.1876 48H137.213C140.37 48 142.283 51.4846 140.588 54.1475L121.179 84.6475C120.445 85.8013 119.172 86.5 117.804 86.5H78.2496C76.8527 86.5 75.5571 87.2287 74.8315 88.4223L50.8424 127.888C47.2146 133.857 40.7363 137.5 33.752 137.5H7.1871C4.05169 137.5 2.13726 134.053 3.78965 131.389Z" fill="white" stroke="white" stroke-width="2"/>
-              <path d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z" fill="#888888"/>
-              <path d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z" fill="white"/>
-              <path d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z" stroke="white" stroke-width="2"/>
-            </svg>
-            <span class="brand">PlaceTrix</span>
-          </div>
-        </div>
-
-        <!-- Badge -->
-        <div class="badge">Email Address Change</div>
-
-        <!-- Body -->
-        <div class="body">
-          <h1>Confirm your new email address</h1>
-          <p>We received a request to update the email address associated with your PlaceTrix account. Please verify your new address to complete the change.</p>
-
-          <!-- Visual change display -->
-          <div class="email-change-visual">
-            <span class="email-pill old-email">{{ .Email }}</span>
-            <span class="arrow">&rarr;</span>
-            <span class="email-pill new-email">{{ .NewEmail }}</span>
-          </div>
-
-          <div class="info-block">
-            <div class="info-row">
-              <span class="info-key">Current email</span>
-              <span class="info-val">{{ .Email }}</span>
+            <!-- Header -->
+            <div class="hdr">
+              <div class="logo-wrap">
+                <svg class="logo-svg" viewBox="0 0 234 139" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M3.78965 131.389L49.3376 57.9376C53.1673 51.7618 59.9207 48 67.1876 48H137.213C140.37 48 142.283 51.4846 140.588 54.1475L121.179 84.6475C120.445 85.8013 119.172 86.5 117.804 86.5H78.2496C76.8527 86.5 75.5571 87.2287 74.8315 88.4223L50.8424 127.888C47.2146 133.857 40.7363 137.5 33.752 137.5H7.1871C4.05169 137.5 2.13726 134.053 3.78965 131.389Z"
+                    fill="white" stroke="white" stroke-width="2" />
+                  <path
+                    d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
+                    fill="#888888" />
+                  <path
+                    d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
+                    fill="white" />
+                  <path
+                    d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
+                    stroke="white" stroke-width="2" />
+                </svg>
+                <span class="brand">PlaceTrix</span>
+              </div>
             </div>
-            <div class="info-row">
-              <span class="info-key">New email</span>
-              <span class="info-val">{{ .NewEmail }}</span>
+
+            <!-- Badge -->
+            <div class="badge">Email Address Change</div>
+
+            <!-- Body -->
+            <div class="body">
+              <h1>Confirm your new email address</h1>
+              <p>We received a request to update the email address associated with your PlaceTrix account. Please verify
+                your new address to complete the change.</p>
+
+              <!-- Visual change display -->
+              <div class="email-change-visual">
+                <span class="email-pill old-email">{{ .Email }}</span>
+                <span class="arrow">&rarr;</span>
+                <span class="email-pill new-email">{{ .NewEmail }}</span>
+              </div>
+
+              <div class="info-block">
+                <div class="info-row">
+                  <span class="info-key">Current email</span>
+                  <span class="info-val">{{ .Email }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">New email</span>
+                  <span class="info-val">{{ .NewEmail }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">Link expires in</span>
+                  <span class="info-val">24 hours</span>
+                </div>
+              </div>
+
+              <!-- Alert -->
+              <div class="alert-banner">
+                <strong>Didn't request this change?</strong> If you didn't initiate this email change, please log into
+                your account immediately and secure it.
+              </div>
+
+              <!-- CTA -->
+              <div class="btn-wrap">
+                <a href="{{ .ConfirmationURL }}" class="btn">Confirm New Email Address</a>
+              </div>
+              <p class="expire-note">This link expires in <strong>24 hours</strong>.</p>
+
+              <hr class="divider" />
+
+              <p style="font-size:13px;color:#888888;margin-bottom:8px;">If the button above doesn't work, copy and
+                paste this URL into your browser:</p>
+              <div class="link-box"><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></div>
             </div>
-            <div class="info-row">
-              <span class="info-key">Link expires in</span>
-              <span class="info-val">24 hours</span>
+
+            <!-- Footer -->
+            <div class="footer">
+              <p>This email was sent by <strong>PlaceTrix</strong> &middot; Campus Placement &amp; Training Platform</p>
+              <p>An email change was requested on your PlaceTrix account.</p>
+              <p>
+                <a href="https://placetrix.app/privacy-policy">Privacy Policy</a>
+                &nbsp;&middot;&nbsp;
+                <a href="https://placetrix.app/terms-of-service">Terms of Service</a>
+              </p>
             </div>
+
           </div>
-
-          <!-- Alert -->
-          <div class="alert-banner">
-            <strong>Didn't request this change?</strong> If you didn't initiate this email change, please log into your account immediately and secure it.
-          </div>
-
-          <!-- CTA -->
-          <div class="btn-wrap">
-            <a href="{{ .ConfirmationURL }}" class="btn">Confirm New Email Address</a>
-          </div>
-          <p class="expire-note">This link expires in <strong>24 hours</strong>.</p>
-
-          <hr class="divider" />
-
-          <p style="font-size:13px;color:#888888;margin-bottom:8px;">If the button above doesn't work, copy and paste this URL into your browser:</p>
-          <div class="link-box"><a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a></div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-          <p>This email was sent by <strong>PlaceTrix</strong> &middot; Campus Placement &amp; Training Platform</p>
-          <p>An email change was requested on your PlaceTrix account.</p>
-          <p>
-            <a href="https://placetrix.in/privacy-policy">Privacy Policy</a>
-            &nbsp;&middot;&nbsp;
-            <a href="https://placetrix.in/terms-of-service">Terms of Service</a>
-          </p>
-        </div>
-
-      </div>
-    </td></tr>
-  </table>
-</div>
+        </td>
+      </tr>
+    </table>
+  </div>
 </body>
+
 </html>
