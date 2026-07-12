@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet"
@@ -511,20 +512,22 @@ export function CandidateCourseClient({ initialCourses }: { initialCourses: Cour
 
       {/* Courses Grid / List */}
       {filteredCourses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-3 border border-dashed border-border/60 rounded-xl bg-card/50">
-          <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-muted-foreground/60" />
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">No courses found</p>
-            <p className="text-xs text-muted-foreground">Try adjusting your search or filters</p>
-          </div>
+        <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+            </EmptyMedia>
+            <EmptyTitle>No courses found</EmptyTitle>
+            <EmptyDescription>Try adjusting your search or filters</EmptyDescription>
+          </EmptyHeader>
           {hasActiveFilters && (
-            <button onClick={clearAllFilters} className="text-xs text-primary hover:underline font-medium">
-              Clear all filters
-            </button>
+            <EmptyContent>
+              <Button variant="ghost" onClick={clearAllFilters} className="text-xs text-primary hover:underline font-medium p-0 h-auto">
+                Clear all filters
+              </Button>
+            </EmptyContent>
           )}
-        </div>
+        </Empty>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in duration-300">
           {filteredCourses.map((course) => (

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet"
 import { 
@@ -414,13 +415,17 @@ export function OpportunitiesCandidateClient({
         <div className="relative">
           <div className="space-y-4">
             {paginatedOpps.length === 0 ? (
-              <Card className="p-12 text-center border-dashed">
-                <Briefcase className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg">No opportunities found</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                  There are no job postings matching your selection at the moment. Try adjusting your filters.
-                </p>
-              </Card>
+              <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Briefcase className="h-5 w-5 text-muted-foreground/60" />
+                  </EmptyMedia>
+                  <EmptyTitle>No opportunities found</EmptyTitle>
+                  <EmptyDescription>
+                    There are no job postings matching your selection at the moment. Try adjusting your filters.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <>
                 <div className="flex flex-col gap-3 w-full">

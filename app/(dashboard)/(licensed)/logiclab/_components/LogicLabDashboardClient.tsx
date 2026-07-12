@@ -1005,33 +1005,27 @@ export function LogicLabDashboardClient({
       <div className={cn('flex', 'flex-col', 'gap-6', 'min-w-0')}>
         {/* Toolbar */}
         <div className={cn('flex', 'items-center', 'gap-3', 'w-full')}>
-          <InputGroup className={cn('flex-1', 'h-10', 'bg-background', 'rounded-lg')}>
-            <InputGroupAddon align="inline-start">
-              {isPending ? (
-                <Loader2 className={cn('animate-spin', 'text-muted-foreground')} />
-              ) : (
-                <Search className="text-muted-foreground" />
-              )}
-            </InputGroupAddon>
-            <InputGroupInput
+          <div className="relative flex-1">
+            {isPending ? (
+              <Loader2 className="absolute left-2.5 top-2.5 h-4 w-4 text-primary animate-spin" />
+            ) : (
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            )}
+            <Input
               placeholder="Search problems..."
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="h-full"
+              className="pl-9 pr-9"
             />
             {searchInput && (
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  onClick={() => handleSearchChange("")}
-                  variant="ghost"
-                  size="icon-xs"
-                  className={cn('text-muted-foreground', 'hover:text-foreground')}
-                >
-                  <X />
-                </InputGroupButton>
-              </InputGroupAddon>
+              <button
+                onClick={() => handleSearchChange("")}
+                className="absolute right-2.5 top-2.5 h-4 w-4 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             )}
-          </InputGroup>
+          </div>
 
           <div className={cn('flex', 'items-center', 'gap-2', 'shrink-0')}>
             <Button
@@ -1087,22 +1081,24 @@ export function LogicLabDashboardClient({
 
           <div className={cn("transition-opacity duration-200 flex flex-col gap-2.5", isPending && problems.length === 0 && "opacity-40 pointer-events-none")}>
             {problems.length === 0 && !isPending ? (
-              <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'py-24', 'text-center', 'gap-4', 'rounded-xl', 'border', 'border-dashed', 'border-border/60')}>
-                <div className={cn('h-16', 'w-16', 'rounded-2xl', 'bg-muted', 'flex', 'items-center', 'justify-center')}>
-                  <BookOpen className={cn('h-8', 'w-8', 'text-muted-foreground/60')} />
-                </div>
-                <div className="space-y-1">
-                  <p className={cn('text-lg', 'font-semibold', 'text-foreground')}>No problems found</p>
-                  <p className={cn('text-sm', 'text-muted-foreground', 'max-w-sm')}>
+              <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+                  </EmptyMedia>
+                  <EmptyTitle>No problems found</EmptyTitle>
+                  <EmptyDescription>
                     We couldn't find any problems matching your current filters. Try adjusting your search or removing some tags.
-                  </p>
-                </div>
+                  </EmptyDescription>
+                </EmptyHeader>
                 {hasActiveFilters && (
-                  <Button variant="outline" onClick={clearAllFilters} className="mt-2">
-                    Clear all filters
-                  </Button>
+                  <EmptyContent>
+                    <Button variant="outline" onClick={clearAllFilters} className="mt-1">
+                      Clear all filters
+                    </Button>
+                  </EmptyContent>
                 )}
-              </div>
+              </Empty>
             ) : (
               <div className={cn('flex', 'flex-col', 'border', 'border-border/40', 'rounded-xl', 'overflow-hidden', 'shadow-sm', 'bg-background/40')}>
                 {/* Table Header */}

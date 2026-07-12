@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -171,20 +172,26 @@ export function CompaniesClient({ initialCompanies }: CompaniesClientProps) {
 
       {/* Companies Grid */}
       {filteredCompanies.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
-          <Building2 className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-          <h3 className="font-semibold text-lg">No companies found</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            {searchQuery 
-              ? "No matching companies found for your search query." 
-              : "Start by creating your first company profile to link to job opportunities."}
-          </p>
+        <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Building2 className="h-5 w-5 text-muted-foreground/60" />
+            </EmptyMedia>
+            <EmptyTitle>No companies found</EmptyTitle>
+            <EmptyDescription>
+              {searchQuery 
+                ? "No matching companies found for your search query." 
+                : "Start by creating your first company profile to link to job opportunities."}
+            </EmptyDescription>
+          </EmptyHeader>
           {!searchQuery && (
-            <Button onClick={openAddSheet} size="sm" className="mt-4 gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Add Company
-            </Button>
+            <EmptyContent>
+              <Button onClick={openAddSheet} size="sm" className="gap-1.5 mt-1">
+                <Plus className="h-3.5 w-3.5" /> Add Company
+              </Button>
+            </EmptyContent>
           )}
-        </Card>
+        </Empty>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCompanies.map((company) => (

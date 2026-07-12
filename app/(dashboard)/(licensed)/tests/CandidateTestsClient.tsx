@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -114,29 +115,30 @@ function StatChip({
 }) {
   const tones = {
     neutral:
-      "border-border/60 bg-muted/50 text-muted-foreground",
+      "border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted/50",
     sky:
-      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300",
+      "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300",
     emerald:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
+      "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
     amber:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
+      "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
     violet:
-      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
+      "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
     rose:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
+      "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
   } as const
 
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+        "gap-1.5 px-2.5 py-1 text-[11px] font-medium transition-colors shrink-0",
         tones[tone]
       )}
     >
       {icon}
       <span className="truncate">{children}</span>
-    </span>
+    </Badge>
   )
 }
 
@@ -333,15 +335,15 @@ function TestCard({ test }: { test: CandidateTest }) {
 function EmptyState({ label }: { label: string }) {
   const displayLabel = label === "all" ? "" : `${label} `
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center">
-        <BookOpen className="h-5 w-5 text-muted-foreground/60" />
-      </div>
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">No {displayLabel}tests</p>
-        <p className="text-xs text-muted-foreground">Check back later for new tests</p>
-      </div>
-    </div>
+    <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+        </EmptyMedia>
+        <EmptyTitle>No {displayLabel}tests</EmptyTitle>
+        <EmptyDescription>Check back later for new tests</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   )
 }
 

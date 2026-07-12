@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -227,18 +228,24 @@ export function CohortsClient({ cohorts: initialCohorts }: Props) {
 
         {/* Cohort List */}
         {filteredCohorts.length === 0 ? (
-          <Card className="p-16 text-center border-dashed">
-            <UsersRound className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg">No cohorts found</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              {search ? "No matching cohorts were found. Try adjusting your search query." : "No cohorts yet. Create your first cohort to get started."}
-            </p>
+          <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <UsersRound className="h-5 w-5 text-muted-foreground/60" />
+              </EmptyMedia>
+              <EmptyTitle>No cohorts found</EmptyTitle>
+              <EmptyDescription>
+                {search ? "No matching cohorts were found. Try adjusting your search query." : "No cohorts yet. Create your first cohort to get started."}
+              </EmptyDescription>
+            </EmptyHeader>
             {!search && (
-              <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="mt-4">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Create Cohort
-              </Button>
+              <EmptyContent>
+                <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5 mt-1">
+                  <Plus className="h-3.5 w-3.5" /> Create Cohort
+                </Button>
+              </EmptyContent>
             )}
-          </Card>
+          </Empty>
         ) : (
           <div className="flex flex-col gap-3">
             {filteredCohorts.map((cohort) => (

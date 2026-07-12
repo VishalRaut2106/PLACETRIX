@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { deleteCourseAction } from "./actions"
@@ -329,15 +330,15 @@ export function AdminCoursesListClient({ courses: initialCourses }: Props) {
 
           {/* Grid list */}
           {filteredAndSortedCourses.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center gap-3 border border-dashed border-border/60 rounded-xl bg-card/50">
-              <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center border">
-                <BookOpen className="h-5 w-5 text-muted-foreground/60" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">No courses found</p>
-                <p className="text-xs text-muted-foreground">Modify search parameters or create a new course to get started.</p>
-              </div>
-            </div>
+            <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <BookOpen className="h-5 w-5 text-muted-foreground/60" />
+                </EmptyMedia>
+                <EmptyTitle>No courses found</EmptyTitle>
+                <EmptyDescription>Modify search parameters or create a new course to get started.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 animate-in fade-in duration-300">
               {filteredAndSortedCourses.map((course) => {

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet"
 import {
   Calendar,
@@ -460,13 +461,17 @@ export function EventsStaffClient({
         <div className="relative">
           <div className="space-y-4">
             {paginatedEvents.length === 0 ? (
-              <Card className="p-12 text-center border-dashed">
-                <Calendar className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg">No events found</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                  No matching events were found. Try adjusting your search query or status filter.
-                </p>
-              </Card>
+              <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Calendar className="h-5 w-5 text-muted-foreground/60" />
+                  </EmptyMedia>
+                  <EmptyTitle>No events found</EmptyTitle>
+                  <EmptyDescription>
+                    No matching events were found. Try adjusting your search query or status filter.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <>
                 <div className="flex flex-col gap-3 w-full">

@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import {
   Select,
   SelectContent,
@@ -383,25 +384,25 @@ function TestCard({ test }: { test: InstituteTest }) {
 
 function EmptyState({ isFiltered, onCreate }: { isFiltered: boolean; onCreate: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center">
-        <FlaskConical className="h-5 w-5 text-muted-foreground/60" />
-      </div>
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">
-          {isFiltered ? "No tests in this category" : "No tests yet"}
-        </p>
-        <p className="text-xs text-muted-foreground">
+    <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FlaskConical className="h-5 w-5 text-muted-foreground/60" />
+        </EmptyMedia>
+        <EmptyTitle>{isFiltered ? "No tests in this category" : "No tests yet"}</EmptyTitle>
+        <EmptyDescription>
           {isFiltered ? "Try switching tabs to view others" : "Create your first test to get started"}
-        </p>
-      </div>
+        </EmptyDescription>
+      </EmptyHeader>
       {!isFiltered && (
-        <Button size="sm" onClick={onCreate} className="gap-1.5 mt-1">
-          <Plus className="h-3.5 w-3.5" />
-          Create Test
-        </Button>
+        <EmptyContent>
+          <Button size="sm" onClick={onCreate} className="gap-1.5 mt-1">
+            <Plus className="h-3.5 w-3.5" />
+            Create Test
+          </Button>
+        </EmptyContent>
       )}
-    </div>
+    </Empty>
   )
 }
 

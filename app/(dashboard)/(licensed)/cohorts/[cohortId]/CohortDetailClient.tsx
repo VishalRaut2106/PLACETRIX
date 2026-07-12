@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -528,27 +529,39 @@ export function CohortDetailClient({
       {/* Members Table */}
       {items.length === 0 ? (
         initialSearch ? (
-          <Card className="p-16 text-center border-dashed">
-            <Search className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg">No members found</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              No cohort members match your search query. Try clearing the search.
-            </p>
-            <Button variant="outline" size="sm" onClick={() => setSearchInput("")} className="mt-4">
-              Clear Search
-            </Button>
-          </Card>
+          <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Search className="h-5 w-5 text-muted-foreground/60" />
+              </EmptyMedia>
+              <EmptyTitle>No members found</EmptyTitle>
+              <EmptyDescription>
+                No cohort members match your search query. Try clearing the search.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" size="sm" onClick={() => setSearchInput("")} className="gap-1.5 mt-1">
+                Clear Search
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
-          <Card className="p-16 text-center border-dashed">
-            <Users className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg">No students in this cohort yet</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              Get started by adding students from your institution to this cohort.
-            </p>
-            <Button variant="outline" size="sm" onClick={() => setAddSheetOpen(true)} className="mt-4">
-              <UserPlus className="h-3.5 w-3.5 mr-1" /> Add Students
-            </Button>
-          </Card>
+          <Empty className="border border-dashed border-border/60 rounded-xl bg-card/50 p-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Users className="h-5 w-5 text-muted-foreground/60" />
+              </EmptyMedia>
+              <EmptyTitle>No students in this cohort yet</EmptyTitle>
+              <EmptyDescription>
+                Get started by adding students from your institution to this cohort.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" size="sm" onClick={() => setAddSheetOpen(true)} className="gap-1.5 mt-1">
+                <UserPlus className="h-3.5 w-3.5" /> Add Students
+              </Button>
+            </EmptyContent>
+          </Empty>
         )
       ) : (
         <div className="space-y-4">
