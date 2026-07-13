@@ -22,7 +22,7 @@ import { parseUserAgent } from "@/lib/ua-parser";
 import {
   Loader2, CheckCircle2, Eye, EyeOff, KeyRound, Clock,
   Monitor, Smartphone, Tablet, RefreshCw, LogOut, MapPin,
-  ShieldAlert, CalendarClock,
+  ShieldAlert, CalendarClock, Building2,
 } from "lucide-react";
 import { MfaTwoFactor } from "@/components/ui/mfa-two-factor";
 
@@ -148,6 +148,11 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
 
+  // ─── Billing state ──────────────────────────────────────────────────────────
+  const [instituteName, setInstituteName] = useState<string | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingFetched, setBillingFetched] = useState(false);
+
   // ─── Password state ──────────────────────────────────────────────────────────
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -189,6 +194,27 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
   }, [supabase]);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // ─── Fetch institute name when billing tab is activated ───────────────────────
+  useEffect(() => {
+    if (activeTab !== "billing" || billingFetched) return;
+    if (!userProfile.institute_id) { setBillingFetched(true); return; }
+    setBillingLoading(true);
+    (supabase as any)
+      .from("institutes")
+      .select("institute_name")
+      .eq("id", userProfile.institute_id)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        setInstituteName(data?.institute_name ?? null);
+        setBillingFetched(true);
+        setBillingLoading(false);
+      })
+      .catch(() => {
+        setBillingFetched(true);
+        setBillingLoading(false);
+      });
+  }, [activeTab, billingFetched, userProfile.institute_id, supabase]);
 
   async function handleRevokeSession(sessionId: string) {
     setRevokingId(sessionId);
@@ -458,8 +484,45 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
           {/* ── BILLING TAB ── */}
           <TabsContent value="billing" className="mt-0">
             <Card>
-              <CardHeader><CardTitle>Billing</CardTitle><CardDescription>Subscription and payments</CardDescription></CardHeader>
-              <CardContent><p className="text-sm">Current Plan: <strong>Free</strong></p></CardContent>
+              <CardHeader>
+                <CardTitle>Billing &amp; License</CardTitle>
+                <CardDescription>Your platform access and subscription details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {billingLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Institute licence info */}
+                    <div className="flex items-start gap-3 rounded-lg border bg-muted/40 px-4 py-4">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium leading-none">
+                          {instituteName ?? (userProfile.institute_id ? "Your Institute" : "No institute linked")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {userProfile.institute_id
+                            ? "Licensed institution"
+                            : "No institute association found"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Managed-by note */}
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        <span className="font-semibold">Your Placetrix license is managed by your institute.</span>{" "}
+                        For billing queries or plan changes, please contact your institute administrator directly.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
 

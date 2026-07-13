@@ -119,7 +119,7 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
     }
   }, [searchParams])
 
-  const isFirstTime = !initialData?.profile_updated
+  const isFirstTime = initialData ? !initialData?.profile_updated && !initialData?.designation : true
   const [editingSection, setEditingSection] = useState<SectionId | null>(
     isFirstTime ? "profile" : null
   )
@@ -311,13 +311,17 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
         }
 
         else if (section === "professional") {
-          const payload = {
+          const payload: Record<string, any> = {
             profile_id: userProfile.id,
             designation: designation.trim() || null,
             department: department.trim() || null,
             employee_id: employeeId.trim() || null,
             linkedin_url: linkedinUrl.trim() || null,
-            profile_updated: true,
+          }
+
+          // Include profile_updated only if the column exists in initialData
+          if (initialData && "profile_updated" in initialData) {
+            payload.profile_updated = true
           }
 
           const { error } = await (supabase as any)
@@ -325,6 +329,7 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
             .upsert(payload, { onConflict: "profile_id" })
 
           if (error) {
+            console.error("Staff professional upsert error:", error)
             toast.error("Failed to update professional info. Please try again.")
             return
           }

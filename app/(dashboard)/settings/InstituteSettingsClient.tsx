@@ -20,7 +20,7 @@ import {
 import {
   Loader2, RefreshCw, LogOut, Clock, ShieldAlert, CalendarClock,
   Eye, EyeOff, KeyRound, MapPin, Smartphone, Tablet, Monitor,
-  CheckCircle2,
+  CheckCircle2, CreditCard, Calendar, BadgeCheck, Building2, Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { parseUserAgent } from "@/lib/ua-parser"
@@ -117,10 +117,11 @@ function PasswordStrengthBar({ score }: { score: 0 | 1 | 2 | 3 | 4 }) {
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type Tab = "security" | "notifications" | "history" | "privacy"
+type Tab = "security" | "billing" | "notifications" | "history" | "privacy"
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "security", label: "Security" },
+  { value: "billing", label: "Billing" },
   { value: "notifications", label: "Notifications" },
   { value: "history", label: "Login History" },
   { value: "privacy", label: "Privacy" },
@@ -139,6 +140,17 @@ export function InstituteSettingsClient({ userProfile, initialData }: Props) {
   const supabase = createClient()
   const [isPwPending, startPwTransition] = useTransition()
   const [activeTab, setActiveTab] = useState<Tab>("security")
+
+  // ── Billing state ────────────────────────────────────────────────────────────
+  const [licenseData, setLicenseData] = useState<{
+    plan_name: string | null
+    status: string | null
+    starts_at: string | null
+    ends_at: string | null
+    notes: string | null
+  } | null>(null)
+  const [licenseLoading, setLicenseLoading] = useState(false)
+  const [licenseFetched, setLicenseFetched] = useState(false)
 
   // ── Login History ─────────────────────────────────────────────────────────
   const [sessions, setSessions] = useState<SessionEntry[]>([])
@@ -188,6 +200,27 @@ export function InstituteSettingsClient({ userProfile, initialData }: Props) {
   }, [supabase])
 
   useEffect(() => { loadSessions() }, [loadSessions])
+
+  // ── Fetch license when billing tab is activated ────────────────────────
+  useEffect(() => {
+    if (activeTab !== "billing" || licenseFetched) return
+    if (!userProfile.institute_id) { setLicenseFetched(true); return }
+    setLicenseLoading(true)
+    ;(supabase as any)
+      .from("institute_licenses")
+      .select("plan_name, status, starts_at, ends_at, notes")
+      .eq("institute_id", userProfile.institute_id)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => {
+        setLicenseData(data ?? null)
+        setLicenseFetched(true)
+        setLicenseLoading(false)
+      })
+      .catch(() => {
+        setLicenseFetched(true)
+        setLicenseLoading(false)
+      })
+  }, [activeTab, licenseFetched, userProfile.institute_id, supabase])
 
   async function handleRevokeSession(sessionId: string) {
     setRevokingId(sessionId)
@@ -454,6 +487,148 @@ export function InstituteSettingsClient({ userProfile, initialData }: Props) {
                 <MfaTwoFactor />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── BILLING TAB ── */}
+          <TabsContent value="billing" className="space-y-6 mt-0">
+            {licenseLoading ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Billing &amp; License</CardTitle>
+                  <CardDescription>Your institution&apos;s subscription details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : !licenseData ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Billing &amp; License</CardTitle>
+                  <CardDescription>Your institution&apos;s subscription details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium">No license found</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Contact Placetrix support to activate your institution&apos;s license.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Billing &amp; License</CardTitle>
+                  <CardDescription>Your institution&apos;s subscription details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+
+                  {/* Plan name + status */}
+                  <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Current Plan</p>
+                        <p className="text-base font-semibold">
+                          {licenseData.plan_name ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Status badge */}
+                    {(() => {
+                      const s = licenseData.status?.toLowerCase()
+                      const cfg: Record<string, { label: string; classes: string }> = {
+                        active:  { label: "Active",  classes: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800" },
+                        expired: { label: "Expired", classes: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800" },
+                        pending: { label: "Pending", classes: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800" },
+                        revoked: { label: "Revoked", classes: "bg-zinc-100 text-zinc-600 border-zinc-300 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-zinc-700" },
+                      }
+                      const c = cfg[s ?? ""] ?? { label: licenseData.status ?? "Unknown", classes: "bg-muted text-muted-foreground border-border" }
+                      return (
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${c.classes}`}>
+                          <BadgeCheck className="h-3.5 w-3.5" />
+                          {c.label}
+                        </span>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Date grid */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      {
+                        label: "Start Date",
+                        value: licenseData.starts_at
+                          ? new Date(licenseData.starts_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                          : "—",
+                        icon: <Calendar className="h-4 w-4" />,
+                      },
+                      {
+                        label: "End Date",
+                        value: licenseData.ends_at
+                          ? new Date(licenseData.ends_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                          : "—",
+                        icon: <Calendar className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Days Remaining",
+                        value: (() => {
+                          if (!licenseData.ends_at) return "—"
+                          const diff = Math.ceil((new Date(licenseData.ends_at).getTime() - Date.now()) / 86_400_000)
+                          if (diff < 0) return `Expired ${Math.abs(diff)}d ago`
+                          if (diff === 0) return "Expires today"
+                          return `${diff} day${diff !== 1 ? "s" : ""}`
+                        })(),
+                        icon: <Clock className="h-4 w-4" />,
+                      },
+                      {
+                        label: "Institute ID",
+                        value: userProfile.institute_id ? `…${userProfile.institute_id.slice(-8)}` : "—",
+                        icon: <Building2 className="h-4 w-4" />,
+                      },
+                    ].map(({ label, value, icon }) => (
+                      <div key={label} className="rounded-lg border bg-card px-3 py-3 space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">{icon}<span className="text-xs">{label}</span></div>
+                        <p className="text-sm font-medium leading-snug">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Notes */}
+                  {licenseData.notes && (
+                    <div className="rounded-lg border bg-muted/40 px-4 py-3 flex gap-3">
+                      <Info className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">{licenseData.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Contact support */}
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <span className="font-semibold">Billing is managed by Placetrix.</span>{" "}
+                      For plan upgrades, renewals, or billing queries, contact us at{" "}
+                      <a href="mailto:360viewtech@gmail.com" className="underline underline-offset-2 font-medium">
+                        360viewtech@gmail.com
+                      </a>
+                      .
+                    </p>
+                  </div>
+
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* ── NOTIFICATIONS TAB ── */}
