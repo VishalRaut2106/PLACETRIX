@@ -178,6 +178,23 @@ export function CandidateDashboardClient({
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full animate-in fade-in duration-500">
       <Suspense><LicenseBanner /></Suspense>
 
+      {!isProfileComplete && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3.5 text-sm text-amber-800 dark:text-amber-300">
+          <div className="flex items-start gap-3 min-w-0">
+            <Award className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0">
+              <p className="font-semibold leading-none">Profile Incomplete</p>
+              <p className="mt-1 text-xs opacity-90 leading-relaxed">
+                Please complete your profile to unlock placement opportunities, test schedules, and other features.
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm" variant="outline" className="border-amber-500/30 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300 shrink-0 font-medium">
+            <Link href="/myprofile">Complete Profile</Link>
+          </Button>
+        </div>
+      )}
+
       {/* ─── Bento Grid Layout ─── */}
       <motion.div
         variants={containerVariants}

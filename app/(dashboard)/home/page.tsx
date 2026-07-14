@@ -420,6 +420,22 @@ export default async function HomePage() {
             </div>
           )}
 
+          {/* ── Profile banner for own profile completeness (for staff/TPO) ─────────────────────────── */}
+          {(profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer") && !profile.profile_updated && (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 flex items-start justify-between gap-4 text-amber-800 dark:text-amber-300">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Your profile isn't complete yet</p>
+                <p className="text-xs opacity-90">Please complete your profile details to unlock all dashboard tools.</p>
+              </div>
+              <Link href="/myprofile" className="shrink-0">
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-amber-500/30 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300">
+                  Complete Profile
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
           {/* ── Test Stats (visible to staff and primary) ─────────────────── */}
           {stats && (profile.account_type === "institute_staff" || profile.account_type === "institute_primary") && (
             <div className="space-y-3">

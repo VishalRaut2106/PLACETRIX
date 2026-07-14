@@ -56,6 +56,11 @@ export function LicenseBanner() {
 
   if (isAdmin) return null;
 
+  // Hide the license warning banner if the profile is incomplete or if no college has been selected yet.
+  if (user && (!user.profile_updated || !user.institute_id)) {
+    return null;
+  }
+
   let variant: BannerVariant | null = null;
 
   // 1. License Check

@@ -347,9 +347,9 @@ export function NavMain({ items }: { items: NavItem[] }) {
             const isLicenseLocked = isPremium && !isAdmin && !isLicenseActive
             const isProfileLocked = isPremium && !isAdmin && !isProfileComplete
             const isLocked = isLicenseLocked || isProfileLocked
-            const lockReason = isLicenseLocked 
-              ? "Your institution does not have an active license." 
-              : "Please complete your profile to unlock this feature."
+            const lockReason = isProfileLocked 
+              ? "Please complete your profile to unlock this feature."
+              : "Your institution does not have an active license."
 
             if (item.items && item.items.length > 0) {
               return (
