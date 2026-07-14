@@ -117,6 +117,30 @@ export default async function OpportunityDetailPage(props: PageProps) {
   }
 
   // ─── Candidate View ───────────────────────────────────────────────────────
+  // Check if candidate belongs to targeted cohorts of this opportunity
+  const { data: memberRows } = await (supabase as any)
+    .from("cohort_students")
+    .select("cohort_id")
+    .eq("student_id", profile.id)
+
+  const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
+
+  if (cohortIds.length === 0) {
+    redirect("/opportunities")
+  }
+
+  const { data: isTargeted } = await (supabase as any)
+    .from("opportunity_cohorts")
+    .select("cohort_id")
+    .eq("opportunity_id", opportunityId)
+    .in("cohort_id", cohortIds)
+    .limit(1)
+    .maybeSingle()
+
+  if (!isTargeted) {
+    redirect("/opportunities")
+  }
+
   // Fetch candidate grades to compute current CGPA
   const { data: gradesRow } = await (supabase as any)
     .from("candidate_semester_grades")

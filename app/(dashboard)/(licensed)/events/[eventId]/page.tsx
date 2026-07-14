@@ -135,7 +135,7 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
 
   const { data: isTargeted } = await (supabase as any)
     .from("event_cohorts")
-    .select("id")
+    .select("cohort_id")
     .eq("event_id", eventId)
     .in("cohort_id", cohortIds)
     .limit(1)

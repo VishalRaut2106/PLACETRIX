@@ -88,7 +88,7 @@ async function fetchCandidateView(
 
   const { data: isTargeted } = await (supabase as any)
     .from("test_cohorts")
-    .select("id")
+    .select("cohort_id")
     .eq("test_id", testId)
     .in("cohort_id", cohortIds)
     .limit(1)
