@@ -12,7 +12,7 @@ export interface SectionScore {
   name: string
   score: number
   feedback: string
-  /** Generic tip */
+  /** Actionable improvement tip specific to this resume */
   suggestion: string
   /** Concrete before/after rewrite example */
   rewriteExample?: {
@@ -33,14 +33,28 @@ export interface QuickWin {
   title: string
   impact: "High" | "Medium" | "Low"
   action: string
+  /** Estimated time to implement, e.g. "5 min", "15 min", "30 min" */
+  estimatedTime: string
+}
+
+export interface Verdict {
+  /** One-line punchy headline, e.g. "Strong technical resume held back by weak quantification" */
+  headline: string
+  /** 2-3 sentence narrative summary */
+  summary: string
+  /** The single most impactful thing to fix right now */
+  topPriority: string
 }
 
 export interface AnalysisResult {
   overallScore: number
   atsScore: number
   keywordMatchRate: number
-  /** 2–3 sentence AI narrative summary of the resume */
-  verdict: string
+  verdict: Verdict
+  /** Detected industry/domain, e.g. "Software Engineering", "Marketing", "Finance" */
+  detectedIndustry: string
+  /** Inferred experience level */
+  experienceLevel: "Entry" | "Mid" | "Senior"
   sections: SectionScore[]
   strengths: string[]
   weaknesses: string[]
@@ -123,171 +137,130 @@ export async function analyzeResumeAction(formData: FormData): Promise<AnalysisR
     apiKey,
   })
 
-  const systemPrompt = `You are a senior career coach, ATS specialist, and technical recruiter with 15+ years of experience.
-First, determine if the provided text is indeed a professional resume or curriculum vitae (CV). A valid resume must represent a single individual's professional history, contact info, education, work experience, projects, or list of technical/professional skills.
-If the text is NOT a resume (e.g., it is a recipe, invoice, book chapter, code file, essay, news article, email thread, list of instructions, or unrelated document), you MUST return overallScore: 0, atsScore: 0, keywordMatchRate: 0, and verdict: "INVALID_RESUME".
-If it is a valid resume, analyze the provided resume with surgical precision. Be brutally honest but constructive.
-Your output must be a single raw JSON object — no markdown, no code fences, zero extra text before or after the JSON.
-Every rewrite example must be SPECIFIC to the actual content in this resume, not generic placeholders.`
+  const systemPrompt = `You are a world-class resume strategist with 15+ years at FAANG companies. You combine ATS expertise with hiring-manager psychology.
 
-  const userPrompt = `CRITICAL: First, verify if the RESUME TEXT provided below is indeed a professional resume/CV. 
-If the text is NOT a professional resume/CV (e.g., a recipe, invoice, textbook extract, programming code, news article, general article, user guide, list of rules, or unrelated text), you MUST return exactly the following JSON structure and nothing else:
+VALIDATION: A valid resume must contain at least TWO of: contact info, work experience, education, skills, or projects. If NOT a resume, return all scores as 0 and verdict.headline as "INVALID_RESUME".
+
+SCORING (be strict):
+0-30=Critical 31-50=Below average 51-65=Average 66-80=Good 81-90=Very strong 91-100=Exceptional
+Most resumes score 45-75. A decent but generic resume is 55, not 75.
+
+RULES:
+- All feedback must reference actual content from THIS resume
+- Rewrite examples must use actual text from the resume
+- Strengths must cite specific evidence
+- Weaknesses must pinpoint exact problems
+- Quick wins must be immediately actionable
+
+SECTION ANALYSIS GUIDE (score each 0-100):
+1. Contact & Header: name, email, phone, LinkedIn, GitHub present? ATS-parseable?
+2. Summary/Objective: specific to role? highlights experience, skills, value prop?
+3. Work Experience: action verbs? quantified results (%, $, #)? impact stories?
+4. Projects: tech stack, role, outcomes listed? critical for juniors
+5. Skills & Technologies: organized by category? relevant? no outdated skills?
+6. Education & Certifications: degree, GPA if >3.5, certs, relevant coursework?
+7. ATS Compatibility: parseable format? no tables/columns/images breaking parsing?
+8. Language & Tone: professional? consistent tenses? no passive voice overuse?
+
+Output ONLY a single raw JSON object. No markdown, no code fences, no extra text.`
+
+  const userPrompt = `Analyze this resume and return a JSON object with this exact structure. All string values must reference actual content from the resume.
+
 {
   "overallScore": 0,
   "atsScore": 0,
   "keywordMatchRate": 0,
-  "verdict": "INVALID_RESUME",
-  "sections": [],
-  "strengths": [],
-  "weaknesses": [],
-  "suggestions": {},
-  "quickWins": [],
-  "keywords": [],
-  "suggestedKeywords": [],
-  "detectedSkills": []
-}
-
-If it is a valid resume/CV, analyze it and return ONLY a raw JSON object with this exact shape (no markdown, no explanation, no backticks):
-
-{
-  "overallScore": <integer 0-100>,
-  "atsScore": <integer 0-100>,
-  "keywordMatchRate": <integer 0-100>,
-  "verdict": "<2-3 sentence honest narrative summary of the resume's strengths and biggest gap. Be specific, reference actual content.>",
-  "sections": [
-    {
-      "name": "Summary",
-      "score": <0-100>,
-      "feedback": "<1 specific sentence referencing actual content from the resume>",
-      "suggestion": "<actionable rewrite tip referencing this resume specifically>",
-      "rewriteExample": {
-        "before": "<exact phrase or sentence from the resume that needs improvement>",
-        "after": "<improved version — same topic, better impact, stronger verbs, quantified if possible>"
-      }
-    },
-    {
-      "name": "Experience",
-      "score": <0-100>,
-      "feedback": "<1 specific sentence>",
-      "suggestion": "<actionable tip>",
-      "rewriteExample": {
-        "before": "<an actual weak bullet point from the resume>",
-        "after": "<rewritten with strong action verb + quantified result, e.g. 'Reduced load time by 40% by migrating to Redis cache'>"
-      }
-    },
-    {
-      "name": "Skills",
-      "score": <0-100>,
-      "feedback": "<1 specific sentence>",
-      "suggestion": "<actionable tip>",
-      "rewriteExample": {
-        "before": "<how skills are currently presented>",
-        "after": "<better presentation with context or grouping>"
-      }
-    },
-    {
-      "name": "Education",
-      "score": <0-100>,
-      "feedback": "<1 specific sentence>",
-      "suggestion": "<actionable tip>",
-      "rewriteExample": {
-        "before": "<current education entry as written>",
-        "after": "<enhanced version with relevant coursework, GPA if strong, or honors>"
-      }
-    },
-    {
-      "name": "Formatting",
-      "score": <0-100>,
-      "feedback": "<1 specific sentence>",
-      "suggestion": "<actionable tip>",
-      "rewriteExample": {
-        "before": "<a formatting issue observed>",
-        "after": "<corrected version>"
-      }
-    }
-  ],
-  "strengths": [
-    "<specific strength referencing actual resume content>",
-    "<specific strength>",
-    "<specific strength>"
-  ],
-  "weaknesses": [
-    "<specific weakness referencing actual content>",
-    "<specific weakness>",
-    "<specific weakness>"
-  ],
-  "suggestions": {
-    "<weakness 1 text exactly>": "<2-3 sentence specific fix with an example>",
-    "<weakness 2 text exactly>": "<2-3 sentence specific fix with an example>",
-    "<weakness 3 text exactly>": "<2-3 sentence specific fix with an example>"
+  "verdict": {
+    "headline": "One punchy sentence: biggest strength vs biggest gap",
+    "summary": "2-3 sentences about what works, what doesn't, overall trajectory",
+    "topPriority": "Single most impactful change to make right now"
   },
+  "detectedIndustry": "e.g. Software Engineering",
+  "experienceLevel": "Entry or Mid or Senior",
+  "sections": [
+    {"name": "Contact & Header", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Summary / Objective", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Work Experience", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Projects", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Skills & Technologies", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Education & Certifications", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "ATS Compatibility", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}},
+    {"name": "Language & Tone", "score": 0, "feedback": "...", "suggestion": "...", "rewriteExample": {"before": "actual text", "after": "improved text"}}
+  ],
+  "strengths": ["strength citing actual content", "strength 2", "strength 3"],
+  "weaknesses": ["weakness pinpointing exact content", "weakness 2", "weakness 3"],
+  "suggestions": {"weakness text exactly": "2-3 sentence fix with example"},
   "quickWins": [
-    {
-      "title": "<short action title, e.g. 'Quantify your impact'>",
-      "impact": "High",
-      "action": "<specific 1-2 sentence instruction that can be done immediately, referencing actual resume content>"
-    },
-    {
-      "title": "<quick win 2>",
-      "impact": "High",
-      "action": "<specific instruction>"
-    },
-    {
-      "title": "<quick win 3>",
-      "impact": "Medium",
-      "action": "<specific instruction>"
-    }
+    {"title": "short title", "impact": "High", "action": "specific instruction referencing resume", "estimatedTime": "5 min"},
+    {"title": "title", "impact": "High", "action": "instruction", "estimatedTime": "10 min"},
+    {"title": "title", "impact": "Medium", "action": "instruction", "estimatedTime": "15 min"}
   ],
   "keywords": [
-    { "keyword": "<keyword actually found in resume>", "count": <integer>, "important": <true if high-value industry keyword> },
-    ... (up to 12 keywords found in the resume)
+    {"keyword": "found keyword", "count": 1, "important": true}
   ],
-  "suggestedKeywords": [
-    "<keyword missing from resume that would strengthen it for this role>",
-    ... (up to 8 suggested keywords)
-  ],
-  "detectedSkills": ["<skill1>", "<skill2>", ... up to 10]${
+  "suggestedKeywords": ["missing keyword 1", "missing keyword 2"],
+  "detectedSkills": ["skill1", "skill2"]${
     hasJD
       ? `,
-  "jdMatchScore": <integer 0-100, how well resume matches the job description>,
-  "missingSkills": ["<skill required by JD but absent from resume>", ...]`
+  "jdMatchScore": 0,
+  "missingSkills": ["missing skill 1"]`
       : ""
   }
 }
 
+Replace ALL placeholder values with real analysis. Return 3-4 strengths, 3-4 weaknesses with matching suggestions, 3-5 quick wins, up to 15 keywords, up to 10 suggestedKeywords, up to 12 detectedSkills.
+
 RESUME TEXT:
-${truncatedText}
-${
+${truncatedText}${
   hasJD
     ? `
+
 JOB DESCRIPTION:
 ${jobDescription.slice(0, 3000)}`
     : ""
 }`
 
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-120b",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    temperature: 0.25,
-    max_tokens: 3000,
+    temperature: 0.3,
+    max_tokens: 5000,
   })
 
   const content = response.choices[0]?.message?.content ?? ""
 
   let parsed: Omit<AnalysisResult, "fileName" | "analyzedAt">
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    // Strip markdown code fences if model wraps response
+    let cleaned = content.trim()
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?\s*```$/, "")
+    }
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error("No JSON found in AI response")
     parsed = JSON.parse(jsonMatch[0])
   } catch {
     throw new Error("AI returned an invalid response. Please try again.")
   }
 
-  if (parsed.verdict === "INVALID_RESUME" || (parsed.overallScore === 0 && parsed.atsScore === 0)) {
+  // Handle invalid resume detection
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawVerdict = parsed.verdict as any
+  const verdictHeadline = typeof rawVerdict === "object" ? rawVerdict?.headline : rawVerdict
+  if (verdictHeadline === "INVALID_RESUME" || (parsed.overallScore === 0 && parsed.atsScore === 0)) {
     throw new Error("The uploaded file does not appear to be a professional resume or CV. Please upload a valid resume containing typical sections like education, experience, or skills.")
+  }
+
+  // Normalize verdict to structured object if model returned a string
+  if (typeof rawVerdict === "string") {
+    parsed.verdict = {
+      headline: rawVerdict.split(".")[0] || rawVerdict,
+      summary: rawVerdict,
+      topPriority: "Review the detailed section breakdown below for specific improvement areas.",
+    }
   }
 
   return {
