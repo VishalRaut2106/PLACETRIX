@@ -248,7 +248,10 @@ export async function getCohortMembersAction(
 
 export async function getInstituteStudentsNotInCohortAction(
   cohortId: string,
-  search: string = ""
+  search: string = "",
+  courseName: string | null = null,
+  passoutYear: number | null = null,
+  sourceCohortId: string | null = null
 ): Promise<CohortMember[]> {
   const profile = await requireCohortManager()
   const supabase = await createClient()
@@ -267,6 +270,9 @@ export async function getInstituteStudentsNotInCohortAction(
   const { data, error } = await (supabase as any).rpc("get_students_not_in_cohort", {
     p_cohort_id: cohortId,
     p_search: search.trim(),
+    p_course_name: courseName,
+    p_passout_year: passoutYear,
+    p_source_cohort_id: sourceCohortId,
   })
 
   if (error) {
@@ -283,6 +289,40 @@ export async function getInstituteStudentsNotInCohortAction(
     course_name: row.course_name || null,
     passout_year: row.passout_year || null,
   }))
+}
+
+export async function getInstituteFiltersAction(): Promise<{ courses: string[]; passoutYears: number[]; otherCohorts: { id: string; name: string }[] }> {
+  const profile = await requireCohortManager()
+  const supabase = await createClient()
+
+  // Get distinct course names for this institute
+  const { data: coursesData } = await (supabase as any)
+    .from("institute_courses")
+    .select("course_name")
+    .eq("institute_id", profile.institute_id)
+    .order("course_name", { ascending: true })
+
+  // Get distinct passout years from candidate_academic_details for students in this institute
+  const { data: yearsData } = await (supabase as any)
+    .from("candidate_academic_details")
+    .select("passout_year, profiles!inner(institute_id)")
+    .eq("profiles.institute_id", profile.institute_id)
+    .not("passout_year", "is", null)
+
+  const courses = Array.from(new Set(coursesData?.map((c: any) => c.course_name) || [])) as string[]
+  const passoutYears = Array.from(
+    new Set(yearsData?.map((y: any) => y.passout_year) || [])
+  ).sort((a: any, b: any) => a - b) as number[]
+
+  const { data: cohortsData } = await (supabase as any)
+    .from("cohorts")
+    .select("id, name")
+    .eq("institute_id", profile.institute_id)
+    .order("name", { ascending: true })
+    
+  const otherCohorts = (cohortsData || []).map((c: any) => ({ id: c.id, name: c.name }))
+
+  return { courses, passoutYears, otherCohorts }
 }
 
 export async function addStudentsToCohortAction(
@@ -332,6 +372,88 @@ export async function addStudentsToCohortAction(
   return { success: true }
 }
 
+export async function addStudentsToCohortByEmailAction(
+  cohortId: string,
+  emailsText: string
+): Promise<{ success: boolean; addedCount: number; notFoundEmails: string[] }> {
+  const profile = await requireCohortManager()
+  const supabase = await createClient()
+
+  if (!emailsText || !emailsText.trim()) throw new Error("No emails provided.")
+
+  // Pre-process to handle "glued" emails (e.g., test@gmail.comtest2@gmail.com)
+  // Inserts a space after common TLDs if they are immediately followed by another email.
+  const cleanedText = emailsText.replace(/(\.com|\.in|\.org|\.net|\.edu|\.co|\.io|\.dev|\.app|\.me)(?=[a-zA-Z0-9._%+-]+@)/gi, '$1 ')
+
+  // Extract all valid emails from the text using a regular expression
+  // This handles spaces, commas, newlines, semicolons, or any unstructured text
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+  const matches = cleanedText.match(emailRegex) || []
+  const uniqueEmails = Array.from(new Set(matches.map(e => e.toLowerCase())))
+  
+  if (uniqueEmails.length === 0) throw new Error("No valid emails found.")
+
+  // Verify this cohort belongs to this institute
+  const { data: cohort } = await (supabase as any)
+    .from("cohorts")
+    .select("institute_id")
+    .eq("id", cohortId)
+    .maybeSingle()
+
+  if (!cohort || cohort.institute_id !== profile.institute_id) {
+    throw new Error("Cohort not found or access denied.")
+  }
+
+  // Find students by email in this institute
+  const { data: students, error: studentError } = await (supabase as any)
+    .from("profiles")
+    .select("id, email")
+    .in("email", uniqueEmails)
+    .eq("institute_id", profile.institute_id)
+    .eq("account_type", "institute_candidate")
+
+  if (studentError) {
+    throw new Error("Error verifying students.")
+  }
+
+  const foundStudents = students || []
+  const foundEmails = new Set(foundStudents.map((s: any) => s.email.toLowerCase()))
+  
+  const notFoundEmails = uniqueEmails.filter(email => !foundEmails.has(email.toLowerCase()))
+
+  if (foundStudents.length === 0) {
+    return { success: true, addedCount: 0, notFoundEmails }
+  }
+
+  const studentIds = foundStudents.map((s: any) => s.id)
+
+  // Find which of these are already in the cohort
+  const { data: existingInCohort } = await (supabase as any)
+    .from("cohort_students")
+    .select("student_id")
+    .eq("cohort_id", cohortId)
+    .in("student_id", studentIds)
+
+  const existingIds = new Set((existingInCohort || []).map((cs: any) => cs.student_id))
+  
+  const newStudentIds = studentIds.filter((id: string) => !existingIds.has(id))
+
+  if (newStudentIds.length > 0) {
+    const rows = newStudentIds.map((id: string) => ({ cohort_id: cohortId, student_id: id }))
+    const { error } = await (supabase as any)
+      .from("cohort_students")
+      .insert(rows)
+
+    if (error) {
+      console.error("Error adding bulk students to cohort:", error)
+      throw new Error("Failed to add students to cohort.")
+    }
+  }
+
+  revalidatePath(`/cohorts/${cohortId}`)
+  return { success: true, addedCount: newStudentIds.length, notFoundEmails }
+}
+
 
 export async function removeStudentFromCohortAction(
   cohortId: string,
@@ -360,6 +482,41 @@ export async function removeStudentFromCohortAction(
   if (error) {
     console.error("Error removing student from cohort:", error)
     throw new Error("Failed to remove student.")
+  }
+
+  revalidatePath(`/cohorts/${cohortId}`)
+  return { success: true }
+}
+
+export async function removeStudentsFromCohortAction(
+  cohortId: string,
+  studentIds: string[]
+): Promise<{ success: boolean }> {
+  const profile = await requireCohortManager()
+  const supabase = await createClient()
+
+  if (!studentIds || studentIds.length === 0) return { success: true }
+
+  // Verify ownership
+  const { data: cohort } = await (supabase as any)
+    .from("cohorts")
+    .select("institute_id")
+    .eq("id", cohortId)
+    .maybeSingle()
+
+  if (!cohort || cohort.institute_id !== profile.institute_id) {
+    throw new Error("Cohort not found or access denied.")
+  }
+
+  const { error } = await (supabase as any)
+    .from("cohort_students")
+    .delete()
+    .eq("cohort_id", cohortId)
+    .in("student_id", studentIds)
+
+  if (error) {
+    console.error("Error removing students from cohort:", error)
+    throw new Error("Failed to remove students.")
   }
 
   revalidatePath(`/cohorts/${cohortId}`)

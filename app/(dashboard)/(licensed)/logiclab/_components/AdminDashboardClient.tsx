@@ -288,6 +288,7 @@ export function AdminDashboardClient({
 
   const [problemSearch, setProblemSearch] = useState("")
   const [difficultyFilter, setDifficultyFilter] = useState("All")
+  const [selectedStudent, setSelectedStudent] = useState<StudentStat | null>(null)
 
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)

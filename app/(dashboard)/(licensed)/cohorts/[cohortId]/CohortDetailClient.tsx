@@ -52,6 +52,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
   ArrowLeft,
   Users,
   Plus,
@@ -65,6 +73,7 @@ import {
   UserMinus,
   X,
   MoreHorizontal,
+  CheckSquare,
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -76,6 +85,9 @@ import {
   getInstituteStudentsNotInCohortAction,
   getCohortMembersAction,
   deleteCohortAction,
+  getInstituteFiltersAction,
+  addStudentsToCohortByEmailAction,
+  removeStudentsFromCohortAction,
 } from "../actions"
 import type { Cohort, CohortMember } from "../types"
 
@@ -86,6 +98,112 @@ interface Props {
   initialPage: number
   initialPageSize: number
   initialSearch: string
+}
+
+function BulkAddStudentsDialog({
+  open,
+  onOpenChange,
+  cohortId,
+  onSuccess,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  cohortId: string
+  onSuccess: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [emailsText, setEmailsText] = useState("")
+  const [results, setResults] = useState<{addedCount: number, notFoundEmails: string[]} | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setEmailsText("")
+      setResults(null)
+    }
+  }, [open])
+
+  const handleAdd = () => {
+    if (!emailsText.trim()) {
+      toast.error("Please enter at least one email.")
+      return
+    }
+    setResults(null)
+    startTransition(async () => {
+      try {
+        const res = await addStudentsToCohortByEmailAction(cohortId, emailsText)
+        setResults(res)
+        if (res.addedCount > 0) {
+          toast.success(`Successfully added ${res.addedCount} student(s).`)
+          onSuccess()
+        } else {
+          toast.info("No new students were added.")
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to add students.")
+      }
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Bulk Add Students by Email</DialogTitle>
+          <DialogDescription>
+            Paste a comma-separated list of student emails below. We will find matching students in your institute and add them to this cohort.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-2">
+          {!results ? (
+            <Textarea
+              placeholder="e.g. student1@example.com, student2@example.com,student3@example.com"
+              className="min-h-[150px] font-mono text-sm"
+              value={emailsText}
+              onChange={(e) => setEmailsText(e.target.value)}
+              disabled={isPending}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 rounded-md bg-muted/50 space-y-2">
+                <p className="font-medium text-sm text-foreground">Results</p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                  ✅ {results.addedCount} students successfully added.
+                </p>
+                {results.notFoundEmails.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-destructive font-medium mb-1">
+                      ⚠️ {results.notFoundEmails.length} emails not found or not candidates:
+                    </p>
+                    <div className="max-h-[150px] overflow-y-auto rounded border bg-background p-2">
+                      <ul className="list-disc list-inside text-xs text-muted-foreground">
+                        {results.notFoundEmails.map(e => <li key={e}>{e}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <Button variant="outline" className="w-full" onClick={() => setResults(null)}>
+                Enter more emails
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            {results ? "Close" : "Cancel"}
+          </Button>
+          {!results && (
+            <Button onClick={handleAdd} disabled={isPending || !emailsText.trim()} className="gap-1.5">
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Add Students
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function AddStudentsSheet({
@@ -101,14 +219,19 @@ function AddStudentsSheet({
 }) {
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState("")
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
+  const [selectedSourceCohort, setSelectedSourceCohort] = useState<string | null>(null)
+  const [filters, setFilters] = useState<{ courses: string[]; passoutYears: number[]; otherCohorts: { id: string, name: string }[] }>({ courses: [], passoutYears: [], otherCohorts: [] })
+  
   const [students, setStudents] = useState<CohortMember[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
 
-  const loadStudents = async (q: string) => {
+  const loadStudents = async (q: string, course: string | null, year: number | null, sourceCohort: string | null) => {
     setIsLoadingStudents(true)
     try {
-      const results = await getInstituteStudentsNotInCohortAction(cohortId, q)
+      const results = await getInstituteStudentsNotInCohortAction(cohortId, q, course, year, sourceCohort)
       setStudents(results)
     } catch {
       toast.error("Failed to load students.")
@@ -121,16 +244,23 @@ function AddStudentsSheet({
     if (open) {
       setSelected(new Set())
       setSearch("")
-      loadStudents("")
+      setSelectedCourse(null)
+      setSelectedYear(null)
+      setSelectedSourceCohort(null)
+      
+      // Load filters
+      getInstituteFiltersAction().then(setFilters).catch(console.error)
+      
+      loadStudents("", null, null, null)
     }
   }, [open])
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (open) loadStudents(search)
+      if (open) loadStudents(search, selectedCourse, selectedYear, selectedSourceCohort)
     }, 350)
     return () => clearTimeout(timer)
-  }, [search])
+  }, [search, selectedCourse, selectedYear, selectedSourceCohort])
 
   const toggleStudent = (id: string) => {
     setSelected((prev) => {
@@ -172,8 +302,56 @@ function AddStudentsSheet({
               placeholder="Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9"
             />
+          </div>
+          <div className="flex flex-col gap-2 mt-3">
+            <div className="flex gap-2">
+              <Select 
+                value={selectedCourse || "all"} 
+                onValueChange={(v) => setSelectedCourse(v === "all" ? null : v)}
+              >
+                <SelectTrigger className="flex-1 text-xs h-9 bg-background">
+                  <SelectValue placeholder="All Courses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Courses</SelectItem>
+                  {filters.courses.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={selectedYear ? selectedYear.toString() : "all"} 
+                onValueChange={(v) => setSelectedYear(v === "all" ? null : parseInt(v))}
+              >
+                <SelectTrigger className="w-[120px] text-xs h-9 shrink-0 bg-background">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {filters.passoutYears.map(y => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Select 
+              value={selectedSourceCohort || "all"} 
+              onValueChange={(v) => setSelectedSourceCohort(v === "all" ? null : v)}
+            >
+              <SelectTrigger className="w-full text-xs h-9 bg-background">
+                <SelectValue placeholder="All Cohorts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Cohorts</SelectItem>
+                {filters.otherCohorts.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </SheetHeader>
 
@@ -190,7 +368,25 @@ function AddStudentsSheet({
               </p>
             </div>
           ) : (
-            <div>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/20 sticky top-0 z-10 backdrop-blur-sm">
+                <span className="text-xs font-medium text-muted-foreground">{students.length} students found</span>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs px-2"
+                  onClick={() => {
+                    if (selected.size === students.length && students.length > 0) {
+                      setSelected(new Set())
+                    } else {
+                      setSelected(new Set(students.map(s => s.student_id)))
+                    }
+                  }}
+                >
+                  {selected.size === students.length && students.length > 0 ? "Deselect All" : "Select All"}
+                </Button>
+              </div>
               {students.map((student) => {
                 const isSelected = selected.has(student.student_id)
                 const initials = student.full_name
@@ -278,7 +474,9 @@ export function CohortDetailClient({
   const [hasMore, setHasMore] = useState(initialMembers.length < totalCount)
   const [loadingMore, setLoadingMore] = useState(false)
   const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
 
   // Local state for search input text
   const [searchInput, setSearchInput] = useState(initialSearch)
@@ -391,6 +589,7 @@ export function CohortDetailClient({
         await removeStudentFromCohortAction(cohort.id, studentId)
         setItems((prev) => prev.filter((m) => m.student_id !== studentId))
         toast.success("Student removed from cohort.")
+        setSelectedMembers(new Set())
         router.refresh()
       } catch (err: any) {
         toast.error(err.message || "Failed to remove student.")
@@ -400,8 +599,42 @@ export function CohortDetailClient({
     })
   }
 
+  const handleBulkRemove = () => {
+    if (selectedMembers.size === 0) return
+    startTransition(async () => {
+      try {
+        await removeStudentsFromCohortAction(cohort.id, Array.from(selectedMembers))
+        setItems((prev) => prev.filter((m) => !selectedMembers.has(m.student_id)))
+        toast.success(`Removed ${selectedMembers.size} student(s) from cohort.`)
+        setSelectedMembers(new Set())
+        router.refresh()
+      } catch (err: any) {
+        toast.error(err.message || "Failed to remove students.")
+      }
+    })
+  }
+
   const handleMembersAdded = async () => {
+    setSelectedMembers(new Set())
     router.refresh()
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedMembers(new Set(items.map(i => i.student_id)))
+    } else {
+      setSelectedMembers(new Set())
+    }
+  }
+
+  const toggleSelectMember = (studentId: string) => {
+    const newSelected = new Set(selectedMembers)
+    if (newSelected.has(studentId)) {
+      newSelected.delete(studentId)
+    } else {
+      newSelected.add(studentId)
+    }
+    setSelectedMembers(newSelected)
   }
 
   const handleEditSave = () => {
@@ -456,50 +689,84 @@ export function CohortDetailClient({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setAddSheetOpen(true)}
-          >
-            <UserPlus className="h-3.5 w-3.5" /> Add Students
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {selectedMembers.size > 0 ? (
+            <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+              <span className="text-sm font-medium text-muted-foreground mr-2">{selectedMembers.size} selected</span>
               <Button
-                variant="outline"
                 size="sm"
-                className="gap-1.5 cursor-pointer"
+                variant="ghost"
+                onClick={() => setSelectedMembers(new Set())}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                onClick={handleBulkRemove}
                 disabled={isPending}
               >
-                {isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MoreHorizontal className="h-4 w-4" />
-                )}
-                Actions
+                {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserMinus className="h-3.5 w-3.5" />}
+                Remove
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem 
-                onClick={() => setEditOpen(true)}
-                className="cursor-pointer"
+            </div>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setBulkAddOpen(true)}
               >
-                <Pencil className="mr-2 h-3.5 w-3.5" />
-                Edit Cohort
-              </DropdownMenuItem>
+                <Users className="h-3.5 w-3.5" /> Bulk Add by Email
+              </Button>
               
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                variant="destructive"
-                onClick={() => setDeleteOpen(true)}
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setAddSheetOpen(true)}
               >
-                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                Delete Cohort
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <UserPlus className="h-3.5 w-3.5" /> Add Students
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 cursor-pointer"
+                    disabled={isPending}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MoreHorizontal className="h-4 w-4" />
+                    )}
+                    Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem 
+                    onClick={() => setEditOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                    Edit Cohort
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem 
+                    variant="destructive"
+                    onClick={() => setDeleteOpen(true)}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Delete Cohort
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </div>
 
@@ -568,13 +835,21 @@ export function CohortDetailClient({
           <div className="rounded-md border bg-card overflow-hidden">
             <Table className="table-fixed w-full min-w-[700px]">
               <colgroup>
+                <col className="w-[5%]" />
                 <col className="w-[45%]" />
-                <col className="w-[25%]" />
+                <col className="w-[20%]" />
                 <col className="w-[20%]" />
                 <col className="w-[10%]" />
               </colgroup>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12 pl-4">
+                    <Checkbox
+                      checked={items.length > 0 && selectedMembers.size === items.length}
+                      onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead className="text-xs font-semibold">Student</TableHead>
                   <TableHead className="text-xs font-semibold">Course</TableHead>
                   <TableHead className="text-xs font-semibold">Graduation Year</TableHead>
@@ -591,7 +866,14 @@ export function CohortDetailClient({
                     .slice(0, 2)
 
                   return (
-                    <TableRow key={member.student_id}>
+                    <TableRow key={member.student_id} data-state={selectedMembers.has(member.student_id) ? "selected" : undefined}>
+                      <TableCell className="pl-4">
+                        <Checkbox
+                          checked={selectedMembers.has(member.student_id)}
+                          onCheckedChange={() => toggleSelectMember(member.student_id)}
+                          aria-label={`Select ${member.full_name}`}
+                        />
+                      </TableCell>
                       <TableCell className="overflow-hidden text-ellipsis">
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="h-8 w-8 shrink-0">
@@ -610,20 +892,20 @@ export function CohortDetailClient({
                       </TableCell>
                       <TableCell className="overflow-hidden text-ellipsis">
                         {member.course_name ? (
-                          <Badge variant="outline" className="text-[10px] font-normal text-sky-600 bg-sky-50 dark:bg-sky-950/20 dark:text-sky-400 border-sky-200/50 dark:border-sky-800/30">
-                            <GraduationCap className="size-3 mr-1 shrink-0" />
+                          <div className="flex items-center text-[13px] text-foreground">
+                            <GraduationCap className="size-3.5 mr-1.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{member.course_name}</span>
-                          </Badge>
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground/60 italic">—</span>
                         )}
                       </TableCell>
                       <TableCell className="overflow-hidden text-ellipsis">
                         {member.passout_year ? (
-                          <Badge variant="outline" className="text-[10px] font-normal text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30">
-                            <Calendar className="size-3 mr-1 shrink-0" />
+                          <div className="flex items-center text-[13px] text-foreground">
+                            <Calendar className="size-3.5 mr-1.5 shrink-0 text-muted-foreground" />
                             <span>{member.passout_year}</span>
-                          </Badge>
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground/60 italic">—</span>
                         )}
@@ -672,6 +954,13 @@ export function CohortDetailClient({
       <AddStudentsSheet
         open={addSheetOpen}
         onOpenChange={setAddSheetOpen}
+        cohortId={cohort.id}
+        onSuccess={handleMembersAdded}
+      />
+
+      <BulkAddStudentsDialog
+        open={bulkAddOpen}
+        onOpenChange={setBulkAddOpen}
         cohortId={cohort.id}
         onSuccess={handleMembersAdded}
       />
