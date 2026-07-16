@@ -163,7 +163,7 @@ function AuthButtons({
 }) {
   return (
     <Button size={size} asChild>
-      <Link href="/auth/login">Sign In</Link>
+      <Link href="/auth/sign-up">Get Started</Link>
     </Button>
   );
 }
@@ -530,7 +530,6 @@ function HeroSection() {
                 <Button size="lg" className="rounded-full font-medium shadow-sm" asChild>
                   <Link href="/auth/sign-up">
                     Get Started
-                    <ArrowRightIcon data-icon="inline-end" />
                   </Link>
                 </Button>
 
@@ -541,15 +540,6 @@ function HeroSection() {
                   asChild
                 >
                   <Link href="/auth/login">Sign In</Link>
-                </Button>
-
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="rounded-full text-zinc-600 dark:text-zinc-400"
-                  asChild
-                >
-                  <Link href="#features">Explore Features</Link>
                 </Button>
               </div>
             </div>
@@ -854,7 +844,7 @@ function CTASection() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <Link href="/auth/login">Sign In</Link>
+                <Link href="/auth/sign-up">Get Started</Link>
               </Button>
             </div>
           </div>

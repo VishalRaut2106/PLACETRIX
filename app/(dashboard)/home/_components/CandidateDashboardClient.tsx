@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import {
-  Flame,
   Award,
   ArrowRight,
   Clock,
@@ -218,18 +217,6 @@ export function CandidateDashboardClient({
             <div className="absolute bottom-0 left-1/3 -mb-6 w-36 h-36 bg-purple-500/15 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-300 pointer-events-none" />
 
             <CardContent className="p-5 relative z-10 flex flex-col justify-start gap-3.5">
-              {streakStats.currentStreak > 0 && (
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-500/15 px-3 py-1 rounded-full border border-orange-500/30"
-                  >
-                    <Flame className="h-3.5 w-3.5 fill-orange-500 text-orange-500 animate-pulse" strokeWidth={1.5} />
-                    <span>{streakStats.currentStreak} Day Streak</span>
-                  </motion.div>
-                </div>
-              )}
               <div className="flex flex-col gap-1">
                 <h1 className="text-3xl md:text-4xl font-bold font-cirka tracking-tight text-foreground leading-tight">
                   {greeting}, {profileName}!

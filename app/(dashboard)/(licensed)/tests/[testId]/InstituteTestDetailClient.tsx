@@ -622,23 +622,34 @@ const DesktopAttemptRow = React.memo(function DesktopAttemptRow({
         {attempt.submitted_at ? formatDateTime(attempt.submitted_at) : "—"}
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex items-center justify-end gap-1">
-          <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5">
-            <Link href={`/tests/${testId}/result/${attempt.id}`} target="_blank" rel="noopener noreferrer">
-              <Eye className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only">View</span>
-            </Link>
-          </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => onDelete(attempt)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            <span className="sr-only">Delete</span>
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/tests/${testId}/result/${attempt.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center gap-2 cursor-pointer"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View Attempt
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => onDelete(attempt)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Attempt
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </TableCell>
     </TableRow>
   )
@@ -652,7 +663,7 @@ const ATTEMPTS_PAGE_SIZE = 20
 // Map of sort column → view_test_results_detailed column name
 const SORT_COL_MAP: Record<SortColumn, string> = {
   student_name: "student_name",
-  education: "branch",
+  education: "student_name",
   status: "status",
   score: "percentage",
   time: "time_spent_seconds",
@@ -719,7 +730,17 @@ function AttemptsTab({
     setSearchQuery("")
     setStatusFilter("all")
     setScoreFilter("all")
-  }, [])
+    setPage(0)
+    setIsLoadingPage(true)
+    onFetchPage({
+      search: "",
+      statusFilter: "all",
+      scoreFilter: "all",
+      sortCol,
+      sortDir,
+      page: 0,
+    }).finally(() => setIsLoadingPage(false))
+  }, [sortCol, sortDir, onFetchPage])
 
   // Re-fetch whenever filters / sort / page change
   const fetchCurrentPage = useCallback(async (
@@ -778,14 +799,49 @@ function AttemptsTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch])
 
-  // Navigate pages
+  // Navigate pages using scroll-to-load
   const totalPages = Math.max(1, Math.ceil(totalCount / ATTEMPTS_PAGE_SIZE))
-  const goToPage = useCallback((newPage: number) => {
-    setPage(newPage)
+  const hasMore = page < totalPages - 1
+
+  const loadNextPage = useCallback(() => {
+    if (isLoadingPage || !hasMore) return
+    const nextPage = page + 1
+    setPage(nextPage)
     setIsLoadingPage(true)
-    onFetchPage({ search: debouncedSearch.trim(), statusFilter, scoreFilter, sortCol, sortDir, page: newPage })
-      .finally(() => setIsLoadingPage(false))
-  }, [debouncedSearch, statusFilter, scoreFilter, sortCol, sortDir, onFetchPage])
+    onFetchPage({
+      search: debouncedSearch.trim(),
+      statusFilter,
+      scoreFilter,
+      sortCol,
+      sortDir,
+      page: nextPage,
+    }).finally(() => setIsLoadingPage(false))
+  }, [page, totalPages, isLoadingPage, hasMore, debouncedSearch, statusFilter, scoreFilter, sortCol, sortDir, onFetchPage])
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        if (first.isIntersecting) {
+          loadNextPage()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    observer.observe(sentinel)
+
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel)
+      }
+    }
+  }, [loadNextPage, hasMore])
 
 
   if (stats.total === 0) {
@@ -815,10 +871,11 @@ function AttemptsTab({
                     scoreFilter,
                     sortCol,
                     sortDir,
-                    page,
+                    page: 0,
                   }),
                   onFetchStats(),
                 ])
+                setPage(0)
                 toast.success("Attempts refreshed")
               } catch (err) {
                 toast.error("Failed to refresh attempts")
@@ -863,15 +920,12 @@ function AttemptsTab({
               </span>
             </>
           )}
-          {activeFilterCount > 0 && (
-            <>
-              <Separator orientation="vertical" className="h-3.5" />
-              <span className="flex items-center gap-1">
-                <span className="font-semibold tabular-nums">{totalCount}</span>
-                <span className="text-muted-foreground">matching</span>
-              </span>
-            </>
-          )}
+          <Separator orientation="vertical" className="h-3.5" />
+          <span className="flex items-center gap-1 text-muted-foreground">
+            Showing <span className="font-semibold text-foreground tabular-nums">{pageRows.length}</span> of{" "}
+            <span className="font-semibold text-foreground tabular-nums">{totalCount}</span>
+            {activeFilterCount > 0 && <span className="text-xs text-muted-foreground/60 ml-1">(filtered)</span>}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -890,10 +944,11 @@ function AttemptsTab({
                     scoreFilter,
                     sortCol,
                     sortDir,
-                    page,
+                    page: 0,
                   }),
                   onFetchStats(),
                 ])
+                setPage(0)
                 toast.success("Attempts refreshed")
               } catch (err) {
                 toast.error("Failed to refresh attempts")
@@ -1071,7 +1126,7 @@ function AttemptsTab({
       </div>
 
       {/* Mobile compact list */}
-      <div className={cn("rounded-xl border overflow-hidden md:hidden", isLoadingPage && "opacity-60 pointer-events-none")}>
+      <div className={cn("rounded-xl border overflow-hidden md:hidden", isLoadingPage && page === 0 && "opacity-60 pointer-events-none")}>
         {pageRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-center bg-muted/5">
             <Filter className="h-6 w-6 text-muted-foreground/50" />
@@ -1093,7 +1148,7 @@ function AttemptsTab({
 
 
       {/* Desktop table */}
-      <div className={cn("hidden overflow-hidden rounded-xl border md:block", isLoadingPage && "opacity-60 pointer-events-none")}>
+      <div className={cn("hidden overflow-hidden rounded-xl border md:block", isLoadingPage && page === 0 && "opacity-60 pointer-events-none")}>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -1130,35 +1185,10 @@ function AttemptsTab({
         </Table>
       </div>
 
-      {/* ── Pagination controls ────────────────────────────────────────────── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-          <span className="tabular-nums">
-            Page {page + 1} of {totalPages}
-            <span className="ml-1 text-muted-foreground/60">({totalCount} total)</span>
-          </span>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 gap-1"
-              disabled={page === 0 || isLoadingPage}
-              onClick={() => goToPage(page - 1)}
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 gap-1"
-              disabled={page >= totalPages - 1 || isLoadingPage}
-              onClick={() => goToPage(page + 1)}
-            >
-              Next
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+      {/* Sentinel element for infinite scroll */}
+      {hasMore && (
+        <div ref={sentinelRef} className="py-6 flex items-center justify-center min-h-[50px]">
+          {isLoadingPage && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />}
         </div>
       )}
 
@@ -1372,13 +1402,12 @@ function buildAttemptsQuery(
   // the view doesn't support coalesce in .order(), so we sort by submitted_at
   // and let nulls float (Postgres puts NULLs last with NULLS LAST by default).
   let q = (supabase as any)
-    .from("view_test_results_detailed")
+    .from("view_test_attempt_details")
     .select(
-      "attempt_id, student_name, student_email, branch, passout_year, tab_switch_count, status, score, total_marks, percentage, time_spent_seconds, started_at, submitted_at",
-      params.range ? undefined : { count: "exact" }
+      "id, status, score, total_marks, percentage, time_spent_seconds, started_at, submitted_at, student_name, student_email, tab_switch_count, profile:profiles!student_id(candidate_academic_details(passout_year, course:institute_courses(course_name)))",
+      { count: "exact" }
     )
     .eq("test_id", testId)
-    .not("attempt_id", "is", null)
     .not("started_at", "is", null)
 
   // Status filter
@@ -1415,8 +1444,16 @@ function buildAttemptsQuery(
 }
 
 function mapRawAttempt(a: any): InstituteAttemptRow {
+  const cad = Array.isArray(a.profile?.candidate_academic_details)
+    ? a.profile?.candidate_academic_details[0]
+    : a.profile?.candidate_academic_details
+  
+  const courseName = Array.isArray(cad?.course)
+    ? cad?.course[0]?.course_name
+    : cad?.course?.course_name
+
   return {
-    id: a.attempt_id,
+    id: a.id,
     student_name: a.student_name ?? null,
     student_email: a.student_email ?? null,
     status: a.status as InstituteAttemptRow["status"],
@@ -1427,8 +1464,8 @@ function mapRawAttempt(a: any): InstituteAttemptRow {
     started_at: a.started_at,
     submitted_at: a.submitted_at ?? null,
     tab_switch_count: a.tab_switch_count ?? null,
-    branch: a.branch ?? null,
-    passout_year: a.passout_year ?? null,
+    branch: courseName ?? null,
+    passout_year: cad?.passout_year ?? null,
   }
 }
 
@@ -1499,7 +1536,16 @@ export function InstituteTestDetailClient({
     })
 
     if (error || !data) return
-    setPageRows(data.map(mapRawAttempt))
+    setPageRows(prev => {
+      const mapped = data.map(mapRawAttempt)
+      if (params.page === 0) {
+        return mapped
+      } else {
+        const existingIds = new Set(prev.map((r: InstituteAttemptRow) => r.id))
+        const filteredNew = mapped.filter((r: InstituteAttemptRow) => !existingIds.has(r.id))
+        return [...prev, ...filteredNew]
+      }
+    })
     if (count != null) setTotalCount(count)
   }, [testId])
 
