@@ -114,7 +114,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 // ─── Action State Hook ────────────────────────────────────────────────────────
 
-type ActionKey = "toggleResults" | "togglePublish" | "deleteTest" | "deleteAttempt" | null
+type ActionKey = "toggleResults" | "togglePublish" | "deleteTest" | "deleteAttempt" | "clearAttempts" | null
 
 function useActionState() {
   const [activeAction, setActiveAction] = useState<ActionKey>(null)
@@ -1443,6 +1443,7 @@ interface Props {
   onTogglePublish?: () => Promise<void>
   onDeleteTest?: () => Promise<void>
   onDeleteAttempt?: (attemptId: string) => Promise<void>
+  onClearAllAttempts?: () => Promise<void>
 }
 
 export function InstituteTestDetailClient({
@@ -1453,6 +1454,7 @@ export function InstituteTestDetailClient({
   onTogglePublish,
   onDeleteTest,
   onDeleteAttempt,
+  onClearAllAttempts,
 }: Props) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
@@ -1618,6 +1620,50 @@ export function InstituteTestDetailClient({
                     ? "Hide Results"
                     : "Release Results"}
               </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={(e) => e.preventDefault()}
+                    disabled={anyLoading || test.attemptStats.total === 0}
+                  >
+                    <RotateCw className="mr-2 h-3.5 w-3.5" />
+                    Clear All Attempts
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear {test.attemptStats.total} Attempts?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This permanently deletes all student attempts, answers, and scores for this test.
+                      This is useful if you are reusing this test for a new cohort and want to start fresh.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isLoading("clearAttempts")}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      disabled={isLoading("clearAttempts")}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        run("clearAttempts", onClearAllAttempts)
+                      }}
+                    >
+                      {isLoading("clearAttempts") ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        "Yes, Clear Attempts"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
               <DropdownMenuSeparator />
 

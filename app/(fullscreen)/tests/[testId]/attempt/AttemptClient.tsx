@@ -949,7 +949,7 @@ interface Props {
             timeSpentSeconds?: number
         }>
     ) => Promise<void>
-    onSubmit?: (attemptId: string, timeSpentSeconds: number) => Promise<string>
+    onSubmit?: (attemptId: string, timeSpentSeconds: number) => Promise<{ error?: string; redirectPath?: string }>
     serverNow: string
     // Called on every detected violation — fire-and-forget, never throws.
     onViolation?: (
@@ -1578,7 +1578,11 @@ export function AttemptClient({
                 localStorage.removeItem(`${prefix}_idx`)
                 localStorage.removeItem(`${prefix}_flags`)
 
-                const redirectPath = await onSubmit?.(attemptInfo.id, timeSpentSeconds)
+                const submitResult = await onSubmit?.(attemptInfo.id, timeSpentSeconds)
+                if (submitResult?.error) {
+                    throw new Error(submitResult.error)
+                }
+                const redirectPath = submitResult?.redirectPath
 
                 if (auto) {
                     setSubmitReason("auto")

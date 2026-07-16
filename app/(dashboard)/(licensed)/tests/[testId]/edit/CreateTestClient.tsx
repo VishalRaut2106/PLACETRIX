@@ -892,9 +892,15 @@ function AiGenerateSheet({
       try {
         const result = await generateQuestionsAction(form)
 
-        setGeneratedWith(result.generatedWith)
+        if (result.error) {
+          setGeneratedWith(null)
+          setError(result.error)
+          return
+        }
+
+        setGeneratedWith(result.generatedWith || null)
         setGenerated(
-          result.questions.map((q) => ({
+          (result.questions || []).map((q) => ({
             ...q,
             _selected: true,
             _previewId: crypto.randomUUID(),

@@ -146,7 +146,7 @@ function BulkAddStudentsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Bulk Add Students by Email</DialogTitle>
           <DialogDescription>
@@ -154,11 +154,11 @@ function BulkAddStudentsDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 flex-1 overflow-y-auto">
           {!results ? (
             <Textarea
               placeholder="e.g. student1@example.com, student2@example.com,student3@example.com"
-              className="min-h-[150px] font-mono text-sm"
+              className="min-h-[250px] font-mono text-sm resize-none"
               value={emailsText}
               onChange={(e) => setEmailsText(e.target.value)}
               disabled={isPending}
@@ -190,7 +190,7 @@ function BulkAddStudentsDialog({
           )}
         </div>
         
-        <DialogFooter>
+        <DialogFooter className="shrink-0 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             {results ? "Close" : "Cancel"}
           </Button>

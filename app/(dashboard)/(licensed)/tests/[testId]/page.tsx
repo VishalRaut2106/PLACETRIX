@@ -10,6 +10,7 @@ import {
   togglePublishAction,
   deleteTestAction,
   deleteAttemptAction,
+  clearAllAttemptsAction,
 } from "./actions"
 import type {
   CandidateTestDetail,
@@ -393,6 +394,7 @@ export default async function TestDetailPage({
         onTogglePublish={togglePublishAction.bind(null, testId)}
         onDeleteTest={deleteTestAction.bind(null, testId)}
         onDeleteAttempt={deleteAttemptAction.bind(null, testId)}
+        onClearAllAttempts={clearAllAttemptsAction.bind(null, testId)}
       />
     )
   }

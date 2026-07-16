@@ -238,7 +238,7 @@ export async function saveAnswersBatchAction(
 export async function submitAttemptAction(
   attemptId: string,
   timeSpentSeconds: number
-): Promise<string> {
+): Promise<{ error?: string; redirectPath?: string }> {
   const { supabase, userId } = await requireAuth()
 
   // Verify ownership before grading so a malicious caller cannot grade someone
@@ -252,7 +252,7 @@ export async function submitAttemptAction(
     .maybeSingle()
 
   if (!ownerCheck) {
-    throw new Error("Attempt not found or already submitted")
+    return { error: "Attempt not found or already submitted" }
   }
 
   const { data: result, error } = await (supabase as any).rpc("test_attempt_grade", {
@@ -262,20 +262,20 @@ export async function submitAttemptAction(
 
   if (error) {
     console.error("[submitAttemptAction] RPC error:", error)
-    throw new Error(error.message || "Failed to submit attempt")
+    return { error: error.message || "Failed to submit attempt" }
   }
 
   const typedResult = result as { test_id?: string; error?: string } | null
 
   if (!typedResult) {
-    throw new Error("Received an empty response from server while grading.")
+    return { error: "Received an empty response from server while grading." }
   }
 
   if (typedResult.error) {
-    throw new Error(typedResult.error)
+    return { error: typedResult.error }
   }
 
-  return typedResult.test_id ? `/tests/${typedResult.test_id}` : "/tests"
+  return { redirectPath: typedResult.test_id ? `/tests/${typedResult.test_id}` : "/tests" }
 }
 
 

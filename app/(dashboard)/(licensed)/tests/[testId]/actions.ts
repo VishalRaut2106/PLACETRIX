@@ -135,6 +135,25 @@ export async function deleteAttemptAction(testId: string, attemptId: string): Pr
   revalidatePath(`/tests/${testId}`)
 }
 
+
+// ─── Clear All Attempts ────────────────────────────────────────────────────────
+// Hard-deletes ALL attempts for a test. Useful when reusing a test for a new cohort.
+
+export async function clearAllAttemptsAction(testId: string): Promise<void> {
+  await requireAuth()
+  await assertOwner(testId)
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from("test_attempts")
+    .delete()
+    .eq("test_id", testId)
+
+  if (error) throw new Error("Failed to clear attempts: " + error.message)
+
+  revalidatePath(`/tests/${testId}`)
+}
+
 // ─── Fetch All Attempts for Export ────────────────────────────────────────────
 
 export async function fetchAllTestAttemptsForExportAction(testId: string) {

@@ -61,8 +61,9 @@ export type InitialTestData = {
 }
 
 export type GenerateQuestionsResult = {
-  questions: QuestionForm[]
-  generatedWith: string
+  questions?: QuestionForm[]
+  generatedWith?: string
+  error?: string
 }
 
 // --- Database Helpers ---
@@ -385,7 +386,7 @@ export async function generateQuestionsAction(
 ): Promise<GenerateQuestionsResult> {
   await requireAuth()
   const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) throw new Error("AI generation is not configured.")
+  if (!apiKey) return { error: "AI generation is not configured. Missing GROQ_API_KEY in environment." }
 
   const count = Math.min(20, Math.max(1, parseInt(input.count, 10) || 5))
   const marksDefault = DIFFICULTY_MARKS[input.difficulty]
@@ -508,9 +509,9 @@ Ensure all questions are entirely distinct and not reused from any prior generat
 
   console.error("[generateQuestionsAction] All models exhausted.", lastError)
 
-  throw new Error(
-    lastError instanceof Error
+  return {
+    error: lastError instanceof Error
       ? `AI generation failed: ${lastError.message}`
       : "Failed to generate questions. Please try again."
-  )
+  }
 }
