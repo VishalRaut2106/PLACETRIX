@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getUserProfile } from "@/lib/supabase/profile";
 import type { UserProfile } from "@/lib/supabase/profile";
 import { revalidatePath } from "next/cache";
+import { cache } from "react";
 
 // --- Types ---
 
@@ -18,9 +19,9 @@ export interface InstituteLicense {
 }
 
 // --- getInstituteLicense ---
-export async function getInstituteLicense(
+export const getInstituteLicense = cache(async (
   institute_id: string
-): Promise<InstituteLicense> {
+): Promise<InstituteLicense> => {
   try {
     const supabase = await createClient();
 
@@ -62,7 +63,7 @@ export async function getInstituteLicense(
     console.error("[getInstituteLicense] Unexpected error:", e);
     return { status: null, plan_name: null, starts_at: null, ends_at: null };
   }
-}
+});
 
 // --- getLicenseForProfile ---
 export async function getLicenseForProfile(
