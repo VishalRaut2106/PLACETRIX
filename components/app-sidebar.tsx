@@ -2,45 +2,30 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import {
-  type LucideIcon,
-  Bell,
-  Briefcase,
-  Building2,
-  BarChart3,
-  ClipboardList,
-  LayoutDashboard,
-  MoreVertical,
-  MoreHorizontal,
-  ChevronUp,
-  FileText,
-  Folder,
-  CircleHelp,
-  Home,
-  LogOut,
-  Lock,
-  Search,
-  Settings,
-  ShieldCheck,
-  User,
-  CircleUser,
-  Users,
-  CreditCard,
-  Calendar,
-  GraduationCap,
-  FileBarChart,
-  Target,
-  Sun,
-  Moon,
-  Laptop,
-  Check,
-  ChevronRight,
-  Wrench,
-  Code,
-  BookOpen,
-  Trophy,
-  UsersRound,
-  Heart,
-} from "lucide-react"
+  IconSmartHome,
+  IconTerminal2,
+  IconBook,
+  IconClipboardCheck,
+  IconUsers,
+  IconCalendarEvent,
+  IconBriefcase,
+  IconTools,
+  IconBuildingSkyscraper,
+  IconShieldCheck,
+  IconHelpCircle,
+  IconUserCircle,
+  IconBell,
+  IconSettings,
+  IconHeart,
+  IconSun,
+  IconMoon,
+  IconDeviceLaptop,
+  IconLock,
+  IconChevronRight,
+  IconChevronUp,
+  IconDotsVertical,
+  IconLogout,
+} from "@tabler/icons-react"
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
@@ -77,7 +62,7 @@ import { toast } from "sonner"
 type NavItem = {
   title: string
   url: string
-  icon: LucideIcon
+  icon: React.ComponentType<any>
   items?: {
     title: string
     url: string
@@ -96,67 +81,67 @@ const VALID_ACCOUNT_TYPES: AccountType[] = [
 
 const NAV_MAIN: Record<AccountType, NavItem[]> = {
   institute_candidate: [
-    { title: "Home", url: "/home", icon: Home },
-    { title: "Logic Lab", url: "/logiclab", icon: Code },
-    { title: "Courses", url: "/courses", icon: BookOpen },
-    { title: "Tests", url: "/tests", icon: BarChart3 },
-    { title: "Cohorts", url: "/cohorts", icon: UsersRound },
-    { title: "Events", url: "/events", icon: Calendar },
-    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
-    { title: "Tools", url: "/tools", icon: Wrench },
+    { title: "Home", url: "/home", icon: IconSmartHome },
+    { title: "Logic Lab", url: "/logiclab", icon: IconTerminal2 },
+    { title: "Courses", url: "/courses", icon: IconBook },
+    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
+    { title: "Cohorts", url: "/cohorts", icon: IconUsers },
+    { title: "Events", url: "/events", icon: IconCalendarEvent },
+    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
+    { title: "Tools", url: "/tools", icon: IconTools },
   ],
   institute_primary: [
-    { title: "Home", url: "/home", icon: Home },
-    { title: "Users", url: "/users", icon: Users },
-    { title: "Cohorts", url: "/cohorts", icon: UsersRound },
-    { title: "Tests", url: "/tests", icon: BarChart3 },
-    { title: "Events", url: "/events", icon: Calendar },
-    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
-    { title: "Companies", url: "/companies", icon: Building2 },
+    { title: "Home", url: "/home", icon: IconSmartHome },
+    { title: "Users", url: "/users", icon: IconUsers },
+    { title: "Cohorts", url: "/cohorts", icon: IconUsers },
+    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
+    { title: "Events", url: "/events", icon: IconCalendarEvent },
+    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
+    { title: "Companies", url: "/companies", icon: IconBuildingSkyscraper },
   ],
   institute_staff: [
-    { title: "Home", url: "/home", icon: Home },
-    { title: "Cohorts", url: "/cohorts", icon: UsersRound },
-    { title: "Tests", url: "/tests", icon: BarChart3 },
-    { title: "Events", url: "/events", icon: Calendar },
+    { title: "Home", url: "/home", icon: IconSmartHome },
+    { title: "Cohorts", url: "/cohorts", icon: IconUsers },
+    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
+    { title: "Events", url: "/events", icon: IconCalendarEvent },
   ],
   institute_placement_officer: [
-    { title: "Home", url: "/home", icon: Home },
-    { title: "Cohorts", url: "/cohorts", icon: UsersRound },
-    { title: "Tests", url: "/tests", icon: BarChart3 },
-    { title: "Events", url: "/events", icon: Calendar },
-    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
-    { title: "Companies", url: "/companies", icon: Building2 },
+    { title: "Home", url: "/home", icon: IconSmartHome },
+    { title: "Cohorts", url: "/cohorts", icon: IconUsers },
+    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
+    { title: "Events", url: "/events", icon: IconCalendarEvent },
+    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
+    { title: "Companies", url: "/companies", icon: IconBuildingSkyscraper },
   ],
   admin: [
-    { title: "Home", url: "/home", icon: Home },
-    { title: "Licenses", url: "/licenses", icon: ShieldCheck },
-    { title: "Courses", url: "/courses", icon: BookOpen },
-    { title: "LogicLab", url: "/logiclab/admin", icon: Code },
-    { title: "Support Queue", url: "/support", icon: CircleHelp },
+    { title: "Home", url: "/home", icon: IconSmartHome },
+    { title: "Licenses", url: "/licenses", icon: IconShieldCheck },
+    { title: "Courses", url: "/courses", icon: IconBook },
+    { title: "LogicLab", url: "/logiclab/admin", icon: IconTerminal2 },
+    { title: "Support Queue", url: "/support", icon: IconHelpCircle },
   ],
 }
 
 
 const NAV_SECONDARY: NavItem[] = [
-  { title: "My Profile", url: "/myprofile", icon: CircleUser },
-  { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Settings", url: "/settings", icon: Settings },
-  { title: "Get Help", url: "/gethelp", icon: CircleHelp },
-  { title: "Our Team", url: "/our-team", icon: Heart },
+  { title: "My Profile", url: "/myprofile", icon: IconUserCircle },
+  { title: "Notifications", url: "/notifications", icon: IconBell },
+  { title: "Settings", url: "/settings", icon: IconSettings },
+  { title: "Get Help", url: "/gethelp", icon: IconHelpCircle },
+  { title: "Our Team", url: "/our-team", icon: IconHeart },
 ]
 
 
 // ─── Theme options ────────────────────────────────────────────────────────────
 
 
-type ThemeOption = { value: string; label: string; icon: LucideIcon }
+type ThemeOption = { value: string; label: string; icon: React.ComponentType<any> }
 
 
 const THEME_OPTIONS: ThemeOption[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Laptop },
+  { value: "light", label: "Light", icon: IconSun },
+  { value: "dark", label: "Dark", icon: IconMoon },
+  { value: "system", label: "System", icon: IconDeviceLaptop },
 ]
 
 
@@ -232,7 +217,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                       <span className="truncate font-semibold text-sm leading-none text-sidebar-foreground group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-colors duration-200">{displayName}</span>
                       <span className="truncate text-[11px] text-muted-foreground leading-none group-hover/user:text-sidebar-accent-foreground/80 group-data-[state=open]/user:text-sidebar-accent-foreground/80 transition-colors duration-200">{sidebarSubtitle}</span>
                     </div>
-                    <MoreVertical className="ml-auto shrink-0 size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
+                    <IconDotsVertical className="ml-auto shrink-0 size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
                   </>
                 ) : (
                   <>
@@ -313,7 +298,7 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                 onClick={handleLogout}
                 className="cursor-pointer"
               >
-                <LogOut className="size-4 shrink-0" />
+                <IconLogout className="size-4 shrink-0" />
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -383,12 +368,12 @@ export function NavMain({ items }: { items: NavItem[] }) {
                         className={cn(isLocked && "opacity-60 cursor-not-allowed")}
                       >
                         {isLocked ? (
-                          <Lock className="size-4 text-muted-foreground shrink-0" />
+                          <IconLock className="size-4 text-muted-foreground shrink-0" />
                         ) : (
                           <item.icon className="transition-transform duration-200" />
                         )}
                         <span className={cn(isLocked && "text-muted-foreground font-normal")}>{item.title}</span>
-                        {!isLocked && <ChevronRight className="ml-auto transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[state=open]/collapsible:rotate-90 size-4 shrink-0" />}
+                        {!isLocked && <IconChevronRight className="ml-auto transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[state=open]/collapsible:rotate-90 size-4 shrink-0" />}
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     {!isLocked && (
@@ -449,7 +434,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                 >
                   {isLocked ? (
                     <div className="flex items-center gap-2 w-full">
-                      <Lock className="size-4 text-muted-foreground shrink-0" />
+                      <IconLock className="size-4 text-muted-foreground shrink-0" />
                       <span className="truncate text-muted-foreground font-normal">{item.title}</span>
                     </div>
                   ) : (
