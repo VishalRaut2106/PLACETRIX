@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
-import OpenAI from "openai"
+import { GoogleGenAI } from "@google/genai"
 
 // --- Shared types ---
 export type SettingsForm = {
@@ -297,13 +297,12 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 })
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "llama-3.3-70b-versatile",
-  "moonshotai/kimi-k2-instruct-0905",
-  "qwen/qwen3-32b",
-  "openai/gpt-oss-120b",
-  "meta-llama/llama-4-scout-17b-16e-instruct",
-  "openai/gpt-oss-20b",
-  "llama-3.1-8b-instant",
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.5-pro",
+  "gemini-1.5-pro",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
@@ -385,8 +384,8 @@ export async function generateQuestionsAction(
   input: AiGenerateForm
 ): Promise<GenerateQuestionsResult> {
   await requireAuth()
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) return { error: "AI generation is not configured. Missing GROQ_API_KEY in environment." }
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return { error: "AI generation is not configured. Missing GEMINI_API_KEY in environment." }
 
   const count = Math.min(20, Math.max(1, parseInt(input.count, 10) || 5))
   const marksDefault = DIFFICULTY_MARKS[input.difficulty]
@@ -398,10 +397,7 @@ export async function generateQuestionsAction(
         ? `All questions must be "multiple_correct" with exactly 2–3 correct options out of 4.`
         : `All questions must be "single_correct" with exactly 1 correct option out of 4.`
 
-  const groq = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey,
-  })
+  const ai = new GoogleGenAI({ apiKey })
 
   const systemPrompt = `You are an expert exam question author for educational assessments.
 
@@ -416,6 +412,12 @@ STRICT RULES you must follow for every question:
 8. Vary cognitive levels across the batch: include recall, application, and analysis questions.
 9. Never repeat similar or near-identical questions within the same batch.
 10. Your response must be a raw JSON object — no markdown, no code fences, no extra text.
+11. LATEX & MATH FORMATTING:
+    - For ANY mathematical content, equations, standalone variables (like $x$, $y$, $\alpha$), chemical equations, scientific notations, fractions, matrices, or exponents, you MUST use standard LaTeX.
+    - Use single dollar signs ($...$) for inline math (e.g. "If $x + y = 10$, find $x$.") and double dollar signs ($$...$$) for centered block math equations.
+    - Do NOT use legacy LaTeX delimiters like \( \) or \[ \], nor plain text equations (e.g. do not write "x^2 + 5x" — instead write "$x^2 + 5x$").
+    - Backslash Escaping in JSON: Because your response is JSON, you MUST double-escape all LaTeX backslashes so they parse correctly. For example, write "\\\\frac{a}{b}" instead of "\\frac{a}{b}", "\\\\theta" instead of "\\theta", and "\\\\sqrt{x}" instead of "\\sqrt{x}". If you output a single backslash, JSON parsing will fail with an escape error.
+
 It must follow this exact shape:
 {
   "questions": [
@@ -433,29 +435,63 @@ It must follow this exact shape:
 }`
 
   const nonce = crypto.randomUUID()
+  const randomSeed = Math.floor(Math.random() * 1000000)
 
   const userPrompt = `[Request ID: ${nonce}]
+[Random Seed: ${randomSeed}]
 Generate exactly ${count} questions on the topic: "${input.topic}".
 Difficulty: ${input.difficulty}. Each question carries 1 mark.
 ${typeInstruction}
-Ensure all questions are entirely distinct and not reused from any prior generation.`
+Ensure all questions are entirely distinct, unique, use creative scenarios, and are not reused from any prior generation.`
 
   const attemptWithModel = async (
     model: string
   ): Promise<GenerateQuestionsResult> => {
-    const response = await groq.chat.completions.create({
+    const response = await ai.models.generateContent({
       model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.8,
-      top_p: 0.95,
-      frequency_penalty: 0.4,
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 1.0,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  question_text: { type: "string" },
+                  question_type: { type: "string", enum: ["single_correct", "multiple_correct"] },
+                  marks: { type: "integer" },
+                  explanation: { type: "string" },
+                  tag_names: {
+                    type: "array",
+                    items: { type: "string" }
+                  },
+                  options: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        option_text: { type: "string" },
+                        is_correct: { type: "boolean" }
+                      },
+                      required: ["option_text", "is_correct"]
+                    }
+                  }
+                },
+                required: ["question_text", "question_type", "marks", "explanation", "tag_names", "options"]
+              }
+            }
+          },
+          required: ["questions"]
+        }
+      }
     })
 
-    const raw = response.choices[0]?.message?.content
+    const raw = response.text
     if (!raw) throw new Error("Empty response from AI.")
 
     const text = stripCodeFences(raw)

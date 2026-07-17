@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation"
 import { getUserProfile } from "@/lib/supabase/profile"
-import OpenAI from "openai"
+import { GoogleGenAI } from "@google/genai"
 
 // ─────────────────────────────────────────────
 // Types
@@ -96,8 +96,8 @@ export async function analyzeResumeAction(formData: FormData): Promise<AnalysisR
   const profile = await getUserProfile()
   if (!profile) redirect("/auth/login")
 
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) throw new Error("AI analysis is not configured. GROQ_API_KEY is missing.")
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error("AI analysis is not configured. GEMINI_API_KEY is missing.")
 
   const file = formData.get("file") as File | null
   const jobDescription = (formData.get("jobDescription") as string) || ""
@@ -132,10 +132,7 @@ export async function analyzeResumeAction(formData: FormData): Promise<AnalysisR
   const truncatedText = resumeText.slice(0, 8000)
   const hasJD = jobDescription.trim().length > 20
 
-  const groq = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey,
-  })
+  const ai = new GoogleGenAI({ apiKey })
 
   const systemPrompt = `You are a world-class resume strategist with 15+ years at FAANG companies. You combine ATS expertise with hiring-manager psychology.
 
@@ -189,7 +186,9 @@ Output ONLY a single raw JSON object. No markdown, no code fences, no extra text
   ],
   "strengths": ["strength citing actual content", "strength 2", "strength 3"],
   "weaknesses": ["weakness pinpointing exact content", "weakness 2", "weakness 3"],
-  "suggestions": {"weakness text exactly": "2-3 sentence fix with example"},
+  "suggestionsList": [
+    {"weakness": "weakness text exactly", "suggestion": "2-3 sentence fix with example"}
+  ],
   "quickWins": [
     {"title": "short title", "impact": "High", "action": "specific instruction referencing resume", "estimatedTime": "5 min"},
     {"title": "title", "impact": "High", "action": "instruction", "estimatedTime": "10 min"},
@@ -220,28 +219,153 @@ ${jobDescription.slice(0, 3000)}`
     : ""
 }`
 
-  const response = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.3,
-    max_tokens: 5000,
+  const response = await ai.models.generateContent({
+    model: "gemini-3.5-flash",
+    contents: userPrompt,
+    config: {
+      systemInstruction: systemPrompt,
+      temperature: 0.3,
+      maxOutputTokens: 5000,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          overallScore: { type: "integer" },
+          atsScore: { type: "integer" },
+          keywordMatchRate: { type: "integer" },
+          verdict: {
+            type: "object",
+            properties: {
+              headline: { type: "string" },
+              summary: { type: "string" },
+              topPriority: { type: "string" }
+            },
+            required: ["headline", "summary", "topPriority"]
+          },
+          detectedIndustry: { type: "string" },
+          experienceLevel: { type: "string", enum: ["Entry", "Mid", "Senior"] },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                score: { type: "integer" },
+                feedback: { type: "string" },
+                suggestion: { type: "string" },
+                rewriteExample: {
+                  type: "object",
+                  properties: {
+                    before: { type: "string" },
+                    after: { type: "string" }
+                  },
+                  required: ["before", "after"]
+                }
+              },
+              required: ["name", "score", "feedback", "suggestion"]
+            }
+          },
+          strengths: {
+            type: "array",
+            items: { type: "string" }
+          },
+          weaknesses: {
+            type: "array",
+            items: { type: "string" }
+          },
+          suggestionsList: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                weakness: { type: "string" },
+                suggestion: { type: "string" }
+              },
+              required: ["weakness", "suggestion"]
+            }
+          },
+          quickWins: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                impact: { type: "string", enum: ["High", "Medium", "Low"] },
+                action: { type: "string" },
+                estimatedTime: { type: "string" }
+              },
+              required: ["title", "impact", "action", "estimatedTime"]
+            }
+          },
+          keywords: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                keyword: { type: "string" },
+                count: { type: "integer" },
+                important: { type: "boolean" }
+              },
+              required: ["keyword", "count", "important"]
+            }
+          },
+          suggestedKeywords: {
+            type: "array",
+            items: { type: "string" }
+          },
+          detectedSkills: {
+            type: "array",
+            items: { type: "string" }
+          },
+          jdMatchScore: { type: "integer" },
+          missingSkills: {
+            type: "array",
+            items: { type: "string" }
+          }
+        },
+        required: [
+          "overallScore",
+          "atsScore",
+          "keywordMatchRate",
+          "verdict",
+          "detectedIndustry",
+          "experienceLevel",
+          "sections",
+          "strengths",
+          "weaknesses",
+          "suggestionsList",
+          "quickWins",
+          "keywords",
+          "suggestedKeywords",
+          "detectedSkills"
+        ]
+      }
+    }
   })
 
-  const content = response.choices[0]?.message?.content ?? ""
+  const content = response.text ?? ""
 
   let parsed: Omit<AnalysisResult, "fileName" | "analyzedAt">
   try {
-    // Strip markdown code fences if model wraps response
-    let cleaned = content.trim()
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?\s*```$/, "")
-    }
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error("No JSON found in AI response")
-    parsed = JSON.parse(jsonMatch[0])
+    const rawParsed = JSON.parse(jsonMatch[0])
+    
+    // Map suggestionsList back to suggestions Record<string, string>
+    const suggestions: Record<string, string> = {}
+    if (Array.isArray(rawParsed.suggestionsList)) {
+      for (const item of rawParsed.suggestionsList) {
+        if (item && typeof item === "object" && item.weakness) {
+          suggestions[item.weakness] = item.suggestion || ""
+        }
+      }
+    }
+    
+    parsed = {
+      ...rawParsed,
+      suggestions
+    }
+    delete (parsed as any).suggestionsList
   } catch {
     throw new Error("AI returned an invalid response. Please try again.")
   }
