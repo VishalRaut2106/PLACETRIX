@@ -2,19 +2,20 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { getUserProfile } from "@/lib/supabase/profile"
 
 export async function getPersonalNote(problemId: string, isDailyChallenge?: boolean) {
   const supabase = (await createClient()) as any
   
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { note: null, error: "Unauthorized" }
+  const profile = await getUserProfile()
+  if (!profile) return { note: null, error: "Unauthorized" }
 
   // Check if user has solved
   const submissionTable = isDailyChallenge ? "logiclab_daily_challenge_submissions" : "logiclab_problem_submissions"
   const { data: solvedData } = await supabase
     .from(submissionTable)
     .select("status")
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
     .eq("problem_id", problemId)
     .eq("status", "Accepted")
     .limit(1)
@@ -24,7 +25,7 @@ export async function getPersonalNote(problemId: string, isDailyChallenge?: bool
   const { data, error } = await supabase
     .from("logiclab_problem_notes")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
     .eq("problem_id", problemId)
     .maybeSingle()
 
@@ -44,13 +45,13 @@ export async function savePersonalNote(params: {
 }) {
   const supabase = (await createClient()) as any
   
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: "Unauthorized" }
+  const profile = await getUserProfile()
+  if (!profile) return { success: false, error: "Unauthorized" }
 
   const { error } = await supabase
     .from("logiclab_problem_notes")
     .upsert({
-      user_id: user.id,
+      user_id: profile.id,
       problem_id: params.problemId,
       content: params.content,
       is_public: params.isPublic,
@@ -68,15 +69,15 @@ export async function savePersonalNote(params: {
 export async function getCommunityNotes(problemId: string, isDailyChallenge?: boolean) {
   const supabase = (await createClient()) as any
   
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { notes: [], error: "Unauthorized" }
+  const profile = await getUserProfile()
+  if (!profile) return { notes: [], error: "Unauthorized" }
 
   // 1. Check if the user has solved this problem
   const submissionTable = isDailyChallenge ? "logiclab_daily_challenge_submissions" : "logiclab_problem_submissions"
   const { data: solvedData } = await supabase
     .from(submissionTable)
     .select("status")
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
     .eq("problem_id", problemId)
     .eq("status", "Accepted")
     .limit(1)
@@ -132,7 +133,7 @@ export async function getCommunityNotes(problemId: string, isDailyChallenge?: bo
   const { data: upvotesData } = await supabase
     .from("logiclab_problem_notes_upvotes")
     .select("note_id")
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
 
   const upvotedNoteIds = new Set(upvotesData?.map((u: any) => u.note_id) || [])
 
@@ -142,12 +143,12 @@ export async function getCommunityNotes(problemId: string, isDailyChallenge?: bo
 export async function toggleUpvote(noteId: string) {
   const supabase = (await createClient()) as any
   
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: "Unauthorized" }
+  const profile = await getUserProfile()
+  if (!profile) return { success: false, error: "Unauthorized" }
 
   const { data, error } = await supabase.rpc('toggle_note_upvote', {
     p_note_id: noteId,
-    p_user_id: user.id
+    p_user_id: profile.id
   })
 
   if (error) return { success: false, error: error.message }
@@ -156,15 +157,15 @@ export async function toggleUpvote(noteId: string) {
 
 export async function getSubmissionCode(submissionId: string, isDailyChallenge: boolean) {
   const supabase = (await createClient()) as any
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { code: null, error: "Unauthorized" }
+  const profile = await getUserProfile()
+  if (!profile) return { code: null, error: "Unauthorized" }
 
   const table = isDailyChallenge ? "logiclab_daily_challenge_submissions" : "logiclab_problem_submissions"
   const { data, error } = await supabase
     .from(table)
     .select("code, language_id")
     .eq("id", submissionId)
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
     .maybeSingle()
 
   if (error || !data) {

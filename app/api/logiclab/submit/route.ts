@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { getUserProfile } from "@/lib/supabase/profile"
 
 interface TestCaseResult {
   index: number
@@ -66,11 +67,11 @@ export async function POST(req: NextRequest) {
     const { problem_id, code, language_id, daily_challenge_id } = await req.json()
     const supabase = (await createClient()) as any
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const profile = await getUserProfile()
+    if (!profile) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
-    const user_id = user.id
+    const user_id = profile.id
 
     if (!problem_id || !code || !language_id) {
       return NextResponse.json(

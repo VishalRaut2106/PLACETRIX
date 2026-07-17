@@ -339,16 +339,5 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
  * refreshed the token during the same request lifecycle.
  */
 export async function getUserProfileAction() {
-  const supabase = await createClient();
-
-  // Only hit the Auth server if middleware has not already done so for this
-  // request. Calling getUser() on a just-refreshed token races with the
-  // browser receiving the new cookies and can produce refresh_token_already_used.
-  const head = await headers();
-  const wasRefreshedInMiddleware = head.get("x-supabase-refreshed") === "true";
-  if (!wasRefreshedInMiddleware) {
-    await supabase.auth.getUser();
-  }
-
   return await getUserProfile();
 }

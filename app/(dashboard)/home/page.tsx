@@ -123,11 +123,36 @@ export default async function HomePage() {
 
   // ── Candidate ──────────────────────────────────────────────────────────────
   if (profile.account_type === "institute_candidate") {
-    const { data: homeStatsData } = await (supabase as any).rpc("get_candidate_home_stats" as any, {
-      p_profile_id: profile.id,
-    });
+    const today = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(today.getTime() + istOffset);
+    const todayStr = istDate.toISOString().split("T")[0];
 
-    const candidateData = homeStatsData as unknown as CandidateStatsResponse;
+    const yesterdayDate = new Date(istDate.getTime() - (24 * 60 * 60 * 1000));
+    const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
+
+    const cutOffDate14Days = new Date(istDate.getTime() - (14 * 24 * 60 * 60 * 1000));
+    const cutOffStr14Days = cutOffDate14Days.toISOString().split("T")[0];
+
+    // Fetch stats, attempts, global stats, and daily challenge activity in parallel
+    const [homeStatsRes, testAttemptsRes, statsRes, allActivityRes] = await Promise.all([
+      (supabase as any).rpc("get_candidate_home_stats" as any, {
+        p_profile_id: profile.id,
+      }),
+      (supabase as any)
+        .from("test_attempts")
+        .select("percentage, score, total_marks, status, test_id")
+        .eq("candidate_id", profile.id)
+        .eq("status", "submitted"),
+      (supabase as any).rpc('get_user_global_stats', { p_user_id: profile.id }),
+      (supabase as any)
+        .from("logiclab_daily_challenge_user_activity")
+        .select("activity_date, submission_count, solved")
+        .eq("user_id", profile.id)
+        .order("activity_date", { ascending: true })
+    ]);
+
+    const candidateData = homeStatsRes.data as unknown as CandidateStatsResponse;
     const cp = candidateData?.profile || {};
     const stats = candidateData?.stats || {
       total_tests: 0,
@@ -136,12 +161,7 @@ export default async function HomePage() {
       completed_tests: 0,
     };
 
-    // 1. Fetch test attempts to get submitted count and average score
-    const { data: testAttempts } = await (supabase as any)
-      .from("test_attempts")
-      .select("percentage, score, total_marks, status, test_id")
-      .eq("candidate_id", profile.id)
-      .eq("status", "submitted");
+    const testAttempts = testAttemptsRes.data;
 
     let totalPercentage = 0;
     let validScoresCount = 0;
@@ -166,33 +186,17 @@ export default async function HomePage() {
       average_score: averageScore,
     };
 
-    // 2. Fetch LogicLab global statistics
-    const { data: statsData } = await (supabase as any).rpc('get_user_global_stats', { p_user_id: profile.id });
-    const globalStats = (statsData as any) || { 
+    const globalStats = (statsRes.data as any) || { 
       total: 0, solved: 0, 
       easy: { total: 0, solved: 0 }, 
       medium: { total: 0, solved: 0 }, 
       hard: { total: 0, solved: 0 } 
     };
 
-    // 3. Streaks calculation
-    const today = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(today.getTime() + istOffset);
-    const todayStr = istDate.toISOString().split("T")[0];
-
-    const yesterdayDate = new Date(istDate.getTime() - (24 * 60 * 60 * 1000));
-    const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
-
-    // Fetch all activity dates
-    const { data: streakRows } = await (supabase as any)
-      .from("logiclab_daily_challenge_user_activity")
-      .select("activity_date, solved")
-      .eq("user_id", profile.id)
-      .order("activity_date", { ascending: true });
+    const allActivityRows = allActivityRes.data;
 
     const allActiveDates = new Map<string, { solved: boolean }>();
-    for (const row of streakRows ?? []) {
+    for (const row of allActivityRows ?? []) {
       if (!row.activity_date) continue;
       allActiveDates.set(row.activity_date, { solved: !!row.solved });
     }
@@ -243,19 +247,12 @@ export default async function HomePage() {
     const streakStats = { currentStreak, maxStreak };
 
     // 4. 14-day Activity Calendar
-    const cutOffDate14Days = new Date(istDate.getTime() - (14 * 24 * 60 * 60 * 1000));
-    const cutOffStr14Days = cutOffDate14Days.toISOString().split("T")[0];
-
-    const { data: activityRows } = await (supabase as any)
-      .from("logiclab_daily_challenge_user_activity")
-      .select("activity_date, submission_count, solved")
-      .eq("user_id", profile.id)
-      .gte("activity_date", cutOffStr14Days)
-      .order("activity_date", { ascending: true });
+    const activityRows = (allActivityRows ?? []).filter(
+      (r: any) => r.activity_date && r.activity_date >= cutOffStr14Days
+    );
 
     const uniqueDatesWithStatus = new Map<string, { solved: boolean; attempted: boolean; count: number }>();
-    for (const row of activityRows ?? []) {
-      if (!row.activity_date) continue;
+    for (const row of activityRows) {
       const dateStr = row.activity_date;
       uniqueDatesWithStatus.set(dateStr, {
         solved: !!row.solved,
@@ -374,13 +371,17 @@ export default async function HomePage() {
     const stats = instituteData?.stats
 
     // Fetch the actual profile update state from profiles
-    const { data: instProfile } = await (supabase as any)
-      .from("profiles")
-      .select("profile_updated")
-      .eq("id", primaryProfileId)
-      .maybeSingle()
-
-    const hasBeenSaved = instProfile?.profile_updated === true
+    let hasBeenSaved = false
+    if (profile.account_type === "institute_primary") {
+      hasBeenSaved = profile.profile_updated === true
+    } else {
+      const { data: instProfile } = await (supabase as any)
+        .from("profiles")
+        .select("profile_updated")
+        .eq("id", primaryProfileId)
+        .maybeSingle()
+      hasBeenSaved = instProfile?.profile_updated === true
+    }
     const profileReady = hasBeenSaved
 
     const profileSubtitle = !hasBeenSaved

@@ -158,7 +158,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   //     it yet (currentLevel=aal1), redirect to the TOTP challenge page.
   //     This covers BOTH password logins and Google OAuth logins.
   //     getAuthenticatorAssuranceLevel() is documented as "very fast, rarely uses network."
-  if (isProtected(pathname) && user && request.method === "GET") {
+  if (isProtected(pathname) && user && request.method === "GET" && (user as any).aal !== "aal2") {
     const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2") {
       const mfaUrl = request.nextUrl.clone();
