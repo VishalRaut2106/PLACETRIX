@@ -15,6 +15,8 @@ interface SearchParams {
   size?: string
   search?: string
   role?: string
+  courseId?: string
+  passoutYear?: string
   sortBy?: string
   sortOrder?: string
 }
@@ -32,10 +34,17 @@ export default async function UsersPage(props: {
   const size = Math.max(1, parseInt(params.size || "10", 10))
   const search = params.search || ""
   const role = params.role || "all"
+  const courseId = params.courseId || "all"
+  const passoutYear = params.passoutYear || "all"
   const sortBy = params.sortBy || "created"
   const sortOrder = params.sortOrder || "desc"
 
   const supabase = await createClient()
+
+  const hasAcademicFilter = courseId !== "all" || passoutYear !== "all"
+  const academicRelation = hasAcademicFilter
+    ? "candidate_academic_details!inner"
+    : "candidate_academic_details"
 
   let query = (supabase as any)
     .from("profiles")
@@ -47,7 +56,8 @@ export default async function UsersPage(props: {
       account_type,
       avatar_path,
       created_at,
-      candidate_academic_details (
+      ${academicRelation} (
+        course_id,
         passout_year,
         university_prn,
         course:institute_courses (
@@ -61,6 +71,19 @@ export default async function UsersPage(props: {
   // Role Filter
   if (role !== "all") {
     query = query.eq("account_type", role)
+  }
+
+  // Course Filter
+  if (courseId !== "all") {
+    query = query.eq("candidate_academic_details.course_id", courseId)
+  }
+
+  // Passout Year Filter
+  if (passoutYear !== "all") {
+    const yearNum = parseInt(passoutYear, 10)
+    if (!isNaN(yearNum)) {
+      query = query.eq("candidate_academic_details.passout_year", yearNum)
+    }
   }
 
   // Search Filter
@@ -140,6 +163,8 @@ export default async function UsersPage(props: {
         initialPageSize={size}
         initialSearch={search}
         initialRole={role}
+        initialCourseId={courseId}
+        initialPassoutYear={passoutYear}
         initialSortCol={sortBy as any}
         initialSortDir={sortOrder as any}
       />

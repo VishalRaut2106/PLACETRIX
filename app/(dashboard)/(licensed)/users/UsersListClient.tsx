@@ -80,6 +80,8 @@ interface Props {
   initialPageSize: number
   initialSearch: string
   initialRole: string
+  initialCourseId?: string
+  initialPassoutYear?: string
   initialSortCol: SortColumn
   initialSortDir: "asc" | "desc"
 }
@@ -137,6 +139,8 @@ export function UsersListClient({
   initialPageSize,
   initialSearch,
   initialRole,
+  initialCourseId = "all",
+  initialPassoutYear = "all",
   initialSortCol,
   initialSortDir,
 }: Props) {
@@ -207,7 +211,39 @@ export function UsersListClient({
   }, [searchInput, initialSearch])
 
   const handleRoleFilterChange = (val: string) => {
-    updateParams({ role: val, page: 1 })
+    if (val === "institute_staff" || val === "institute_placement_officer") {
+      updateParams({ role: val, courseId: "", passoutYear: "", page: 1 })
+    } else {
+      updateParams({ role: val, page: 1 })
+    }
+  }
+
+  const handleCourseFilterChange = (val: string) => {
+    updateParams({ courseId: val === "all" ? "" : val, page: 1 })
+  }
+
+  const handlePassoutYearFilterChange = (val: string) => {
+    updateParams({ passoutYear: val === "all" ? "" : val, page: 1 })
+  }
+
+  const isFilterActive =
+    Boolean(searchInput.trim()) ||
+    initialRole !== "all" ||
+    (initialCourseId && initialCourseId !== "all") ||
+    (initialPassoutYear && initialPassoutYear !== "all")
+
+  const isNonCandidateRole = initialRole !== "all" && initialRole !== "institute_candidate"
+
+  const handleClearFilters = () => {
+    isOwnUpdateRef.current = true
+    setSearchInput("")
+    updateParams({
+      search: "",
+      role: "all",
+      courseId: "",
+      passoutYear: "",
+      page: 1,
+    })
   }
 
   const handlePageSizeChange = (val: string) => {
@@ -276,13 +312,14 @@ export function UsersListClient({
 
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 9 }, (_, i) => currentYear - 2 + i)
+  const filterYears = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
 
   return (
     <div className="space-y-4">
       {/* Search and Filters Header */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row w-full sm:max-w-2xl gap-3 items-center">
-          <div className="relative w-full sm:flex-1">
+      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row w-full xl:w-auto flex-1 gap-3 items-stretch sm:items-center flex-wrap">
+          <div className="relative w-full sm:w-64 shrink-0">
             {isPending ? (
               <Loader2 className="absolute left-2.5 top-2.5 size-4 text-muted-foreground animate-spin" />
             ) : (
@@ -310,9 +347,10 @@ export function UsersListClient({
             )}
           </div>
 
-          <div className="w-full sm:w-48">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto flex-1 max-w-2xl">
+            {/* Roles Filter */}
             <Select value={initialRole} onValueChange={handleRoleFilterChange}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
@@ -322,11 +360,62 @@ export function UsersListClient({
                 <SelectItem value="institute_placement_officer">Placement Officers (TPO)</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Course Filter */}
+            <Select
+              value={initialCourseId}
+              onValueChange={handleCourseFilterChange}
+              disabled={isNonCandidateRole}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Courses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Courses</SelectItem>
+                {courses.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.course_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Passout Year Filter */}
+            <Select
+              value={initialPassoutYear}
+              onValueChange={handlePassoutYearFilterChange}
+              disabled={isNonCandidateRole}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All Passout Years" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Passout Years</SelectItem>
+                {filterYears.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Clear Filters Button */}
+          {isFilterActive && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-9 px-2 sm:px-3 text-xs text-muted-foreground hover:text-foreground shrink-0 gap-1.5 self-start sm:self-auto"
+            >
+              <X className="size-3.5" />
+              <span>Clear filters</span>
+            </Button>
+          )}
         </div>
 
         {/* Creation Button */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-3 w-full xl:w-auto justify-end shrink-0">
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 shadow-xs shrink-0 text-xs py-1.5 h-8">
