@@ -333,12 +333,11 @@ export function CandidatePublicProfileView({
         <SectionCard icon={GraduationCap} title="Education">
           <div className="space-y-5">
             {/* Current Course */}
-            {(publicData.course_name || publicData.passout_year || publicData.university_prn) && (
+            {(publicData.course_name || publicData.passout_year) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <InfoRow label="Course / Branch" value={publicData.course_name} />
                 <InfoRow label="Institute" value={publicData.institute_name} />
                 <InfoRow label="Expected Graduation" value={publicData.passout_year ? String(publicData.passout_year) : null} />
-                <InfoRow label="University PRN" value={publicData.university_prn} />
               </div>
             )}
 
