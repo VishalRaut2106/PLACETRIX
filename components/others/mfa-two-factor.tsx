@@ -20,7 +20,11 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { OTPInput } from "@/components/others/otp-input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 import {
   AlertDialog,
@@ -420,18 +424,29 @@ export function MfaTwoFactor() {
                   </p>
 
                   <div className="flex flex-col gap-2.5">
-                    <OTPInput
-                      value={verifyCode}
-                      onChange={(v) => {
-                        setVerifyCode(v);
-                        if (verifyError) setVerifyError(null);
-                        if (v.length === 6 && !isVerifying) {
-                          handleVerify(v);
-                        }
-                      }}
-                      disabled={isVerifying}
-                      className="py-1 sm:justify-start"
-                    />
+                    <div className="flex justify-center sm:justify-start py-1">
+                      <InputOTP
+                        maxLength={6}
+                        value={verifyCode}
+                        onChange={(v) => {
+                          setVerifyCode(v);
+                          if (verifyError) setVerifyError(null);
+                          if (v.length === 6 && !isVerifying) {
+                            handleVerify(v);
+                          }
+                        }}
+                        disabled={isVerifying}
+                      >
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
                     {verifyError && (
                       <p className="text-xs text-destructive text-center rounded-md bg-destructive/10 px-3 py-2 font-medium animate-in fade-in zoom-in-95 duration-150">
                         {verifyError}

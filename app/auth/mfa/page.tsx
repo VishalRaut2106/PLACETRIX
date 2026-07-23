@@ -13,9 +13,13 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { OTPInput } from "@/components/others/otp-input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import { Loader2Icon, LogOutIcon, ShieldCheckIcon } from "lucide-react";
+import { Loader2Icon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function MfaPage() {
@@ -71,6 +75,16 @@ function MfaContent() {
     try {
       const supabase = createClient();
 
+      // Ensure session is synchronized from storage/cookies after app-switching on mobile
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr || !refreshData?.session) {
+          setError("Your session expired. Please sign in again.");
+          return;
+        }
+      }
+
       // 1. Get the enrolled TOTP factor
       const { data: factorsData, error: listErr } =
         await supabase.auth.mfa.listFactors();
@@ -99,10 +113,17 @@ function MfaContent() {
       router.push(safeNext);
       router.refresh();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Invalid code. Please try again."
-      );
-      setCode("");
+      const msg =
+        err instanceof Error ? err.message : "Invalid code. Please try again.";
+      if (
+        msg.toLowerCase().includes("auth session missing") ||
+        msg.toLowerCase().includes("session")
+      ) {
+        setError("Your session expired. Please sign in again.");
+      } else {
+        setError(msg);
+        setCode("");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,34 +139,41 @@ function MfaContent() {
 
   return (
     <div className="mx-auto space-y-6 sm:w-sm">
-      {/* Icon + Title */}
-      <div className="flex flex-col space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-          <ShieldCheckIcon className="h-6 w-6 text-primary" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-cirka font-bold text-2xl tracking-wide">
-            Two-Factor Authentication
-          </h1>
-          <p className="text-base text-muted-foreground">
-            Enter the 6-digit code from your authenticator app to continue.
-          </p>
-        </div>
+      {/* Title */}
+      <div className="flex flex-col space-y-1">
+        <h1 className="font-cirka font-bold text-2xl tracking-wide">
+          Two-Factor Authentication
+        </h1>
+        <p className="text-base text-muted-foreground">
+          Enter the 6-digit code from your authenticator app to continue.
+        </p>
       </div>
 
       {/* Form */}
       <form className="space-y-4" onSubmit={handleVerify}>
-        <OTPInput
-          value={code}
-          onChange={(v) => {
-            setCode(v);
-            if (error) setError(null);
-            if (v.length === 6 && !isLoading) {
-              handleVerify(undefined, v);
-            }
-          }}
-          disabled={isLoading}
-        />
+        <div className="flex justify-center">
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={(v) => {
+              setCode(v);
+              if (error) setError(null);
+              if (v.length === 6 && !isLoading) {
+                handleVerify(undefined, v);
+              }
+            }}
+            disabled={isLoading}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
 
         {error && (
           <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">

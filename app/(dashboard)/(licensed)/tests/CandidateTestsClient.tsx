@@ -15,18 +15,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Card } from "@/components/ui/card"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardAction,
+  CardContent,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia } from "@/components/ui/empty"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   CalendarClock,
   PlayCircle,
@@ -39,7 +46,8 @@ import {
   X,
   Loader2,
   SlidersHorizontal,
-  ChevronRight,
+  ExternalLink,
+  Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CandidateTest, DerivedCandidateStatus } from "./_types"
@@ -76,91 +84,9 @@ export function formatDateTime(dt?: string): string {
 
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: DerivedCandidateStatus }) {
-  if (status === "live") {
-    return (
-      <Badge className="gap-1 border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 text-[11px] px-2 py-0.5">
-        Live
-      </Badge>
-    )
-  }
-
-  if (status === "upcoming") {
-    return (
-      <Badge className="gap-1 border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300 text-[11px] px-2 py-0.5">
-        <CalendarClock className="h-3 w-3" />
-        Upcoming
-      </Badge>
-    )
-  }
-
-  return (
-    <Badge
-      className="gap-1 border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300 text-[11px] px-2 py-0.5"
-    >
-      <CheckCircle2 className="h-3 w-3" />
-      Ended
-    </Badge>
-  )
-}
-
-function StatChip({
-  icon,
-  children,
-  tone = "neutral",
-}: {
-  icon: React.ReactNode
-  children: React.ReactNode
-  tone?: "neutral" | "sky" | "emerald" | "amber" | "violet" | "rose"
-}) {
-  const tones = {
-    neutral:
-      "border-border/60 bg-muted/50 text-muted-foreground hover:bg-muted/50",
-    sky:
-      "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-50 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300",
-    emerald:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300",
-    amber:
-      "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300",
-    violet:
-      "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-50 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300",
-    rose:
-      "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300",
-  } as const
-
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "gap-1.5 px-2.5 py-1 text-[11px] font-medium transition-colors shrink-0",
-        tones[tone]
-      )}
-    >
-      {icon}
-      <span className="truncate">{children}</span>
-    </Badge>
-  )
-}
-
-function AttemptStatusChip({ test }: { test: CandidateTest }) {
+function TestStatusBadge({ test }: { test: CandidateTest }) {
   const isSubmitted = test.attempt?.status === "submitted"
   const isInProgress = test.attempt?.status === "in_progress"
-
-  if (test.derived_status === "past" && !test.attempt) {
-    return (
-      <StatChip icon={<AlertCircle className="h-3.5 w-3.5" />} tone="neutral">
-        Not attempted
-      </StatChip>
-    )
-  }
-
-  if (isInProgress) {
-    return (
-      <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone="amber">
-        In progress
-      </StatChip>
-    )
-  }
 
   if (isSubmitted && test.attempt) {
     const hasScore = test.results_available && test.attempt.percentage != null
@@ -168,164 +94,158 @@ function AttemptStatusChip({ test }: { test: CandidateTest }) {
       ? `Submitted: ${test.attempt.score}/${test.attempt.total_marks} (${(test.attempt.percentage ?? 0).toFixed(1)}%)`
       : "Submitted"
     return (
-      <StatChip icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="neutral">
+      <Badge variant="secondary" className="gap-1">
+        <CheckCircle2 />
         {label}
-      </StatChip>
+      </Badge>
+    )
+  }
+
+  if (isInProgress) {
+    return (
+      <Badge variant="warning" className="gap-1">
+        <Clock />
+        In progress
+      </Badge>
     )
   }
 
   if (test.derived_status === "live") {
     return (
-      <StatChip icon={<PlayCircle className="h-3.5 w-3.5" />} tone="emerald">
-        Available
-      </StatChip>
+      <Badge variant="success" className="gap-1">
+        <PlayCircle />
+        Live
+      </Badge>
     )
   }
 
-  return null
-}
-
-function renderMobileAttemptStatus(test: CandidateTest) {
-  const isSubmitted = test.attempt?.status === "submitted"
-  const isInProgress = test.attempt?.status === "in_progress"
-
-  if (test.derived_status === "past" && !test.attempt) {
-    return <span className="text-muted-foreground font-medium">Not attempted</span>
+  if (test.derived_status === "upcoming") {
+    return (
+      <Badge variant="info" className="gap-1">
+        <CalendarClock />
+        Upcoming
+      </Badge>
+    )
   }
 
-  if (isInProgress) {
-    return <span className="text-amber-600 dark:text-amber-400 font-medium">In progress</span>
-  }
-
-  if (isSubmitted && test.attempt) {
-    const hasScore = test.results_available && test.attempt.percentage != null
-    const label = hasScore
-      ? `Submitted: ${test.attempt.score}/${test.attempt.total_marks}`
-      : "Submitted"
-    return <span className="text-muted-foreground font-medium">{label}</span>
-  }
-
-  if (test.derived_status === "live") {
-    return <span className="text-emerald-600 dark:text-emerald-400 font-medium">Available</span>
-  }
-
-  return null
+  return (
+    <Badge variant="secondary" className="gap-1">
+      <AlertCircle />
+      Ended
+    </Badge>
+  )
 }
 
 function TestCard({ test }: { test: CandidateTest }) {
-  return (
-    <Card className="overflow-hidden border-border/70 bg-card p-0 shadow-xs">
-      <Link 
-        href={`tests/${test.id}`}
-        className="block hover:bg-muted/30 transition-colors"
-      >
-        {/* Mobile Compact View */}
-        <div className="block md:hidden p-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-center gap-2 w-full min-w-0">
-                <h4 className="font-semibold text-sm text-foreground truncate leading-snug min-w-0 flex-1">
-                  {test.title}
-                </h4>
-                <div className="shrink-0">
-                  <StatusBadge status={test.derived_status} />
-                </div>
-              </div>
-              
-              <p className={cn(
-                "text-xs line-clamp-1",
-                test.description ? "text-muted-foreground" : "italic text-muted-foreground/60"
-              )}>
-                {test.description ?? "No description provided"}
-              </p>
+  const isSubmitted = test.attempt?.status === "submitted"
+  const isInProgress = test.attempt?.status === "in_progress"
 
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3 shrink-0" />
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/tests/${test.id}`
+      navigator.clipboard.writeText(url)
+    }
+  }
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Card className="p-0 gap-0 overflow-hidden hover:bg-muted/50 transition-colors">
+          <Link href={`tests/${test.id}`} className="block">
+            <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4">
+              <CardTitle className="font-semibold truncate">
+                {test.title}
+              </CardTitle>
+              <CardDescription className="line-clamp-2 text-muted-foreground/80">
+                {test.description ?? "No description provided"}
+              </CardDescription>
+              <CardAction>
+                <TestStatusBadge test={test} />
+              </CardAction>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                   {test.time_limit_seconds ? formatDuration(test.time_limit_seconds) : "Untimed"}
                 </span>
-                <span>•</span>
+
                 {test.derived_status === "upcoming" && test.available_from && (
-                  <>
-                    <span>Opens: {formatDateTime(test.available_from)}</span>
-                    <span>•</span>
-                  </>
+                  <span className="flex items-center gap-1.5">
+                    <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                    Starts: {formatDateTime(test.available_from)}
+                  </span>
                 )}
-                {test.derived_status === "live" && (
-                  <>
-                    <span>Ends: {test.available_until ? formatDateTime(test.available_until) : "No deadline"}</span>
-                    <span>•</span>
-                  </>
-                )}
+
+                {test.derived_status === "live" &&
+                  (test.available_until ? (
+                    <span className="flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                      Ends: {formatDateTime(test.available_until)}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                      No deadline
+                    </span>
+                  ))}
+
                 {test.derived_status === "past" && test.available_until && (
-                  <>
-                    <span>Ended: {formatDateTime(test.available_until)}</span>
-                    <span>•</span>
-                  </>
+                  <span className="flex items-center gap-1.5">
+                    <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                    Ended: {formatDateTime(test.available_until)}
+                  </span>
                 )}
-                {renderMobileAttemptStatus(test)}
               </div>
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Link>
+        </Card>
+      </ContextMenuTrigger>
 
-        {/* Desktop Card View */}
-        <div className="hidden md:flex flex-row items-center justify-between gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 w-full min-w-0">
-              <h3 className="min-w-0 flex-1 text-base font-semibold leading-tight text-foreground truncate">
-                {test.title}
-              </h3>
-              <div className="shrink-0">
-                <StatusBadge status={test.derived_status} />
-              </div>
-            </div>
+      <ContextMenuContent>
+        <ContextMenuItem asChild>
+          <Link href={`tests/${test.id}`}>
+            <ExternalLink />
+            Open Details
+          </Link>
+        </ContextMenuItem>
 
-            <p className={cn(
-              "mt-1 line-clamp-1 text-xs leading-5",
-              test.description ? "text-muted-foreground" : "italic text-muted-foreground/60"
-            )}>
-              {test.description ?? "No description provided"}
-            </p>
+        {isInProgress && (
+          <ContextMenuItem asChild>
+            <Link href={`tests/${test.id}`}>
+              <Clock />
+              Resume Test
+            </Link>
+          </ContextMenuItem>
+        )}
 
-            <div className="mt-3 flex flex-wrap gap-2">
-              <StatChip
-                icon={<Clock className="h-3.5 w-3.5" />}
-                tone="neutral"
-              >
-                {test.time_limit_seconds ? formatDuration(test.time_limit_seconds) : "Untimed"}
-              </StatChip>
+        {isSubmitted && (
+          <ContextMenuItem asChild>
+            <Link href={`tests/${test.id}`}>
+              <FileText />
+              View Results
+            </Link>
+          </ContextMenuItem>
+        )}
 
-              {test.derived_status === "upcoming" && test.available_from && (
-                <StatChip icon={<CalendarClock className="h-3.5 w-3.5" />} tone="neutral">
-                  Starts: {formatDateTime(test.available_from)}
-                </StatChip>
-              )}
+        {!isSubmitted && !isInProgress && test.derived_status === "live" && (
+          <ContextMenuItem asChild>
+            <Link href={`tests/${test.id}`}>
+              <PlayCircle />
+              Start Test
+            </Link>
+          </ContextMenuItem>
+        )}
 
-              {test.derived_status === "live" && (
-                test.available_until ? (
-                  <StatChip icon={<CalendarClock className="h-3.5 w-3.5" />} tone="neutral">
-                    Ends: {formatDateTime(test.available_until)}
-                  </StatChip>
-                ) : (
-                  <StatChip icon={<CalendarClock className="h-3.5 w-3.5" />} tone="neutral">
-                    No deadline
-                  </StatChip>
-                )
-              )}
+        <ContextMenuSeparator />
 
-              {test.derived_status === "past" && test.available_until && (
-                <StatChip icon={<CalendarClock className="h-3.5 w-3.5" />} tone="neutral">
-                  Ended: {formatDateTime(test.available_until)}
-                </StatChip>
-              )}
-
-              <AttemptStatusChip test={test} />
-            </div>
-          </div>
-        </div>
-      </Link>
-    </Card>
+        <ContextMenuItem onClick={handleCopyLink}>
+          <Copy />
+          Copy Direct Link
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 

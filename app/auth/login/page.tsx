@@ -29,22 +29,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { OTPInput } from "@/components/others/otp-input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AtSignIcon,
   EyeIcon,
   EyeOffIcon,
   Loader2Icon,
-  LockIcon,
-  MailIcon,
-  ShieldCheckIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleOneTap } from "@/components/auth/google-one-tap";
@@ -273,65 +274,92 @@ function LoginContent() {
     }
   };
 
+  const handleMfaVerify = async (e?: React.FormEvent, tokenOverride?: string) => {
+    if (e) e.preventDefault();
+    const tokenToVerify = tokenOverride ?? otp;
+    if (tokenToVerify.length < 6) {
+      setError("Please enter the full 6-digit code.");
+      return;
+    }
+    setError(null);
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+
+      // Ensure session is synchronized from storage/cookies after app-switching on mobile
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr || !refreshData?.session) {
+          setError("Your session expired while switching apps. Please sign in again.");
+          return;
+        }
+      }
+
+      const { data: factorsData, error: listErr } = await supabase.auth.mfa.listFactors();
+      if (listErr) throw listErr;
+      const totpFactor = factorsData.totp.find((f: any) => f.status === "verified");
+      if (!totpFactor) { router.push(next); router.refresh(); return; }
+      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
+      if (challengeErr) throw challengeErr;
+      const { error: verifyErr } = await supabase.auth.mfa.verify({ factorId: totpFactor.id, challengeId: challengeData.id, code: tokenToVerify });
+      if (verifyErr) throw verifyErr;
+      router.push(next);
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid code. Please try again.";
+      if (msg.toLowerCase().includes("auth session missing") || msg.toLowerCase().includes("session")) {
+        setError("Your session expired while switching apps. Please sign in again.");
+      } else {
+        setError(msg);
+        setOtp("");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ── MFA Challenge screen ───────────────────────────────────────────────────
   if (pageState === "mfa-challenge") {
     return (
       <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <ShieldCheckIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">Two-Factor Authentication</h1>
-            <p className="text-base text-muted-foreground">
-              Enter the 6-digit code from your authenticator app.
-            </p>
-          </div>
+        <div className="flex flex-col space-y-1">
+          <h1 className="font-cirka font-bold text-2xl tracking-wide">Two-Factor Authentication</h1>
+          <p className="text-base text-muted-foreground">
+            Enter the 6-digit code from your authenticator app.
+          </p>
         </div>
 
         <form
-          id="mfa-form"
           className="space-y-4"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (otp.length < 6) { setError("Please enter the full 6-digit code."); return; }
-            setError(null);
-            setIsLoading(true);
-            try {
-              const supabase = createClient();
-              const { data: factorsData, error: listErr } = await supabase.auth.mfa.listFactors();
-              if (listErr) throw listErr;
-              const totpFactor = factorsData.totp.find((f: any) => f.status === "verified");
-              if (!totpFactor) { router.push(next); router.refresh(); return; }
-              const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
-              if (challengeErr) throw challengeErr;
-              const { error: verifyErr } = await supabase.auth.mfa.verify({ factorId: totpFactor.id, challengeId: challengeData.id, code: otp });
-              if (verifyErr) throw verifyErr;
-              router.push(next);
-              router.refresh();
-            } catch (err: unknown) {
-              setError(err instanceof Error ? err.message : "Invalid code. Please try again.");
-              setOtp("");
-            } finally {
-              setIsLoading(false);
-            }
-          }}
+          onSubmit={handleMfaVerify}
         >
-          <OTPInput
-            value={otp}
-            onChange={(v) => {
-              setOtp(v);
-              if (v.length === 6 && !isLoading) {
-                // Trigger form submission on 6th digit
-                const formEl = document.getElementById("mfa-form") as HTMLFormElement;
-                if (formEl) formEl.requestSubmit();
-              }
-            }}
-            disabled={isLoading}
-          />
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (error) setError(null);
+                if (v.length === 6 && !isLoading) {
+                  handleMfaVerify(undefined, v);
+                }
+              }}
+              disabled={isLoading}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
 
           {error && (
-            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
+            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
               {error}
             </p>
           )}
@@ -368,32 +396,39 @@ function LoginContent() {
   if (pageState === "otp-entry") {
     return (
       <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <MailIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">
-              Confirm Your Email
-            </h1>
-            <p className="text-base text-muted-foreground">
-              Your email isn&apos;t confirmed yet. We sent a 6-digit code to{" "}
-              <span className="font-medium text-foreground">{email}</span>.
-            </p>
-          </div>
+        <div className="flex flex-col space-y-1">
+          <h1 className="font-cirka font-bold text-2xl tracking-wide">
+            Confirm Your Email
+          </h1>
+          <p className="text-base text-muted-foreground">
+            Your email isn&apos;t confirmed yet. We sent a 6-digit code to{" "}
+            <span className="font-medium text-foreground">{email}</span>.
+          </p>
         </div>
 
         <form className="space-y-4" onSubmit={handleVerifyOtp}>
-          <OTPInput
-            value={otp}
-            onChange={(v) => {
-              setOtp(v);
-              if (v.length === 6 && !isLoading) {
-                handleVerifyOtp(undefined, v);
-              }
-            }}
-            disabled={isLoading}
-          />
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (v.length === 6 && !isLoading) {
+                  handleVerifyOtp(undefined, v);
+                }
+              }}
+              disabled={isLoading}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
 
           {error && (
             <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
@@ -418,10 +453,8 @@ function LoginContent() {
         </form>
 
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <MailIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              Didn&apos;t receive it?{" "}
+          <span>
+            Didn&apos;t receive it?{" "}
               {resendCooldown > 0 ? (
                 <span>Resend in {resendCooldown}s</span>
               ) : (
@@ -435,8 +468,7 @@ function LoginContent() {
                 </button>
               )}{" "}
               or check your spam folder.
-            </span>
-          </div>
+          </span>
         </div>
 
         <button
@@ -526,21 +558,16 @@ function LoginContent() {
               : "Enter your email to receive a secure login link"}
           </p>
 
-          <InputGroup>
-            <InputGroupInput
-              autoFocus
-              placeholder="your.email@example.com"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading || isGoogleLoading}
-            />
-            <InputGroupAddon align="inline-start">
-              <AtSignIcon />
-            </InputGroupAddon>
-          </InputGroup>
+          <Input
+            autoFocus
+            placeholder="your.email@example.com"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading || isGoogleLoading}
+          />
 
           {loginMethod === "password" && (
             <InputGroup>
@@ -553,9 +580,6 @@ function LoginContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading || isGoogleLoading}
               />
-              <InputGroupAddon align="inline-start">
-                <LockIcon />
-              </InputGroupAddon>
               <InputGroupAddon
                 align="inline-end"
                 className="cursor-pointer"

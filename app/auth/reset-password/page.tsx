@@ -24,20 +24,21 @@ import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { OTPInput } from "@/components/others/otp-input";
 import {
-  AtSignIcon,
-  CheckCircleIcon,
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import {
   EyeIcon,
   EyeOffIcon,
   Loader2Icon,
-  LockIcon,
-  MailIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -181,19 +182,14 @@ export default function ResetPasswordPage() {
   if (pageState === "success") {
     return (
       <div className="mx-auto space-y-4 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-            <CheckCircleIcon className="h-6 w-6 text-green-500" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">
-              Password Updated!
-            </h1>
-            <p className="text-base text-muted-foreground">
-              Your password has been reset successfully. Sign in with your new
-              password to continue.
-            </p>
-          </div>
+        <div className="flex flex-col space-y-1">
+          <h1 className="font-cirka font-bold text-2xl tracking-wide">
+            Password Updated!
+          </h1>
+          <p className="text-base text-muted-foreground">
+            Your password has been reset successfully. Sign in with your new
+            password to continue.
+          </p>
         </div>
         <Button asChild className="w-full cursor-pointer">
           <Link href="/auth/login">Sign In</Link>
@@ -222,9 +218,6 @@ export default function ResetPasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <InputGroupAddon align="inline-start">
-              <LockIcon />
-            </InputGroupAddon>
             <InputGroupAddon
               align="inline-end"
               className="cursor-pointer"
@@ -243,9 +236,6 @@ export default function ResetPasswordPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            <InputGroupAddon align="inline-start">
-              <LockIcon />
-            </InputGroupAddon>
             <InputGroupAddon
               align="inline-end"
               className="cursor-pointer"
@@ -284,31 +274,38 @@ export default function ResetPasswordPage() {
   if (pageState === "otp-entry") {
     return (
       <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <MailIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">
-              Enter Reset Code
-            </h1>
-            <p className="text-base text-muted-foreground">
-              We sent a 6-digit code to{" "}
-              <span className="font-medium text-foreground">{email}</span>
-            </p>
-          </div>
+        <div className="flex flex-col space-y-1">
+          <h1 className="font-cirka font-bold text-2xl tracking-wide">
+            Enter Reset Code
+          </h1>
+          <p className="text-base text-muted-foreground">
+            We sent a 6-digit code to{" "}
+            <span className="font-medium text-foreground">{email}</span>
+          </p>
         </div>
         <form className="space-y-4" onSubmit={handleVerifyOtp}>
-          <OTPInput
-            value={otp}
-            onChange={(v) => {
-              setOtp(v);
-              if (v.length === 6 && !isLoading) {
-                handleVerifyOtp(undefined, v);
-              }
-            }}
-            disabled={isLoading}
-          />
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (v.length === 6 && !isLoading) {
+                  handleVerifyOtp(undefined, v);
+                }
+              }}
+              disabled={isLoading}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
 
           {error && (
             <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
@@ -333,10 +330,8 @@ export default function ResetPasswordPage() {
         </form>
 
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <MailIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              Didn&apos;t receive it?{" "}
+          <span>
+            Didn&apos;t receive it?{" "}
               {resendCooldown > 0 ? (
                 <span>Resend in {resendCooldown}s</span>
               ) : (
@@ -349,8 +344,7 @@ export default function ResetPasswordPage() {
                 </button>
               )}{" "}
               or check your spam folder.
-            </span>
-          </div>
+          </span>
         </div>
 
         <button
@@ -378,20 +372,15 @@ export default function ResetPasswordPage() {
         </p>
       </div>
       <form className="space-y-4" onSubmit={handleSendEmail}>
-        <InputGroup>
-          <InputGroupInput
-            autoFocus
-            placeholder="your.email@example.com"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <InputGroupAddon align="inline-start">
-            <AtSignIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <Input
+          autoFocus
+          placeholder="your.email@example.com"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         {error && (
           <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">

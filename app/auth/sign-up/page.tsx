@@ -17,20 +17,22 @@ import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { OTPInput } from "@/components/others/otp-input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Separator } from "@/components/ui/separator";
 import {
-  AtSignIcon,
   EyeIcon,
   EyeOffIcon,
   Loader2Icon,
-  LockIcon,
-  MailIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleOneTap } from "@/components/auth/google-one-tap";
@@ -213,30 +215,37 @@ function SignUpContent() {
   if (pageState === "otp-entry") {
     return (
       <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <MailIcon className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">Confirm Your Email</h1>
-            <p className="text-base text-muted-foreground">
-              We sent a 6-digit confirmation code to{" "}
-              <span className="font-medium text-foreground">{email}</span>.
-              Enter it below to activate your account.
-            </p>
-          </div>
+        <div className="flex flex-col space-y-1">
+          <h1 className="font-cirka font-bold text-2xl tracking-wide">Confirm Your Email</h1>
+          <p className="text-base text-muted-foreground">
+            We sent a 6-digit confirmation code to{" "}
+            <span className="font-medium text-foreground">{email}</span>.
+            Enter it below to activate your account.
+          </p>
         </div>
         <form className="space-y-4" onSubmit={handleVerifyOtp}>
-          <OTPInput
-            value={otp}
-            onChange={(v) => {
-              setOtp(v);
-              if (v.length === 6 && !isLoading) {
-                handleVerifyOtp(undefined, v);
-              }
-            }}
-            disabled={isLoading}
-          />
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={(v) => {
+                setOtp(v);
+                if (v.length === 6 && !isLoading) {
+                  handleVerifyOtp(undefined, v);
+                }
+              }}
+              disabled={isLoading}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
 
           {error && (
             <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
@@ -261,10 +270,8 @@ function SignUpContent() {
         </form>
 
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <MailIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              Didn&apos;t receive it?{" "}
+          <span>
+            Didn&apos;t receive it?{" "}
               {resendCooldown > 0 ? (
                 <span>Resend in {resendCooldown}s</span>
               ) : (
@@ -278,8 +285,7 @@ function SignUpContent() {
                 </button>
               )}{" "}
               or check your spam folder.
-            </span>
-          </div>
+          </span>
         </div>
 
         <button
@@ -334,21 +340,16 @@ function SignUpContent() {
           Fill in your details to create an account
         </p>
 
-        <InputGroup>
-          <InputGroupInput
-            autoFocus
-            placeholder="your.email@example.com"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading || isGoogleLoading}
-          />
-          <InputGroupAddon align="inline-start">
-            <AtSignIcon />
-          </InputGroupAddon>
-        </InputGroup>
+        <Input
+          autoFocus
+          placeholder="your.email@example.com"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isLoading || isGoogleLoading}
+        />
 
         <InputGroup>
           <InputGroupInput
@@ -360,9 +361,6 @@ function SignUpContent() {
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading || isGoogleLoading}
           />
-          <InputGroupAddon align="inline-start">
-            <LockIcon />
-          </InputGroupAddon>
           <InputGroupAddon
             align="inline-end"
             className="cursor-pointer"
@@ -432,9 +430,6 @@ function SignUpContent() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isLoading || isGoogleLoading}
           />
-          <InputGroupAddon align="inline-start">
-            <LockIcon />
-          </InputGroupAddon>
           <InputGroupAddon
             align="inline-end"
             className="cursor-pointer"
