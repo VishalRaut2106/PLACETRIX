@@ -15,12 +15,13 @@ import {
   Globe, Linkedin, Github, Mail, AtSign, Tag, Building2,
   CalendarDays, Hash, BarChart3, BookOpen, Flame, Trophy,
   Target, Code2, Brain, Zap, CheckCircle2, Activity, Sparkles,
-  ChevronRight, ChevronDown,
+  ChevronRight, ChevronDown, Twitter, Youtube, Instagram, Figma, Codepen
 } from "lucide-react";
 import type {
   CandidateEducation, CandidateExperience, CandidateProject,
   CandidateCertification, Skill,
 } from "@/types/profile-extensions";
+import { LogicLabStatsCards } from "@/app/(dashboard)/(licensed)/logiclab/_components/LogicLabStatsCards";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ export interface LogicLabData {
     medium: { total: number; solved: number };
     hard: { total: number; solved: number };
   };
-  topics: Array<{ name: string; count: number }>;
+  topics: Array<{ name: string; solvedCount: number; totalCount: number; category: string }>;
   uniqueSolvedCount: number;
 }
 
@@ -185,20 +186,97 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+function XIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+function PortfolioLink({ link }: { link: string }) {
+  const [imgError, setImgError] = useState(false);
+  const href = link.startsWith('http') ? link : `https://${link}`;
+  
+  let hostname = "";
+  try {
+    hostname = new URL(href).hostname.toLowerCase();
+  } catch {}
+
+  const displayUrl = link.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+
+  let Icon = Globe;
+  let iconColor = "";
+  let useLucide = false;
+
+  if (hostname.includes("github.com")) {
+    Icon = Github;
+    useLucide = true;
+  } else if (hostname.includes("linkedin.com")) {
+    Icon = Linkedin;
+    iconColor = "text-[#0077B5]";
+    useLucide = true;
+  } else if (hostname.includes("twitter.com") || hostname.includes("x.com")) {
+    Icon = XIcon as any;
+    iconColor = "text-foreground";
+    useLucide = true;
+  } else if (hostname.includes("youtube.com")) {
+    Icon = Youtube;
+    iconColor = "text-[#FF0000]";
+    useLucide = true;
+  } else if (hostname.includes("instagram.com")) {
+    Icon = Instagram;
+    iconColor = "text-[#E1306C]";
+    useLucide = true;
+  } else if (hostname.includes("figma.com")) {
+    Icon = Figma;
+    useLucide = true;
+  } else if (hostname.includes("codepen.io")) {
+    Icon = Codepen;
+    useLucide = true;
+  } else if (hostname.includes("leetcode.com") || hostname.includes("hackerrank.com")) {
+    Icon = Code2;
+    useLucide = true;
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors max-w-[200px] truncate"
+    >
+      {useLucide ? (
+        <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
+      ) : hostname && !imgError ? (
+        <img
+          src={`https://icons.duckduckgo.com/ip3/${hostname}.ico`}
+          alt=""
+          className="w-4 h-4 rounded-sm object-contain"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+      )}
+      <span className="truncate">{displayUrl}</span>
+    </a>
+  );
+}
+
 // ─── LogicLab Spider Web & Analytics Sub-components ───────────────────────────
 
 function SpiderWebRadarChart({
   topics,
 }: {
-  topics: Array<{ name: string; count: number }>;
+  topics: Array<{ name: string; solvedCount: number; totalCount: number; category: string }>;
 }) {
   const defaultTopics = [
-    { name: "Arrays", count: 0 },
-    { name: "Strings", count: 0 },
-    { name: "DP", count: 0 },
-    { name: "Trees", count: 0 },
-    { name: "Math", count: 0 },
-    { name: "Sorting", count: 0 },
+    { name: "Arrays", solvedCount: 0, totalCount: 1, category: "Fundamental" },
+    { name: "Strings", solvedCount: 0, totalCount: 1, category: "Fundamental" },
+    { name: "DP", solvedCount: 0, totalCount: 1, category: "Advanced" },
+    { name: "Trees", solvedCount: 0, totalCount: 1, category: "Intermediate" },
+    { name: "Math", solvedCount: 0, totalCount: 1, category: "Intermediate" },
+    { name: "Sorting", solvedCount: 0, totalCount: 1, category: "Intermediate" },
   ];
 
   let displayTopics = (topics || []).slice(0, 6);
@@ -215,7 +293,8 @@ function SpiderWebRadarChart({
   const cx = 130;
   const cy = 130;
   const radius = 75;
-  const maxCount = Math.max(...displayTopics.map((t) => t.count), 1);
+
+  const maxCount = Math.max(...displayTopics.map((t) => t.solvedCount), 1);
 
   const levels = [0.25, 0.5, 0.75, 1.0];
 
@@ -229,7 +308,7 @@ function SpiderWebRadarChart({
   };
 
   const dataPoints = displayTopics.map((t, i) => {
-    const scale = t.count > 0 ? Math.max(t.count / maxCount, 0.18) : 0.08;
+    const scale = t.solvedCount > 0 ? Math.max(t.solvedCount / maxCount, 0.18) : 0.08;
     return getCoordinates(i, scale);
   });
   const dataPolygonString = dataPoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
@@ -329,7 +408,7 @@ function SpiderWebRadarChart({
                 >
                   {t.name}
                   <tspan className="fill-emerald-600 dark:text-emerald-400 text-[9px] font-normal" dx="3">
-                    ({t.count})
+                    ({t.solvedCount}/{t.totalCount})
                   </tspan>
                 </text>
               </g>
@@ -446,8 +525,6 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
   });
 
   const monthHeaders = getMonthHeadersForWeeks(weeks);
-  const topTopics = (topics || []).slice(0, 8);
-  const maxTopicCount = Math.max(...topTopics.map((t) => t.count), 1);
 
   return (
     <Card className="border-border/60 shadow-sm overflow-hidden transition-all duration-200">
@@ -521,7 +598,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
               </div>
               <div className="min-w-0">
                 <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground leading-tight truncate">
-                  {topTopics.length}
+                  {topics.length}
                 </p>
                 <p className="text-[11px] text-muted-foreground truncate">Topics Practiced</p>
               </div>
@@ -544,33 +621,40 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
                 <span className="text-xs text-muted-foreground">{topics.length} total topics</span>
               </div>
 
-              {topTopics.length === 0 ? (
+              {topics.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
                   No topic data available yet.
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  {topTopics.map((t) => {
-                    const badge = getProficiencyBadge(t.count);
-                    const percent = Math.round((t.count / maxTopicCount) * 100);
+                <div className="space-y-5 pr-1 max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {(["Advanced", "Intermediate", "Fundamental"] as const).map(category => {
+                    const catTopics = topics.filter(t => t.category === category);
+                    if (catTopics.length === 0) return null;
+                    const catSolved = catTopics.reduce((sum, t) => sum + t.solvedCount, 0);
+                    const catTotal = catTopics.reduce((sum, t) => sum + t.totalCount, 0);
+                    
                     return (
-                      <div key={t.name} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{t.name}</span>
-                            <Badge variant="outline" className={cn("text-[10px] h-4 px-1.5 font-normal", badge.bg)}>
-                              {badge.label}
-                            </Badge>
-                          </div>
-                          <span className="tabular-nums text-muted-foreground font-medium">
-                            {t.count} solved
-                          </span>
+                      <div key={category} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">{category}</p>
+                          <span className="text-xs text-muted-foreground font-medium">{catSolved} <span className="opacity-50">/ {catTotal}</span></span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                            style={{ width: `${Math.max(percent, 8)}%` }}
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                          {catTopics.map((t) => {
+                            const ratio = t.totalCount > 0 ? t.solvedCount / t.totalCount : 0;
+                            const badge = getProficiencyBadge(t.solvedCount);
+                            const percent = Math.round(ratio * 100);
+                            return (
+                              <div key={t.name} className="flex items-center justify-between text-xs py-1 border-b border-border/10 last:border-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-foreground/90">{t.name}</span>
+                                </div>
+                                <span className="tabular-nums text-muted-foreground text-[11px] font-medium">
+                                  {t.solvedCount} <span className="opacity-50">/ {t.totalCount}</span>
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -581,136 +665,78 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
           </div>
 
           {/* ── Difficulty Concentric Rings & Activity Heatmap ── */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-2 border-t border-border/30">
-            {/* Difficulty Ring (4 columns) */}
-            <div className="md:col-span-4 rounded-xl border border-border/40 p-4 bg-card flex flex-col items-center justify-center min-h-[200px]">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Difficulty Tier Breakdown
-              </p>
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <ProfileConcentricRing
-                    radius={40}
-                    value={hardSolved}
-                    max={hardTotal}
-                    color="#f43f5e"
-                    trackColor="rgba(244, 63, 94, 0.15)"
-                  />
-                  <ProfileConcentricRing
-                    radius={30}
-                    value={mediumSolved}
-                    max={mediumTotal}
-                    color="#f59e0b"
-                    trackColor="rgba(245, 158, 11, 0.15)"
-                  />
-                  <ProfileConcentricRing
-                    radius={20}
-                    value={easySolved}
-                    max={easyTotal}
-                    color="#10b981"
-                    trackColor="rgba(16, 185, 129, 0.15)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-2xl font-extrabold tabular-nums tracking-tight">{totalSolved}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Solved</span>
-                </div>
-              </div>
+          <div className="pt-6 mt-6 border-t border-border/30">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 min-w-0">
+              <LogicLabStatsCards globalStats={globalStats} activityCalendar={activityCalendar} streakStats={streakStats} />
+              
+              {/* Card 3: Achievements & Consistency */}
+              <Card className="min-w-0 flex flex-col relative transition-all hover:border-border/80">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    Achievements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-between pb-5 gap-6">
+                  {/* Badges Earned */}
+                  <div className="space-y-2.5">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Topic Badges</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const earned = topics.map(t => getProficiencyBadge(t.solvedCount)).filter(b => b.label !== "Explorer");
+                        const expertCount = earned.filter(b => b.label === "Expert").length;
+                        const advancedCount = earned.filter(b => b.label === "Advanced").length;
+                        const proficientCount = earned.filter(b => b.label === "Proficient").length;
+                        
+                        if (earned.length === 0) {
+                          return <div className="text-sm text-muted-foreground italic">No badges yet. Keep practicing!</div>;
+                        }
 
-              <div className="flex items-center justify-center gap-3 mt-2 text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="font-medium text-emerald-700 dark:text-emerald-400">Easy ({easySolved})</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                  <span className="font-medium text-amber-700 dark:text-amber-400">Med ({mediumSolved})</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                  <span className="font-medium text-rose-700 dark:text-rose-400">Hard ({hardSolved})</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Redesigned 20-Week Heatmap with Month Headers & Auto-Stretch Spacing (8 columns) */}
-            <div className="md:col-span-8 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-semibold text-foreground">20-Week Submission Activity</span>
-                </div>
-                <span className="text-muted-foreground text-[11px]">Last 140 Days</span>
-              </div>
-
-              {/* Shortened Compact Heatmap Card with Month Headers */}
-              <div className="rounded-xl border border-border/40 bg-card p-3 sm:p-4 overflow-x-auto max-w-lg">
-                <div className="min-w-[440px] w-full">
-                  {/* Month Headers Row */}
-                  <div className="flex text-[10px] text-muted-foreground font-medium mb-1.5 px-0.5">
-                    {monthHeaders.map((m, idx) => (
-                      <div key={idx} style={{ flexGrow: m.span, flexBasis: 0 }} className="text-left">
-                        {m.label}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Auto-stretching Week Columns */}
-                  <div className="grid grid-flow-col auto-cols-fr gap-1 w-full">
-                    {weeks.map((week, wIdx) => (
-                      <div key={wIdx} className="flex flex-col gap-1">
-                        {week.map((cell) => {
-                          let colorClass = "bg-muted/40 hover:border-muted-foreground/40";
-                          if (cell.status === "solved") {
-                            if (cell.count >= 5) colorClass = "bg-emerald-600 dark:bg-emerald-400 hover:ring-2 hover:ring-emerald-400";
-                            else if (cell.count >= 3) colorClass = "bg-emerald-500 dark:bg-emerald-500 hover:ring-2 hover:ring-emerald-400";
-                            else colorClass = "bg-emerald-300 dark:bg-emerald-600/70 hover:ring-2 hover:ring-emerald-400";
-                          } else if (cell.status === "attempted") {
-                            colorClass = "bg-amber-400/60 dark:bg-amber-500/50 hover:ring-2 hover:ring-amber-400";
-                          }
-
-                          return (
-                            <div
-                              key={cell.date}
-                              onMouseEnter={() => setHoveredCell(cell)}
-                              onMouseLeave={() => setHoveredCell(null)}
-                              className={cn(
-                                "w-full aspect-square rounded-2xs transition-all cursor-pointer border border-transparent",
-                                colorClass
-                              )}
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Tooltip & Legend Bar */}
-                  <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground pt-2 border-t border-border/20 flex-wrap gap-2">
-                    <div className="h-4 flex items-center">
-                      {hoveredCell ? (
-                        <span className="font-medium text-foreground">
-                          {new Date(hoveredCell.date).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
-                          : <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{hoveredCell.count} submissions</span>
-                          {hoveredCell.status === "solved" ? " (Solved)" : hoveredCell.status === "attempted" ? " (Attempted)" : ""}
-                        </span>
-                      ) : (
-                        <span>Hover over any day square for details</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-[11px]">
-                      <span>Less</span>
-                      <span className="w-3 h-3 rounded-sm bg-muted/40 border border-border/40" />
-                      <span className="w-3 h-3 rounded-sm bg-amber-400/60 dark:bg-amber-500/50" />
-                      <span className="w-3 h-3 rounded-sm bg-emerald-300 dark:bg-emerald-600/70" />
-                      <span className="w-3 h-3 rounded-sm bg-emerald-500" />
-                      <span className="w-3 h-3 rounded-sm bg-emerald-600 dark:bg-emerald-400" />
-                      <span>More</span>
+                        return (
+                          <>
+                            {expertCount > 0 && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                                <Award className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{expertCount} Expert</span>
+                              </div>
+                            )}
+                            {advancedCount > 0 && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                                <Award className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{advancedCount} Advanced</span>
+                              </div>
+                            )}
+                            {proficientCount > 0 && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400">
+                                <Award className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{proficientCount} Proficient</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
-                </div>
-              </div>
+
+                  {/* Consistency */}
+                  <div className="space-y-2.5 mt-auto">
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Consistency</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-border bg-muted/10 p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase mb-1 flex items-center gap-1">
+                          <Flame className={cn("h-3 w-3", streakStats.currentStreak > 0 ? "text-orange-500" : "text-muted-foreground")} />
+                          Current Streak
+                        </p>
+                        <p className="text-xl font-bold tabular-nums text-foreground">{streakStats.currentStreak}</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-muted/10 p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase mb-1">Max Streak</p>
+                        <p className="text-xl font-bold tabular-nums text-foreground">{streakStats.maxStreak}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </CardContent>
@@ -893,16 +919,7 @@ export function CandidatePublicProfileView({
                 </a>
               )}
               {(publicData.portfolio_links ?? []).filter(Boolean).map((link, i) => (
-                <a
-                  key={i}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors max-w-[200px] truncate"
-                >
-                  <Globe className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{link.replace(/^https?:\/\/(www\.)?/, "")}</span>
-                </a>
+                <PortfolioLink key={i} link={link} />
               ))}
             </div>
           </SectionCard>

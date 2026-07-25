@@ -3,6 +3,17 @@ import { getUserProfile } from "@/lib/supabase/profile";
 import { notFound } from "next/navigation";
 import { CandidatePublicProfileView } from "./CandidatePublicProfileView";
 
+function categorizeTopic(topic: string): "Advanced" | "Intermediate" | "Fundamental" {
+  const t = topic.toLowerCase();
+  if (["dp", "dynamic programming", "backtracking", "divide and conquer", "union find", "trie", "segment tree", "graph", "topological sort", "shortest path", "bit manipulation", "euler circuit", "matrix exponentiation"].some(x => t.includes(x))) {
+    return "Advanced";
+  }
+  if (["hash table", "hashmap", "math", "two pointers", "binary search", "tree", "binary tree", "linked list", "stack", "queue", "sliding window", "greedy", "sorting", "dfs", "bfs", "heap", "priority queue", "prefix sum", "recursion"].some(x => t.includes(x))) {
+    return "Intermediate";
+  }
+  return "Fundamental";
+}
+
 interface PageProps {
   params: Promise<{ username: string }>;
 }
@@ -283,9 +294,34 @@ export default async function PublicProfilePage({ params }: PageProps) {
     }
   }
 
-  const sortedTopics = Object.entries(topicCounts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+  // Fetch ALL problems to get total topic counts for the radar/breakdown
+  const { data: allProblems } = await (supabase as any)
+    .from("logiclab_problems")
+    .select("tags");
+  
+  const totalTopicCounts: Record<string, number> = {};
+  for (const prob of allProblems || []) {
+    if (Array.isArray(prob.tags)) {
+      for (const tag of prob.tags) {
+        if (tag) {
+          totalTopicCounts[tag] = (totalTopicCounts[tag] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  const sortedTopics = Object.entries(totalTopicCounts)
+    .map(([name, total]) => ({
+      name,
+      solvedCount: topicCounts[name] || 0,
+      totalCount: total,
+      category: categorizeTopic(name)
+    }))
+    .sort((a, b) => {
+      if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
+      if (b.totalCount !== a.totalCount) return b.totalCount - a.totalCount;
+      return a.name.localeCompare(b.name);
+    });
 
   const globalStats = statsData || {
     total: 0,
