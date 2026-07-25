@@ -69,6 +69,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const clickTimestamps = useRef<number[]>([]);
 
   const [ideLayout, setIdeLayout] = useState<"standard" | "split" | "vertical">("standard");
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -211,6 +212,14 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   };
 
   const handleRunCode = async () => {
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current.filter(t => now - t < 3000);
+    if (clickTimestamps.current.length >= 2) {
+      toast.error("Please wait a moment before running again. Rate limit exceeded.");
+      return;
+    }
+    clickTimestamps.current.push(now);
+
     if (!code || !code.trim()) {
       toast.warning("Write some code before running.");
       return;
@@ -657,7 +666,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
           <IconTerminal2 className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
           <span>Standard Output (stdout)</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className={cn('flex', 'items-center', 'gap-1')}>
           {results && (
             <>
               <Button
@@ -807,26 +816,26 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
       )}
     >
       {/* Mobile warning */}
-      <div className="flex md:hidden flex-1 items-center justify-center p-6 bg-zinc-100 dark:bg-zinc-950">
-        <Empty className="border-0 max-w-sm">
+      <div className={cn('flex', 'md:hidden', 'flex-1', 'items-center', 'justify-center', 'p-6', 'bg-zinc-100', 'dark:bg-zinc-950')}>
+        <Empty className={cn('border-0', 'max-w-sm')}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <IconDeviceLaptop />
             </EmptyMedia>
             <EmptyTitle>Desktop Only Feature</EmptyTitle>
             <EmptyDescription>
-              The Playground is optimised for large screens. Mobile support is coming soon!
+              The Playground is optimised for large screens only
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       </div>
 
       {/* Desktop IDE */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className={cn('hidden', 'md:flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')}>
         {navbar}
         <div className={cn("flex-1", "pt-0", "px-2", "pb-2", "min-h-0", "overflow-hidden")}>
           {!isMounted ? (
-            <Skeleton className="w-full h-full border border-border/40" />
+            <Skeleton className={cn('w-full', 'h-full', 'border', 'border-border/40')} />
           ) : (
             <>
               {ideLayout === "standard" && (

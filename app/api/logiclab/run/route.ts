@@ -2,36 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getCachedProblemExecutionData } from "@/app/(dashboard)/(licensed)/logiclab/actions"
 
-function getDeterministicMetrics(code: string, languageId: number | string) {
-  let h = 0
-  const cleanCode = code || ""
-  for (let i = 0; i < cleanCode.length; i++) {
-    h = (h << 5) - h + cleanCode.charCodeAt(i)
-    h |= 0
-  }
-  const seed = Math.abs(h)
-  const langKey = String(languageId)
-  
-  let memoryKb = 32000 + (seed % 8000)
-  let timeMs = 45 + (seed % 20)
-
-  if (langKey === "71") { // Python
-    memoryKb = 15000 + (seed % 4000)
-    timeMs = 35 + (seed % 25)
-  } else if (langKey === "63") { // JavaScript
-    memoryKb = 27400 + (seed % 4700)
-    timeMs = 45 + (seed % 15)
-  } else if (langKey === "54") { // C++
-    memoryKb = 1400 + (seed % 750)
-    timeMs = 3 + (seed % 8)
-  } else if (langKey === "62") { // Java
-    memoryKb = 42500 + (seed % 5500)
-    timeMs = 60 + (seed % 40)
-  }
-  
-  return { memoryKb, timeMs }
-}
-
+// Deterministic metrics removed in favor of real Judge0 metrics.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -134,7 +105,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const judge0Endpoint = process.env.NEXT_PUBLIC_JUDGE0_ENDPOINT || process.env.JUDGE0_ENDPOINT || "http://187.127.171.46:2358"
+    const judge0Endpoint = process.env.NEXT_PUBLIC_JUDGE0_ENDPOINT || process.env.JUDGE0_ENDPOINT;
+    if (!judge0Endpoint) {
+      return NextResponse.json({ success: false, error: "Judge0 endpoint is not configured in environment variables." }, { status: 500 })
+    }
     const submissionsUrl = `${judge0Endpoint}/submissions?wait=true&base64_encoded=true`
 
     const encodedSource = Buffer.from(finalSource || "").toString("base64")
@@ -285,9 +259,10 @@ export async function POST(req: NextRequest) {
         if (!passed) overallSuccess = false
         if (statusId !== 3 && overallStatus.id === 3) overallStatus = data.status
 
-        const metrics = getDeterministicMetrics(source_code, language_id)
-        totalTime = Math.max(totalTime, metrics.timeMs / 1000)
-        maxMemory = Math.max(maxMemory, metrics.memoryKb)
+        const timeVal = parseFloat(data.time || "0")
+        const memoryVal = parseInt(data.memory || "0", 10)
+        totalTime = Math.max(totalTime, timeVal)
+        maxMemory = Math.max(maxMemory, memoryVal)
 
         results.push({
           index,
@@ -300,8 +275,8 @@ export async function POST(req: NextRequest) {
           message: decode(data.message),
           console_output: consoleOutput,
           status: data.status || { id: 3, description: "Accepted" },
-          time: (metrics.timeMs / 1000).toFixed(3),
-          memory: String(metrics.memoryKb)
+          time: timeVal.toFixed(3),
+          memory: String(memoryVal)
         })
       }
 

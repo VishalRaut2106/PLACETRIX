@@ -247,6 +247,7 @@ export function ProblemWorkspaceClient({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<"description" | "submissions" | "notes">("description");
+  const clickTimestamps = React.useRef<number[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -1052,6 +1053,14 @@ export function ProblemWorkspaceClient({
   };
 
   const handleRunCode = async () => {
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current.filter(t => now - t < 3000);
+    if (clickTimestamps.current.length >= 2) {
+      toast.error("Please wait a moment before running again. Rate limit exceeded.");
+      return;
+    }
+    clickTimestamps.current.push(now);
+
     const currentBoilerplate =
       parsedBoilerplates[String(selectedLang.id)] ||
       `// Write your ${selectedLang.name} solution here\n`;
@@ -1114,6 +1123,14 @@ export function ProblemWorkspaceClient({
   };
 
   const handleSubmitCode = async () => {
+    const now = Date.now();
+    clickTimestamps.current = clickTimestamps.current.filter(t => now - t < 3000);
+    if (clickTimestamps.current.length >= 2) {
+      toast.error("Please wait a moment before submitting again. Rate limit exceeded.");
+      return;
+    }
+    clickTimestamps.current.push(now);
+
     const currentBoilerplate =
       parsedBoilerplates[String(selectedLang.id)] ||
       `// Write your ${selectedLang.name} solution here\n`;
