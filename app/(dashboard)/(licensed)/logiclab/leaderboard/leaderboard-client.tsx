@@ -146,7 +146,7 @@ export default function LeaderboardClient({
                     <div className={cn('flex', 'items-center', 'justify-end', 'w-[120px]', 'shrink-0', 'pl-4', 'gap-1.5', 'font-mono')}>
                       <Trophy className="h-3.5 w-3.5 text-amber-500/80 hidden sm:block" />
                       <span className={cn('text-sm', 'font-semibold', 'text-foreground')}>
-                        {user.logiclab_score.toLocaleString()}
+                        {user.logiclab_points?.toLocaleString() || '0'}
                       </span>
                       <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider hidden sm:block mt-0.5">pts</span>
                     </div>

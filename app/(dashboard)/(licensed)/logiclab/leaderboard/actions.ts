@@ -8,7 +8,7 @@ export interface LeaderboardEntry {
   last_name: string
   username: string
   avatar_path: string | null
-  logiclab_score: number
+  logiclab_points: number
   logiclab_solved_count: number
   rank?: number
 }
@@ -24,10 +24,10 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
 
   const { data, count, error } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, username, avatar_path, logiclab_score, logiclab_solved_count", { count: "exact" })
+    .select("id, first_name, last_name, username, avatar_path, logiclab_points, logiclab_solved_count", { count: "exact" })
     .eq("institute_id", instituteId)
-    .gt("logiclab_score", 0) // Only users with a score
-    .order("logiclab_score", { ascending: false })
+    .gt("logiclab_points", 0) // Only users with a score
+    .order("logiclab_points", { ascending: false })
     .order("logiclab_solved_count", { ascending: false })
     .range(from, to)
 
@@ -53,7 +53,7 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
   return { data: rankedData, totalCount: count || 0 }
 }
 
-export async function getCurrentUserRankAction(instituteId: string, userId: string, userScore: number): Promise<number | null> {
+export async function getCurrentUserRankAction(instituteId: string, userId: string, userPoints: number): Promise<number | null> {
   const supabase = (await createServerClient()) as any
   
   // A simple way to find rank is counting how many users in the same institute have a strictly higher score,
@@ -62,7 +62,7 @@ export async function getCurrentUserRankAction(instituteId: string, userId: stri
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("institute_id", instituteId)
-    .gt("logiclab_score", userScore)
+    .gt("logiclab_points", userPoints)
 
   if (error) {
     console.error("Error fetching user rank:", error)

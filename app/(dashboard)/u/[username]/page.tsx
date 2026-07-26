@@ -57,6 +57,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
     { data: allSkills },
     { data: candidateSkillRows },
     { data: semesterGrades },
+    { data: userBadges },
+    { data: allBadges },
   ] = await Promise.all([
     (supabase as any)
       .from("candidate_academic_details")
@@ -106,7 +108,13 @@ export default async function PublicProfilePage({ params }: PageProps) {
       .from("candidate_semester_grades")
       .select("semester_number, sgpa")
       .eq("profile_id", targetProfile.id)
-      .order("semester_number"),
+      .order("semester_number", { ascending: true }),
+    (supabase as any)
+      .from("user_badges")
+      .select("earned_at, logiclab_badges(*)")
+      .eq("user_id", targetProfile.id)
+      .order("earned_at", { ascending: false }),
+    (supabase as any).from("logiclab_badges").select("*").order("name"),
   ]);
 
   // 5. Derive semester count from the course config
@@ -337,6 +345,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
     globalStats,
     topics: sortedTopics,
     uniqueSolvedCount: solvedProblemIds.length,
+    points: targetProfile.logiclab_points || 0,
+    badges: userBadges?.map((ub: any) => ({
+      ...ub.logiclab_badges,
+      earned_at: ub.earned_at
+    })) || [],
+    allBadges: allBadges || [],
   };
 
   // 8. Build safe public data object — private fields explicitly excluded

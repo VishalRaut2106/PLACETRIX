@@ -146,17 +146,20 @@ export async function fetchDailyChallengesInfinite({
   if (error || !historyData) return { challenges: [], hasMore: false }
 
   // Fetch user submissions
+  const dailyChallengeIds = historyData.map((h: any) => h.id)
   const problemIds = historyData.map((h: any) => h.problem_id)
   const { data: submissions } = await supabase
     .from("logiclab_daily_challenge_submissions")
-    .select("problem_id, status")
+    .select("daily_challenge_id, status")
     .eq("user_id", userId)
-    .in("problem_id", problemIds)
+    .in("daily_challenge_id", dailyChallengeIds)
 
   const solvedMap: Record<string, string> = {}
   for (const sub of submissions ?? []) {
-    if (!solvedMap[sub.problem_id] || sub.status === "Accepted") {
-      solvedMap[sub.problem_id] = sub.status
+    if (sub.daily_challenge_id) {
+      if (!solvedMap[sub.daily_challenge_id] || sub.status === "Accepted") {
+        solvedMap[sub.daily_challenge_id] = sub.status
+      }
     }
   }
 
@@ -186,7 +189,7 @@ export async function fetchDailyChallengesInfinite({
       title: h.logiclab_problems?.title || "Unknown Problem",
       difficulty: (h.logiclab_problems?.difficulty || "Medium") as "Easy" | "Medium" | "Hard",
       tags: (h.logiclab_problems?.tags || []) as string[],
-      solved_status: solvedMap[h.problem_id] || null,
+      solved_status: solvedMap[h.id] || null,
       total_submissions: s.total,
       acceptance_rate: acceptanceRate,
     }

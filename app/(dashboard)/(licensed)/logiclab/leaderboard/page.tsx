@@ -23,13 +23,13 @@ export default async function LeaderboardPage() {
 
   // Fetch current user rank (if they have a score)
   let currentUserRank = null
-  if (profile.logiclab_score && profile.logiclab_score > 0) {
+  if (profile.logiclab_points && profile.logiclab_points > 0) {
     // If they are in the initial data, we already know their rank
     const found = initialData.find(u => u.id === profile.id)
     if (found) {
       currentUserRank = found.rank
     } else {
-      currentUserRank = await getCurrentUserRankAction(profile.institute_id, profile.id, profile.logiclab_score)
+      currentUserRank = await getCurrentUserRankAction(profile.institute_id, profile.id, profile.logiclab_points)
     }
   }
 
@@ -46,7 +46,7 @@ export default async function LeaderboardPage() {
         instituteId={profile.institute_id}
         currentUserId={profile.id}
         currentUserRank={currentUserRank ?? null}
-        currentUserScore={profile.logiclab_score || 0}
+        currentUserScore={profile.logiclab_points || 0}
       />
     </div>
   )

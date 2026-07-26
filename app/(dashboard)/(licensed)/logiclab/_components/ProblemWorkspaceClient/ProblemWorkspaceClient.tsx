@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import * as htmlToImage from "html-to-image";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconArrowLeft,
   IconPlayerPlay,
@@ -45,6 +47,7 @@ import {
   IconZoomIn,
   IconZoomOut,
   IconAdjustments,
+  IconDownload,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -247,7 +250,50 @@ export function ProblemWorkspaceClient({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<"description" | "submissions" | "notes">("description");
+  const [unlockedBadgeModal, setUnlockedBadgeModal] = useState<any | null>(null);
   const clickTimestamps = React.useRef<number[]>([]);
+  const badgeCardRef = useRef<HTMLDivElement>(null);
+  const [badgeDataUrl, setBadgeDataUrl] = useState<string | null>(null);
+
+  // Fetch the image as a blob to completely bypass html2canvas CORS issues
+  useEffect(() => {
+    if (unlockedBadgeModal?.icon_name) {
+      fetch(unlockedBadgeModal.icon_name)
+        .then(res => res.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onloadend = () => setBadgeDataUrl(reader.result as string);
+          reader.readAsDataURL(blob);
+        })
+        .catch(console.error);
+    } else {
+      setBadgeDataUrl(null);
+    }
+  }, [unlockedBadgeModal]);
+
+  const handleDownloadBadge = async () => {
+    if (!badgeCardRef.current) return;
+    try {
+      const dataUrl = await htmlToImage.toPng(badgeCardRef.current, {
+        pixelRatio: 2,
+        fontEmbedCSS: '', // Bypasses the SecurityError without breaking font layout
+        filter: (node) => {
+          if (node?.getAttribute && node.getAttribute("data-html2canvas-ignore") === "true") {
+            return false;
+          }
+          return true;
+        },
+      });
+      const link = document.createElement("a");
+      link.download = `LogicLab_Badge_${unlockedBadgeModal?.name?.replace(/\s+/g, '_') || 'Achievement'}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Badge downloaded successfully!");
+    } catch (err) {
+      console.error("Failed to download badge:", err);
+      toast.error("Failed to download badge image.");
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -1192,6 +1238,13 @@ export function ProblemWorkspaceClient({
         },
         ...prev,
       ]);
+      
+      console.log("Submission Response Data:", data);
+
+      if (data.newly_unlocked_badges && data.newly_unlocked_badges.length > 0) {
+        console.log("FIRING ACHIEVEMENT NOTIFICATION FOR:", data.newly_unlocked_badges);
+        setUnlockedBadgeModal(data.newly_unlocked_badges[0]);
+      }
     } catch (err: any) {
       setSubmitResult({
         success: false,
@@ -3903,6 +3956,116 @@ export function ProblemWorkspaceClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Shadcn Style Badge Unlock Modal */}
+      <AnimatePresence>
+        {unlockedBadgeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/50"
+            onClick={() => setUnlockedBadgeModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative flex flex-col items-center w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* THE CARD ITSELF (Only this gets captured by html-to-image) */}
+              <div 
+                ref={badgeCardRef} 
+                className="w-full flex flex-col items-center rounded-xl shadow-2xl p-8 pb-6 border"
+                style={{ backgroundColor: '#09090b', borderColor: '#27272a' }} // Explicit Dark Mode to fix CSS variables dropout
+              >
+                {/* Watermark for download */}
+                <div className="w-full text-left mb-6">
+                  <div className="text-[10px] tracking-widest uppercase font-bold select-none whitespace-nowrap" style={{ color: '#71717a' }}>
+                    PLACETRIX.APP — LOGICLAB
+                  </div>
+                </div>
+
+                <div className="w-full text-center mb-8 block">
+                  <h2 className="text-2xl font-bold mb-2 block" style={{ color: '#fafafa' }}>
+                    Achievement Unlocked
+                  </h2>
+                  <p className="text-sm font-medium block" style={{ color: '#a1a1aa' }}>
+                    Congratulations, {userProfile?.full_name?.split(' ')[0] || userProfile?.username || "Coder"}!
+                  </p>
+                </div>
+
+                <div className="relative mb-8 flex justify-center w-full">
+                  {/* Subtle glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full pointer-events-none" style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', filter: 'blur(30px)' }} />
+                  
+                  <motion.div
+                    initial={{ rotateY: 90, scale: 0.8 }}
+                    animate={{ rotateY: 0, scale: 1 }}
+                    transition={{ delay: 0.1, duration: 0.6, type: "spring", damping: 15 }}
+                    className="relative w-36 h-36 z-10 drop-shadow-2xl"
+                  >
+                    {unlockedBadgeModal.icon_name ? (
+                      <img
+                        src={badgeDataUrl || unlockedBadgeModal.icon_name}
+                        alt={unlockedBadgeModal.name}
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-contain block"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full border-4 flex items-center justify-center" style={{ backgroundColor: '#18181b', borderColor: 'rgba(52, 211, 153, 0.2)' }}>
+                        <IconSparkles className="h-12 w-12" style={{ color: '#34d399' }} />
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
+                
+                <div className="w-full text-center mb-6 block">
+                  <h3 className="text-xl font-bold mb-2 block" style={{ color: '#fafafa' }}>
+                    {unlockedBadgeModal.name}
+                  </h3>
+                  
+                  {unlockedBadgeModal.description && (
+                    <p className="text-sm font-medium block" style={{ color: '#a1a1aa' }}>
+                      {unlockedBadgeModal.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Earned Date */}
+                <div className="text-[8px] tracking-wider font-bold mt-2 whitespace-nowrap" style={{ color: '#71717a' }}>
+                  EARNED ON {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
+                </div>
+              </div>
+
+              {/* Action Buttons (OUTSIDE THE CARD) */}
+              <div className="flex flex-col gap-3 w-full mt-4">
+                <button 
+                  onClick={() => {
+                    console.log("Continue clicked!");
+                    setUnlockedBadgeModal(null);
+                  }} 
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 rounded-md font-medium transition-colors"
+                >
+                  Continue
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    console.log("Download clicked!");
+                    handleDownloadBadge();
+                  }} 
+                  className="w-full border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8 rounded-md font-medium text-muted-foreground flex items-center justify-center transition-colors"
+                >
+                  <IconDownload className="mr-2 h-4 w-4" />
+                  Download Badge
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

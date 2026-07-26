@@ -407,6 +407,8 @@ export async function POST(req: NextRequest) {
       saveError = sErr
     }
 
+    let newlyUnlockedBadges: any[] = []
+
     if (saveError) {
       console.error("[LogicLab Submit] Failed to save submission:", saveError.message)
     } else {
@@ -428,6 +430,16 @@ export async function POST(req: NextRequest) {
 
       if (rpcErr) {
         console.error("[LogicLab Submit] Failed to update user activity:", rpcErr.message)
+      }
+
+      // Trigger gamification logic synchronously to return unlocked badges to the client
+      if (isSolved) {
+        try {
+          const { awardGamificationRewards } = await import('@/lib/gamification')
+          newlyUnlockedBadges = await awardGamificationRewards(supabase, user_id, problem_id, difficulty, !!daily_challenge_id)
+        } catch (err) {
+          console.error("[Gamification Import Error]", err)
+        }
       }
     }
 
@@ -453,6 +465,7 @@ export async function POST(req: NextRequest) {
       failed_test_case_info: overallStatus === "Accepted" ? { time_series: timeSeriesData } : failedInfo,
       submission_id: savedSubmission?.id || null,
       save_error: saveError?.message || null,
+      newly_unlocked_badges: newlyUnlockedBadges,
       lineOffset,
       time_series: timeSeriesData,
       cases: sampleCases.map((sc) => ({

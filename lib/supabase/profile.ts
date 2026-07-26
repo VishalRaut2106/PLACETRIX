@@ -42,6 +42,7 @@ export interface UserProfile {
   github_url?: string | null;
   portfolio_links?: string[] | null;
   logiclab_score?: number | null;
+  logiclab_points?: number | null;
   logiclab_solved_count?: number | null;
 }
 

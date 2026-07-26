@@ -6,6 +6,12 @@ import { getSkillIconClass, DEVICON_SUFFIXES } from "@/lib/skill-icon";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -51,6 +57,9 @@ export interface LogicLabData {
   };
   topics: Array<{ name: string; solvedCount: number; totalCount: number; category: string }>;
   uniqueSolvedCount: number;
+  points: number;
+  badges: any[];
+  allBadges: any[];
 }
 
 interface EventCertificate {
@@ -153,14 +162,14 @@ function SectionCard({ icon: Icon, title, children, defaultExpanded = true }: {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <Card className="transition-all duration-200">
+    <Card className={cn('transition-all', 'duration-200')}>
       <CardHeader
-        className="pb-3 cursor-pointer select-none hover:bg-muted/30 transition-colors rounded-t-xl"
+        className={cn('pb-3', 'cursor-pointer', 'select-none', 'hover:bg-muted/30', 'transition-colors', 'rounded-t-xl')}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <CardTitle className="flex items-center justify-between text-base font-semibold">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className={cn('flex', 'items-center', 'justify-between', 'text-base', 'font-semibold')}>
+          <div className={cn('flex', 'items-center', 'gap-2')}>
+            <Icon className={cn('h-4', 'w-4', 'text-muted-foreground')} />
             {title}
           </div>
           <ChevronDown
@@ -180,8 +189,8 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value?.trim()) return null;
   return (
     <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+      <p className={cn('text-xs', 'text-muted-foreground')}>{label}</p>
+      <p className={cn('text-sm', 'font-medium')}>{value}</p>
     </div>
   );
 }
@@ -197,11 +206,11 @@ function XIcon(props: React.SVGProps<SVGSVGElement>) {
 function PortfolioLink({ link }: { link: string }) {
   const [imgError, setImgError] = useState(false);
   const href = link.startsWith('http') ? link : `https://${link}`;
-  
+
   let hostname = "";
   try {
     hostname = new URL(href).hostname.toLowerCase();
-  } catch {}
+  } catch { }
 
   const displayUrl = link.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
 
@@ -244,7 +253,7 @@ function PortfolioLink({ link }: { link: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors max-w-[200px] truncate"
+      className={cn('inline-flex', 'items-center', 'gap-2', 'px-3', 'py-1.5', 'rounded-md', 'text-sm', 'font-medium', 'border', 'border-border', 'hover:bg-accent', 'transition-colors', 'max-w-[200px]', 'truncate')}
     >
       {useLucide ? (
         <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
@@ -252,11 +261,11 @@ function PortfolioLink({ link }: { link: string }) {
         <img
           src={`https://icons.duckduckgo.com/ip3/${hostname}.ico`}
           alt=""
-          className="w-4 h-4 rounded-sm object-contain"
+          className={cn('w-4', 'h-4', 'rounded-sm', 'object-contain')}
           onError={() => setImgError(true)}
         />
       ) : (
-        <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Globe className={cn('h-4', 'w-4', 'shrink-0', 'text-muted-foreground')} />
       )}
       <span className="truncate">{displayUrl}</span>
     </a>
@@ -314,18 +323,18 @@ function SpiderWebRadarChart({
   const dataPolygonString = dataPoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
 
   return (
-    <div className="w-full flex flex-col items-center justify-center p-2 rounded-xl border border-border/40 bg-card/50">
-      <div className="flex items-center justify-between w-full mb-1 text-xs">
-        <span className="font-semibold uppercase tracking-wider text-muted-foreground text-[11px]">
+    <div className={cn('w-full', 'flex', 'flex-col', 'items-center', 'justify-center', 'p-2', 'rounded-xl', 'border', 'border-border/40', 'bg-card/50')}>
+      <div className={cn('flex', 'items-center', 'justify-between', 'w-full', 'mb-1', 'text-xs')}>
+        <span className={cn('font-semibold', 'uppercase', 'tracking-wider', 'text-muted-foreground', 'text-[11px]')}>
           Topic Dimension Radar
         </span>
-        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
+        <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5', 'font-normal')}>
           Spider Web
         </Badge>
       </div>
 
-      <div className="relative w-full max-w-[260px] aspect-square flex items-center justify-center">
-        <svg viewBox="0 0 260 260" className="w-full h-full overflow-visible">
+      <div className={cn('relative', 'w-full', 'max-w-[260px]', 'aspect-square', 'flex', 'items-center', 'justify-center')}>
+        <svg viewBox="0 0 260 260" className={cn('w-full', 'h-full', 'overflow-visible')}>
           <defs>
             <radialGradient id="spiderWebGradient" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
@@ -344,7 +353,7 @@ function SpiderWebRadarChart({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1"
-                className="text-border/50 dark:text-border/40"
+                className={cn('text-border/50', 'dark:text-border/40')}
                 strokeDasharray={lIdx === levels.length - 1 ? undefined : "2 2"}
               />
             );
@@ -373,7 +382,7 @@ function SpiderWebRadarChart({
             fill="url(#spiderWebGradient)"
             stroke="#10b981"
             strokeWidth="2"
-            className="transition-all duration-700 ease-out"
+            className={cn('transition-all', 'duration-700', 'ease-out')}
           />
 
           {/* Data Nodes & Topic Labels */}
@@ -404,10 +413,10 @@ function SpiderWebRadarChart({
                   y={labelCoord.y}
                   textAnchor={textAnchor}
                   dominantBaseline="middle"
-                  className="fill-foreground text-[10px] font-semibold tracking-tight"
+                  className={cn('fill-foreground', 'text-[10px]', 'font-semibold', 'tracking-tight')}
                 >
                   {t.name}
-                  <tspan className="fill-emerald-600 dark:text-emerald-400 text-[9px] font-normal" dx="3">
+                  <tspan className={cn('fill-emerald-600', 'dark:text-emerald-400', 'text-[9px]', 'font-normal')} dx="3">
                     ({t.solvedCount}/{t.totalCount})
                   </tspan>
                 </text>
@@ -457,7 +466,7 @@ function ProfileConcentricRing({
         strokeDasharray={circumference}
         strokeDashoffset={strokeDashoffset}
         strokeLinecap="round"
-        className="transition-all duration-1000 ease-out"
+        className={cn('transition-all', 'duration-1000', 'ease-out')}
       />
     </g>
   );
@@ -527,19 +536,19 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
   const monthHeaders = getMonthHeadersForWeeks(weeks);
 
   return (
-    <Card className="border-border/60 shadow-sm overflow-hidden transition-all duration-200">
+    <Card className={cn('border-border/60', 'shadow-sm', 'overflow-hidden', 'transition-all', 'duration-200')}>
       <CardHeader
-        className="pb-3 border-b border-border/30 bg-muted/20 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+        className={cn('pb-3', 'border-b', 'border-border/30', 'bg-muted/20', 'cursor-pointer', 'select-none', 'hover:bg-muted/30', 'transition-colors')}
         onClick={() => setIsSectionExpanded(!isSectionExpanded)}
       >
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Brain className="h-4 w-4 text-emerald-500" />
+        <div className={cn('flex', 'items-center', 'justify-between', 'flex-wrap', 'gap-2')}>
+          <CardTitle className={cn('flex', 'items-center', 'gap-2', 'text-base', 'font-semibold')}>
+            <Brain className={cn('h-4', 'w-4', 'text-emerald-500')} />
             LogicLab & Problem Solving Performance
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1 text-xs font-normal border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-              <Sparkles className="h-3 w-3" />
+          <div className={cn('flex', 'items-center', 'gap-2')}>
+            <Badge variant="outline" className={cn('gap-1', 'text-xs', 'font-normal', 'border-emerald-500/30', 'text-emerald-600', 'dark:text-emerald-400')}>
+              <Sparkles className={cn('h-3', 'w-3')} />
               Verified
             </Badge>
             <ChevronDown
@@ -553,103 +562,103 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
       </CardHeader>
 
       {isSectionExpanded && (
-        <CardContent className="p-4 sm:p-6 space-y-6">
+        <CardContent className={cn('p-4', 'sm:p-6', 'space-y-6')}>
           {/* ── Key Stat Pills Row (Mobile Grid 2-col, Desktop 4-col) ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-                <Flame className="h-4 sm:h-5 w-4 sm:w-5" />
+          <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-4', 'gap-3')}>
+            <div className={cn('rounded-xl', 'border', 'border-amber-500/20', 'bg-amber-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
+              <div className={cn('p-2', 'rounded-lg', 'bg-amber-500/10', 'text-amber-600', 'dark:text-amber-400', 'shrink-0')}>
+                <Flame className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
               </div>
               <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground leading-tight truncate">
-                  {streakStats.currentStreak} <span className="text-xs font-normal text-muted-foreground">days</span>
+                <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
+                  {streakStats.currentStreak} <span className={cn('text-xs', 'font-normal', 'text-muted-foreground')}>days</span>
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">Streak (Max {streakStats.maxStreak})</p>
+                <p className={cn('text-[11px]', 'text-muted-foreground', 'truncate')}>Streak (Max {streakStats.maxStreak})</p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Trophy className="h-4 sm:h-5 w-4 sm:w-5" />
+            <div className={cn('rounded-xl', 'border', 'border-emerald-500/20', 'bg-emerald-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
+              <div className={cn('p-2', 'rounded-lg', 'bg-emerald-500/10', 'text-emerald-600', 'dark:text-emerald-400', 'shrink-0')}>
+                <Trophy className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
               </div>
               <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground leading-tight truncate">
-                  {totalSolved} <span className="text-xs font-normal text-muted-foreground">/ {totalProblems}</span>
+                <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
+                  {totalSolved} <span className={cn('text-xs', 'font-normal', 'text-muted-foreground')}>/ {totalProblems}</span>
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">Problems Solved</p>
+                <p className={cn('text-[11px]', 'text-muted-foreground', 'truncate')}>Problems Solved</p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                <Activity className="h-4 sm:h-5 w-4 sm:w-5" />
+            <div className={cn('rounded-xl', 'border', 'border-blue-500/20', 'bg-blue-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
+              <div className={cn('p-2', 'rounded-lg', 'bg-blue-500/10', 'text-blue-600', 'dark:text-blue-400', 'shrink-0')}>
+                <Activity className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
               </div>
               <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground leading-tight truncate">
+                <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {streakStats.totalActiveDays}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">Active Days</p>
+                <p className={cn('text-[11px]', 'text-muted-foreground', 'truncate')}>Active Days</p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3.5 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                <Target className="h-4 sm:h-5 w-4 sm:w-5" />
+            <div className={cn('rounded-xl', 'border', 'border-indigo-500/20', 'bg-indigo-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
+              <div className={cn('p-2', 'rounded-lg', 'bg-indigo-500/10', 'text-indigo-600', 'dark:text-indigo-400', 'shrink-0')}>
+                <Target className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
               </div>
               <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-bold tabular-nums text-foreground leading-tight truncate">
+                <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {topics.length}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">Topics Practiced</p>
+                <p className={cn('text-[11px]', 'text-muted-foreground', 'truncate')}>Topics Practiced</p>
               </div>
             </div>
           </div>
 
           {/* ── Topic Abilities Section: Dual Column (Spider Web Radar + Skill Bars) ── */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          <div className={cn('grid', 'grid-cols-1', 'md:grid-cols-12', 'gap-6', 'items-center')}>
             {/* Left: SVG Spider Web Radar Chart (5 columns) */}
-            <div className="md:col-span-5 flex items-center justify-center">
+            <div className={cn('md:col-span-5', 'flex', 'items-center', 'justify-center')}>
               <SpiderWebRadarChart topics={topics} />
             </div>
 
             {/* Right: Topic Proficiency Skill Bars (7 columns) */}
-            <div className="md:col-span-7 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className={cn('md:col-span-7', 'space-y-3')}>
+              <div className={cn('flex', 'items-center', 'justify-between')}>
+                <p className={cn('text-xs', 'font-semibold', 'uppercase', 'tracking-wider', 'text-muted-foreground')}>
                   Topic Proficiency & Ability Breakdown
                 </p>
-                <span className="text-xs text-muted-foreground">{topics.length} total topics</span>
+                <span className={cn('text-xs', 'text-muted-foreground')}>{topics.length} total topics</span>
               </div>
 
               {topics.length === 0 ? (
-                <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                <div className={cn('rounded-xl', 'border', 'border-dashed', 'p-6', 'text-center', 'text-sm', 'text-muted-foreground')}>
                   No topic data available yet.
                 </div>
               ) : (
-                <div className="space-y-5 pr-1 max-h-[320px] overflow-y-auto custom-scrollbar">
+                <div className={cn('space-y-5', 'pr-1', 'max-h-[320px]', 'overflow-y-auto', 'custom-scrollbar')}>
                   {(["Advanced", "Intermediate", "Fundamental"] as const).map(category => {
                     const catTopics = topics.filter(t => t.category === category);
                     if (catTopics.length === 0) return null;
                     const catSolved = catTopics.reduce((sum, t) => sum + t.solvedCount, 0);
                     const catTotal = catTopics.reduce((sum, t) => sum + t.totalCount, 0);
-                    
+
                     return (
                       <div key={category} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">{category}</p>
-                          <span className="text-xs text-muted-foreground font-medium">{catSolved} <span className="opacity-50">/ {catTotal}</span></span>
+                        <div className={cn('flex', 'items-center', 'justify-between')}>
+                          <p className={cn('text-[11px]', 'font-bold', 'text-foreground', 'uppercase', 'tracking-wider')}>{category}</p>
+                          <span className={cn('text-xs', 'text-muted-foreground', 'font-medium')}>{catSolved} <span className="opacity-50">/ {catTotal}</span></span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-x-6', 'gap-y-3')}>
                           {catTopics.map((t) => {
                             const ratio = t.totalCount > 0 ? t.solvedCount / t.totalCount : 0;
                             const badge = getProficiencyBadge(t.solvedCount);
                             const percent = Math.round(ratio * 100);
                             return (
-                              <div key={t.name} className="flex items-center justify-between text-xs py-1 border-b border-border/10 last:border-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-foreground/90">{t.name}</span>
+                              <div key={t.name} className={cn('flex', 'items-center', 'justify-between', 'text-xs', 'py-1', 'border-b', 'border-border/10', 'last:border-0')}>
+                                <div className={cn('flex', 'items-center', 'gap-1.5')}>
+                                  <span className={cn('font-semibold', 'text-foreground/90')}>{t.name}</span>
                                 </div>
-                                <span className="tabular-nums text-muted-foreground text-[11px] font-medium">
+                                <span className={cn('tabular-nums', 'text-muted-foreground', 'text-[11px]', 'font-medium')}>
                                   {t.solvedCount} <span className="opacity-50">/ {t.totalCount}</span>
                                 </span>
                               </div>
@@ -665,78 +674,246 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
           </div>
 
           {/* ── Difficulty Concentric Rings & Activity Heatmap ── */}
-          <div className="pt-6 mt-6 border-t border-border/30">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 min-w-0">
+          <div className={cn('pt-6', 'mt-6', 'border-t', 'border-border/30')}>
+            <div className={cn('grid', 'grid-cols-1', 'lg:grid-cols-3', 'gap-6', 'animate-in', 'fade-in', 'slide-in-from-top-2', 'duration-300', 'min-w-0')}>
               <LogicLabStatsCards globalStats={globalStats} activityCalendar={activityCalendar} streakStats={streakStats} />
-              
-              {/* Card 3: Achievements & Consistency */}
-              <Card className="min-w-0 flex flex-col relative transition-all hover:border-border/80">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Award className="h-4 w-4" />
-                    Achievements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-between pb-5 gap-6">
-                  {/* Badges Earned */}
-                  <div className="space-y-2.5">
-                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Topic Badges</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        const earned = topics.map(t => getProficiencyBadge(t.solvedCount)).filter(b => b.label !== "Explorer");
-                        const expertCount = earned.filter(b => b.label === "Expert").length;
-                        const advancedCount = earned.filter(b => b.label === "Advanced").length;
-                        const proficientCount = earned.filter(b => b.label === "Proficient").length;
-                        
-                        if (earned.length === 0) {
-                          return <div className="text-sm text-muted-foreground italic">No badges yet. Keep practicing!</div>;
+
+              {/* Card 3: Achievements / Badges */}
+              {/* Card 3: Achievements / Badges */}
+              {/* Card 3: Achievements / Badges */}
+              <Dialog>
+                <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'h-full', 'bg-card', 'py-0')}>
+                  <CardHeader className={cn('flex', 'flex-row', 'items-center', 'justify-between', 'pt-4', 'pb-1')}>
+                    <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
+                      Badges
+                    </CardTitle>
+                    <DialogTrigger asChild>
+                      <button className={cn('p-1', '-m-1', 'rounded', 'hover:bg-muted', 'transition-colors', 'group', 'cursor-pointer', 'focus:outline-none', 'focus:ring-2', 'focus:ring-primary', 'focus:ring-offset-2')}>
+                        <ChevronRight className={cn('h-4', 'w-4', 'text-muted-foreground', 'group-hover:text-foreground', 'transition-colors')} />
+                      </button>
+                    </DialogTrigger>
+                  </CardHeader>
+
+                    <CardContent className={cn('flex', 'flex-col', 'flex-1', 'justify-between', 'pb-4', 'pt-0', 'min-h-[180px]')}>
+                      {/* Top row number */}
+                      <div className="mb-2">
+                        <p className={cn('text-3xl', 'font-bold', 'tracking-tight', 'leading-none')}>{data.badges?.length || 0}</p>
+                      </div>
+
+                      {/* Badge Row (up to 4 badges) */}
+                      <DialogTrigger asChild>
+                        <div className={cn('flex-1', 'flex', 'items-center', 'justify-center', 'py-2', 'overflow-visible', 'cursor-pointer', 'group', 'hover:bg-muted/5', 'rounded-md', 'mx-2', 'transition-colors')}>
+                          <div className={cn('flex', 'items-center', '-space-x-4', 'px-2')}>
+                            {(() => {
+                              const allBadges = data.allBadges || [];
+                              const earnedBadgeIds = new Map(data.badges?.map(b => [b.id, b]) || []);
+                              
+                              // Get up to 4 badges to show in the preview row (only earned badges, most recent first)
+                              const earnedBadgesOnly = allBadges.filter((b: any) => earnedBadgeIds.has(b.id));
+                              const previewBadges = [...earnedBadgesOnly].sort((a, b) => {
+                                const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
+                                const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
+                                return bDate - aDate;
+                              }).slice(0, 4);
+
+                            if (previewBadges.length === 0) return <div className={cn('text-xs', 'text-muted-foreground', 'italic')}>No badges yet.</div>;
+
+                            return previewBadges.map((badge: any, idx: number) => {
+                              const isEarned = earnedBadgeIds.has(badge.id);
+                              const earnedData = earnedBadgeIds.get(badge.id);
+                              const earnedDateStr = isEarned && earnedData.earned_at
+                                ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(earnedData.earned_at))
+                                : null;
+
+                              const isImage = badge.icon_name.endsWith('.png') || badge.icon_name.endsWith('.svg') || badge.icon_name.endsWith('.webp') || badge.icon_name.includes('/');
+
+                              let IconComp = Award;
+                              if (!isImage) {
+                                if (badge.icon_name === 'Flame') IconComp = Flame;
+                                else if (badge.icon_name === 'Zap') IconComp = Zap;
+                                else if (badge.icon_name === 'Trophy') IconComp = Trophy;
+                                else if (badge.icon_name === 'Brain') IconComp = Brain;
+                                else if (badge.icon_name === 'Target') IconComp = Target;
+                              }
+
+                              let gradientClass = "from-primary/20 to-primary/5 border-primary/30 text-primary";
+                              let glowColor = "group-hover:bg-primary/20";
+
+                              if (badge.badge_category === 'Streak') {
+                                gradientClass = "from-orange-500/20 to-orange-500/5 border-orange-500/30 text-orange-500";
+                                glowColor = "group-hover:bg-orange-500/20";
+                              } else if (badge.badge_category === 'Milestone') {
+                                gradientClass = "from-indigo-500/20 to-indigo-500/5 border-indigo-500/30 text-indigo-500";
+                                glowColor = "group-hover:bg-indigo-500/20";
+                              }
+
+                              return (
+                                <Tooltip key={idx}>
+                                  <TooltipTrigger asChild>
+                                    <div className={cn("relative transition-transform hover:scale-110 flex-shrink-0 cursor-pointer group hover:z-20", !isEarned && "opacity-40 grayscale hover:grayscale-[0.5] hover:opacity-70", `z-[${4 - idx}]`)}>
+                                      <div className={cn('w-[72px]', 'h-[72px]', 'sm:w-[84px]', 'sm:h-[84px]', 'flex', 'items-center', 'justify-center')}>
+                                        {isImage ? (
+                                          <img src={badge.icon_name} alt={badge.name} className={cn('w-full', 'h-full', 'object-contain', 'drop-shadow-md', 'group-hover:drop-shadow-xl')} />
+                                        ) : (
+                                          <div className={cn("w-full h-full rounded-full flex items-center justify-center border bg-gradient-to-br transition-all overflow-hidden", gradientClass)}>
+                                            {isEarned && <div className={cn("absolute inset-0 opacity-0 transition-opacity duration-300 blur-xl", glowColor)} />}
+                                            <div className={cn('relative', 'z-10', 'w-11', 'h-11', 'sm:w-12', 'sm:h-12', 'rounded-full', 'bg-background/80', 'shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)]', 'dark:shadow-[inset_0_1px_3px_rgba(255,255,255,0.1)]', 'flex', 'items-center', 'justify-center', 'border', 'border-foreground/5', 'transition-transform', 'duration-300', 'group-hover:scale-110')}>
+                                              <IconComp className={cn('w-5', 'h-5', 'sm:w-6', 'sm:h-6', 'drop-shadow-sm')} />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className={cn('max-w-[220px]', 'text-center', 'p-3', 'bg-popover', 'text-popover-foreground', 'border', 'shadow-md')} sideOffset={10}>
+                                    <p className={cn('font-bold', 'text-[14px]', 'mb-1.5')}>{badge.name}</p>
+                                    <p className={cn('text-[12px]', 'text-muted-foreground', 'leading-snug', 'mb-2.5')}>{badge.description}</p>
+                                    {isEarned ? (
+                                      <div className={cn('bg-primary/10', 'text-primary', 'py-1', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-block', 'uppercase', 'tracking-wider')}>
+                                        Earned {earnedDateStr}
+                                      </div>
+                                    ) : (
+                                      <div className={cn('bg-muted', 'text-muted-foreground/80', 'py-1', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-flex', 'items-center', 'gap-1.5', 'uppercase', 'tracking-wider')}>
+                                        Locked
+                                      </div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                      </DialogTrigger>
+
+                      {/* Most Recent Badge */}
+                      {data.badges && data.badges.length > 0 && (
+                        <div className={cn('mt-auto', 'pt-2')}>
+                          <p className={cn('text-[12px]', 'text-muted-foreground', 'mb-1')}>Most Recent Badge</p>
+                          <p className={cn('text-[14px]', 'font-semibold', 'leading-tight', 'truncate')}>{data.badges[0].name}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                <DialogContent className={cn('max-w-3xl', 'max-h-[85vh]', 'overflow-y-auto', 'bg-background', 'text-foreground')}>
+                  <DialogHeader>
+                    <DialogTitle className="text-xl">All Badges</DialogTitle>
+                  </DialogHeader>
+                  <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5', 'gap-8', 'mt-6', 'place-items-center', 'pb-8')}>
+                    {(() => {
+                      const allBadges = data.allBadges || [];
+                      const earnedBadgeIds = new Map(data.badges?.map(b => [b.id, b]) || []);
+
+                      if (allBadges.length === 0) {
+                        return <div className={cn('text-sm', 'text-muted-foreground', 'italic', 'w-full', 'col-span-full', 'text-center', 'py-8')}>No badges available yet.</div>;
+                      }
+                      
+                      // Sort all badges to show earned first, most recent first
+                      const sortedAllBadges = [...allBadges].sort((a: any, b: any) => {
+                        const aEarned = earnedBadgeIds.has(a.id);
+                        const bEarned = earnedBadgeIds.has(b.id);
+                        if (aEarned && !bEarned) return -1;
+                        if (!aEarned && bEarned) return 1;
+                        if (aEarned && bEarned) {
+                          const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
+                          const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
+                          return bDate - aDate;
+                        }
+                        return 0;
+                      });
+
+                      return sortedAllBadges.map((badge: any, idx: number) => {
+                        const earnedData = earnedBadgeIds.get(badge.id);
+                        const isEarned = !!earnedData;
+                        const earnedDateStr = isEarned && earnedData.earned_at
+                          ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(earnedData.earned_at))
+                          : null;
+
+                        const isImage = badge.icon_name.endsWith('.png') || badge.icon_name.endsWith('.svg') || badge.icon_name.endsWith('.webp') || badge.icon_name.includes('/');
+
+                        let IconComp = Award;
+                        if (!isImage) {
+                          if (badge.icon_name === 'Flame') IconComp = Flame;
+                          else if (badge.icon_name === 'Zap') IconComp = Zap;
+                          else if (badge.icon_name === 'Trophy') IconComp = Trophy;
+                          else if (badge.icon_name === 'Brain') IconComp = Brain;
+                          else if (badge.icon_name === 'Target') IconComp = Target;
+                        }
+
+                        let gradientClass = "from-primary/20 to-primary/5 border-primary/30 text-primary";
+                        let glowColor = "group-hover:bg-primary/20";
+
+                        if (badge.badge_category === 'Streak') {
+                          gradientClass = "from-orange-500/20 to-orange-500/5 border-orange-500/30 text-orange-500";
+                          glowColor = "group-hover:bg-orange-500/20";
+                        } else if (badge.badge_category === 'Milestone') {
+                          gradientClass = "from-indigo-500/20 to-indigo-500/5 border-indigo-500/30 text-indigo-500";
+                          glowColor = "group-hover:bg-indigo-500/20";
                         }
 
                         return (
-                          <>
-                            {expertCount > 0 && (
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                                <Award className="h-3.5 w-3.5" />
-                                <span className="text-xs font-semibold">{expertCount} Expert</span>
+                          <Tooltip key={idx}>
+                            <TooltipTrigger asChild>
+                              <div className={cn('flex', 'flex-col', 'items-center', 'gap-3', 'group', 'text-center')}>
+                                {isImage ? (
+                                  <div
+                                    className={cn(
+                                      "relative flex items-center justify-center transition-all duration-500 ease-out w-16 h-16 sm:w-[72px] sm:h-[72px]",
+                                      isEarned ? "hover:scale-110 hover:drop-shadow-2xl cursor-pointer" : "opacity-40 grayscale hover:grayscale-[0.5] hover:opacity-70 transition-all duration-300"
+                                    )}
+                                  >
+                                    <img src={badge.icon_name} alt={badge.name} className={cn('w-full', 'h-full', 'object-contain', 'drop-shadow-md', 'group-hover:drop-shadow-xl')} />
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className={cn(
+                                      "relative flex flex-col items-center justify-center w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full border bg-gradient-to-br transition-all duration-300 overflow-hidden",
+                                      gradientClass,
+                                      isEarned ? "hover:scale-110 hover:shadow-xl cursor-pointer" : "opacity-40 grayscale hover:grayscale-[0.5] hover:opacity-70 transition-all duration-300"
+                                    )}
+                                  >
+                                    {isEarned && <div className={cn("absolute inset-0 opacity-0 transition-opacity duration-300 blur-xl", glowColor)} />}
+                                    <div className={cn("relative z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_3px_rgba(255,255,255,0.1)] border border-foreground/5 transition-transform duration-300", isEarned && "group-hover:scale-110")}>
+                                      <IconComp className={cn('h-5', 'w-5', 'sm:h-6', 'sm:w-6', 'drop-shadow-sm')} />
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div className={cn('flex', 'flex-col', 'items-center', 'mt-1')}>
+                                  <p className={cn('font-bold', 'text-[14px]', 'leading-tight', 'mb-1')}>{badge.name}</p>
+                                  {isEarned ? (
+                                    <div className={cn('bg-primary/10', 'text-primary', 'py-0.5', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-block', 'uppercase', 'tracking-wider')}>
+                                      {earnedDateStr}
+                                    </div>
+                                  ) : (
+                                    <div className={cn('bg-muted', 'text-muted-foreground/80', 'py-0.5', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-flex', 'items-center', 'gap-1.5', 'uppercase', 'tracking-wider')}>
+                                      Locked
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            {advancedCount > 0 && (
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-                                <Award className="h-3.5 w-3.5" />
-                                <span className="text-xs font-semibold">{advancedCount} Advanced</span>
-                              </div>
-                            )}
-                            {proficientCount > 0 && (
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400">
-                                <Award className="h-3.5 w-3.5" />
-                                <span className="text-xs font-semibold">{proficientCount} Proficient</span>
-                              </div>
-                            )}
-                          </>
+                            </TooltipTrigger>
+                            <TooltipContent className={cn('max-w-[220px]', 'text-center', 'p-3', 'bg-popover', 'text-popover-foreground', 'border', 'shadow-md')} sideOffset={10}>
+                              <p className={cn('font-bold', 'text-[14px]', 'mb-1.5')}>{badge.name}</p>
+                              <p className={cn('text-[12px]', 'text-muted-foreground', 'leading-snug', 'mb-2.5')}>{badge.description}</p>
+                              {isEarned ? (
+                                <div className={cn('bg-primary/10', 'text-primary', 'py-1', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-block', 'uppercase', 'tracking-wider')}>
+                                  Earned {earnedDateStr}
+                                </div>
+                              ) : (
+                                <div className={cn('bg-muted', 'text-muted-foreground/80', 'py-1', 'px-2', 'rounded', 'font-medium', 'text-[10px]', 'inline-flex', 'items-center', 'gap-1.5', 'uppercase', 'tracking-wider')}>
+                                  Locked
+                                </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
                         );
-                      })()}
-                    </div>
+                      });
+                    })()}
                   </div>
-
-                  {/* Consistency */}
-                  <div className="space-y-2.5 mt-auto">
-                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Consistency</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg border border-border bg-muted/10 p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase mb-1 flex items-center gap-1">
-                          <Flame className={cn("h-3 w-3", streakStats.currentStreak > 0 ? "text-orange-500" : "text-muted-foreground")} />
-                          Current Streak
-                        </p>
-                        <p className="text-xl font-bold tabular-nums text-foreground">{streakStats.currentStreak}</p>
-                      </div>
-                      <div className="rounded-lg border border-border bg-muted/10 p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase mb-1">Max Streak</p>
-                        <p className="text-xl font-bold tabular-nums text-foreground">{streakStats.maxStreak}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardContent>
@@ -801,15 +978,15 @@ export function CandidatePublicProfileView({
   const hasEducationHistory = sscRecord || hscRecord || diplomaRecord;
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
+    <div className={cn('flex', 'flex-col', 'gap-6', 'px-4', 'py-8', 'md:px-8')}>
       {/* Page Header */}
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
+      <div className={cn('flex', 'flex-col', 'gap-1.5')}>
+        <h1 className={cn('text-3xl', 'font-bold', 'font-cirka', 'tracking-tight', 'text-foreground')}>
           Candidate Profile
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className={cn('text-sm', 'text-muted-foreground')}>
           Viewing public profile of{" "}
-          <span className="font-medium text-foreground">
+          <span className={cn('font-medium', 'text-foreground')}>
             {publicData.full_name || publicData.username || "this candidate"}
           </span>
         </p>
@@ -820,51 +997,81 @@ export function CandidatePublicProfileView({
         {/* ── Hero Card ─────────────────────────────────────────────────────── */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <div className={cn('flex', 'flex-col', 'sm:flex-row', 'items-center', 'sm:items-start', 'gap-6')}>
               {/* Avatar */}
-              <Avatar className="h-24 w-24 shrink-0 border-2 border-muted">
+              <Avatar className={cn('h-24', 'w-24', 'shrink-0', 'border-2', 'border-muted')}>
                 <AvatarImage src={avatarUrl ?? undefined} alt={publicData.full_name} className="object-cover" />
-                <AvatarFallback className="text-2xl font-semibold">
+                <AvatarFallback className={cn('text-2xl', 'font-semibold')}>
                   {getInitials(publicData.first_name, publicData.last_name, publicData.full_name)}
                 </AvatarFallback>
               </Avatar>
 
               {/* Name / Username / Bio */}
-              <div className="flex-1 min-w-0 text-center sm:text-left space-y-2">
+              <div className={cn('flex-1', 'min-w-0', 'text-center', 'sm:text-left', 'space-y-2')}>
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  <h2 className={cn('text-2xl', 'font-bold', 'tracking-tight', 'text-foreground')}>
                     {publicData.full_name || "—"}
                   </h2>
                   {publicData.username && (
-                    <div className="flex items-center justify-center sm:justify-start gap-1 mt-0.5 text-muted-foreground">
-                      <AtSign className="h-3.5 w-3.5" />
+                    <div className={cn('flex', 'items-center', 'justify-center', 'sm:justify-start', 'gap-1', 'mt-0.5', 'text-muted-foreground')}>
+                      <AtSign className={cn('h-3.5', 'w-3.5')} />
                       <span className="text-sm">{publicData.username}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Quick meta badges */}
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-start items-center">
+                <div className={cn('flex', 'flex-wrap', 'gap-2', 'justify-center', 'sm:justify-start', 'items-center')}>
                   {publicData.course_name && (
-                    <Badge variant="secondary" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full max-w-full">
-                      <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+                    <Badge variant="secondary" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'font-medium', 'rounded-full', 'max-w-full')}>
+                      <GraduationCap className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
                       <span className="truncate">{publicData.course_name}{publicData.passout_year ? ` · ${publicData.passout_year}` : ""}</span>
                     </Badge>
                   )}
                   {publicData.institute_name && (
-                    <Badge variant="outline" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-normal rounded-full border border-border bg-muted/30 max-w-full">
-                      <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate max-w-[280px] sm:max-w-md">{publicData.institute_name}</span>
+                    <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'font-normal', 'rounded-full', 'border', 'border-border', 'bg-muted/30', 'max-w-full')}>
+                      <Building2 className={cn('h-3.5', 'w-3.5', 'shrink-0', 'text-muted-foreground')} />
+                      <span className={cn('truncate', 'max-w-[280px]', 'sm:max-w-md')}>{publicData.institute_name}</span>
                     </Badge>
                   )}
                   {cgpa && (
-                    <Badge variant="outline" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs text-primary border-primary/30 bg-primary/5 rounded-full">
-                      <BarChart3 className="h-3.5 w-3.5 shrink-0" />
+                    <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'text-primary', 'border-primary/30', 'bg-primary/5', 'rounded-full')}>
+                      <BarChart3 className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
                       CGPA {cgpa}
                     </Badge>
                   )}
+                  {logicLabData?.points ? (
+                    <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'text-amber-600', 'border-amber-500/30', 'bg-amber-500/10', 'rounded-full', 'dark:text-amber-400')}>
+                      <Sparkles className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
+                      {logicLabData.points} Points
+                    </Badge>
+                  ) : null}
+                  {logicLabData?.badges && logicLabData.badges.length > 0 && (() => {
+                    const latestBadge = logicLabData.badges[0];
+                    const isImage = latestBadge.icon_name.endsWith('.png') || latestBadge.icon_name.endsWith('.svg') || latestBadge.icon_name.endsWith('.webp') || latestBadge.icon_name.includes('/');
+
+                    let IconComp = Award;
+                    if (!isImage) {
+                      if (latestBadge.icon_name === 'Flame') IconComp = Flame;
+                      else if (latestBadge.icon_name === 'Zap') IconComp = Zap;
+                      else if (latestBadge.icon_name === 'Trophy') IconComp = Trophy;
+                      else if (latestBadge.icon_name === 'Brain') IconComp = Brain;
+                      else if (latestBadge.icon_name === 'Target') IconComp = Target;
+                    }
+
+                    return (
+                      <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'text-indigo-600', 'border-indigo-500/30', 'bg-indigo-500/10', 'rounded-full', 'dark:text-indigo-400')}>
+                        {isImage ? (
+                          <img src={latestBadge.icon_name} alt="" className={cn('h-3.5', 'w-3.5', 'object-contain')} />
+                        ) : (
+                          <IconComp className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
+                        )}
+                        {latestBadge.name}
+                      </Badge>
+                    );
+                  })()}
                   {publicData.gender && (
-                    <Badge variant="outline" className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full">
+                    <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'rounded-full')}>
                       {GENDER_REVERSE[publicData.gender] ?? publicData.gender}
                     </Badge>
                   )}
@@ -872,17 +1079,17 @@ export function CandidatePublicProfileView({
 
                 {/* Bio */}
                 {publicData.bio && (
-                  <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+                  <p className={cn('text-sm', 'text-muted-foreground', 'leading-relaxed', 'max-w-2xl')}>
                     {publicData.bio}
                   </p>
                 )}
 
                 {/* Email */}
-                <div className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-muted-foreground">
-                  <Mail className="h-3.5 w-3.5" />
+                <div className={cn('flex', 'items-center', 'justify-center', 'sm:justify-start', 'gap-1.5', 'text-sm', 'text-muted-foreground')}>
+                  <Mail className={cn('h-3.5', 'w-3.5')} />
                   <a
                     href={`mailto:${publicData.email}`}
-                    className="hover:text-foreground transition-colors"
+                    className={cn('hover:text-foreground', 'transition-colors')}
                   >
                     {publicData.email}
                   </a>
@@ -895,15 +1102,15 @@ export function CandidatePublicProfileView({
         {/* ── Professional Links ─────────────────────────────────────────────── */}
         {hasLinks && (
           <SectionCard icon={Link2} title="Links & Profiles">
-            <div className="flex flex-wrap gap-3">
+            <div className={cn('flex', 'flex-wrap', 'gap-3')}>
               {publicData.linkedin_url && (
                 <a
                   href={publicData.linkedin_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors"
+                  className={cn('inline-flex', 'items-center', 'gap-2', 'px-3', 'py-1.5', 'rounded-md', 'text-sm', 'font-medium', 'border', 'border-border', 'hover:bg-accent', 'transition-colors')}
                 >
-                  <Linkedin className="h-4 w-4 text-[#0077B5]" />
+                  <Linkedin className={cn('h-4', 'w-4', 'text-[#0077B5]')} />
                   LinkedIn
                 </a>
               )}
@@ -912,9 +1119,9 @@ export function CandidatePublicProfileView({
                   href={publicData.github_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors"
+                  className={cn('inline-flex', 'items-center', 'gap-2', 'px-3', 'py-1.5', 'rounded-md', 'text-sm', 'font-medium', 'border', 'border-border', 'hover:bg-accent', 'transition-colors')}
                 >
-                  <Github className="h-4 w-4" />
+                  <Github className={cn('h-4', 'w-4')} />
                   GitHub
                 </a>
               )}
@@ -930,7 +1137,7 @@ export function CandidatePublicProfileView({
           <div className="space-y-5">
             {/* Current Course */}
             {(publicData.course_name || publicData.passout_year) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-4')}>
                 <InfoRow label="Course / Branch" value={publicData.course_name} />
                 <InfoRow label="Institute" value={publicData.institute_name} />
                 <InfoRow label="Expected Graduation" value={publicData.passout_year ? String(publicData.passout_year) : null} />
@@ -942,16 +1149,16 @@ export function CandidatePublicProfileView({
               <>
                 <Separator />
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium mb-3 flex items-center gap-1.5">
-                    <BarChart3 className="h-3.5 w-3.5" />
+                  <p className={cn('text-xs', 'text-muted-foreground', 'font-medium', 'mb-3', 'flex', 'items-center', 'gap-1.5')}>
+                    <BarChart3 className={cn('h-3.5', 'w-3.5')} />
                     Semester-wise SGPA
                     {cgpa && (
-                      <Badge variant="secondary" className="ml-1 text-xs h-5">
+                      <Badge variant="secondary" className={cn('ml-1', 'text-xs', 'h-5')}>
                         CGPA {cgpa}
                       </Badge>
                     )}
                   </p>
-                  <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  <div className={cn('grid', 'grid-cols-4', 'sm:grid-cols-8', 'gap-2')}>
                     {publicData.sgpa_semesters.map((sgpa, i) => (
                       <div
                         key={i}
@@ -962,7 +1169,7 @@ export function CandidatePublicProfileView({
                             : "border-dashed border-muted-foreground/20 bg-muted/30"
                         )}
                       >
-                        <p className="text-[9px] text-muted-foreground mb-0.5">Sem {i + 1}</p>
+                        <p className={cn('text-[9px]', 'text-muted-foreground', 'mb-0.5')}>Sem {i + 1}</p>
                         <p className={cn("text-sm font-semibold", sgpa ? "text-foreground" : "text-muted-foreground/40")}>
                           {sgpa || "—"}
                         </p>
@@ -978,8 +1185,8 @@ export function CandidatePublicProfileView({
               <>
                 <Separator />
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium mb-3 flex items-center gap-1.5">
-                    <BookOpen className="h-3.5 w-3.5" />
+                  <p className={cn('text-xs', 'text-muted-foreground', 'font-medium', 'mb-3', 'flex', 'items-center', 'gap-1.5')}>
+                    <BookOpen className={cn('h-3.5', 'w-3.5')} />
                     Education History
                   </p>
                   <div className="space-y-3">
@@ -988,17 +1195,17 @@ export function CandidatePublicProfileView({
                       .map((rec) => (
                         <div
                           key={rec!.id}
-                          className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border bg-muted/30"
+                          className={cn('flex', 'items-start', 'justify-between', 'gap-4', 'p-3', 'rounded-lg', 'border', 'border-border', 'bg-muted/30')}
                         >
                           <div className="space-y-0.5">
-                            <p className="text-sm font-medium">
+                            <p className={cn('text-sm', 'font-medium')}>
                               {EDUCATION_TYPE_LABELS[rec!.type] ?? rec!.type}
                             </p>
-                            <p className="text-xs text-muted-foreground">{rec!.institution_name}</p>
+                            <p className={cn('text-xs', 'text-muted-foreground')}>{rec!.institution_name}</p>
                           </div>
-                          <div className="text-right shrink-0 space-y-0.5">
-                            <p className="text-sm font-semibold">{Number(rec!.grade_or_percentage).toFixed(2)}%</p>
-                            <p className="text-xs text-muted-foreground">{rec!.passout_year}</p>
+                          <div className={cn('text-right', 'shrink-0', 'space-y-0.5')}>
+                            <p className={cn('text-sm', 'font-semibold')}>{Number(rec!.grade_or_percentage).toFixed(2)}%</p>
+                            <p className={cn('text-xs', 'text-muted-foreground')}>{rec!.passout_year}</p>
                           </div>
                         </div>
                       ))}
@@ -1009,7 +1216,7 @@ export function CandidatePublicProfileView({
 
             {/* Nothing at all */}
             {!publicData.course_name && !hasSgpa && !hasEducationHistory && (
-              <p className="text-sm text-muted-foreground italic">No education details added yet.</p>
+              <p className={cn('text-sm', 'text-muted-foreground', 'italic')}>No education details added yet.</p>
             )}
           </div>
         </SectionCard>
@@ -1020,13 +1227,13 @@ export function CandidatePublicProfileView({
             <div className="space-y-4">
               {Object.entries(groupedSkills).map(([category, skills]) => (
                 <div key={category}>
-                  <p className="text-xs text-muted-foreground font-medium mb-2">{category}</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className={cn('text-xs', 'text-muted-foreground', 'font-medium', 'mb-2')}>{category}</p>
+                  <div className={cn('flex', 'flex-wrap', 'gap-2')}>
                     {skills.map((skill) => (
                       <Badge
                         key={skill.id}
                         variant="secondary"
-                        className="gap-1.5 py-1 px-2.5 text-xs font-medium"
+                        className={cn('gap-1.5', 'py-1', 'px-2.5', 'text-xs', 'font-medium')}
                       >
                         <SkillIcon name={skill.name} />
                         {skill.name}
@@ -1049,32 +1256,32 @@ export function CandidatePublicProfileView({
               {experienceData.map((exp, idx) => (
                 <div key={exp.id} className="space-y-2">
                   {idx > 0 && <Separator className="mb-4" />}
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-4">
-                    <div className="space-y-0.5 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{exp.title}</p>
-                      <p className="text-sm text-muted-foreground font-medium">{exp.company_name}</p>
+                  <div className={cn('flex', 'flex-col', 'sm:flex-row', 'sm:items-start', 'justify-between', 'gap-1', 'sm:gap-4')}>
+                    <div className={cn('space-y-0.5', 'min-w-0')}>
+                      <p className={cn('text-sm', 'font-semibold', 'text-foreground')}>{exp.title}</p>
+                      <p className={cn('text-sm', 'text-muted-foreground', 'font-medium')}>{exp.company_name}</p>
                       {exp.location && (
-                        <p className="text-xs text-muted-foreground">{exp.location}</p>
+                        <p className={cn('text-xs', 'text-muted-foreground')}>{exp.location}</p>
                       )}
                     </div>
-                    <div className="shrink-0 sm:text-right flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 mt-0.5 sm:mt-0">
+                    <div className={cn('shrink-0', 'sm:text-right', 'flex', 'sm:flex-col', 'items-center', 'sm:items-end', 'gap-2', 'sm:gap-1', 'mt-0.5', 'sm:mt-0')}>
                       {(exp.start_date || exp.end_date) && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <CalendarDays className="h-3.5 w-3.5" />
+                        <div className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground')}>
+                          <CalendarDays className={cn('h-3.5', 'w-3.5')} />
                           <span>
                             {formatDateRange(exp.start_date, exp.end_date, exp.is_current)}
                           </span>
                         </div>
                       )}
                       {exp.is_current && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
+                        <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5', 'font-normal')}>
                           Current
                         </Badge>
                       )}
                     </div>
                   </div>
                   {exp.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed pt-1">
+                    <p className={cn('text-sm', 'text-muted-foreground', 'leading-relaxed', 'pt-1')}>
                       {exp.description}
                     </p>
                   )}
@@ -1092,32 +1299,32 @@ export function CandidatePublicProfileView({
                 <div key={proj.id}>
                   {idx > 0 && <Separator className="mb-4" />}
                   <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold">{proj.title}</p>
+                    <div className={cn('flex', 'items-start', 'justify-between', 'gap-4')}>
+                      <div className={cn('flex-1', 'min-w-0')}>
+                        <div className={cn('flex', 'items-center', 'gap-2', 'flex-wrap')}>
+                          <p className={cn('text-sm', 'font-semibold')}>{proj.title}</p>
                           {proj.is_ongoing && (
-                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">Ongoing</Badge>
+                            <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5')}>Ongoing</Badge>
                           )}
                           {proj.project_url && (
                             <a
                               href={proj.project_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                              className={cn('inline-flex', 'items-center', 'gap-1', 'text-[11px]', 'text-primary', 'hover:underline')}
                             >
-                              <Globe className="h-3 w-3" />
+                              <Globe className={cn('h-3', 'w-3')} />
                               View
                             </a>
                           )}
                         </div>
                         {proj.associated_with && (
-                          <p className="text-xs text-muted-foreground">{proj.associated_with}</p>
+                          <p className={cn('text-xs', 'text-muted-foreground')}>{proj.associated_with}</p>
                         )}
                       </div>
                       {(proj.start_date || proj.end_date) && (
-                        <div className="shrink-0 flex items-center gap-1 text-xs text-muted-foreground">
-                          <CalendarDays className="h-3 w-3" />
+                        <div className={cn('shrink-0', 'flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground')}>
+                          <CalendarDays className={cn('h-3', 'w-3')} />
                           <span>
                             {formatDateRange(proj.start_date, proj.end_date, proj.is_ongoing)}
                           </span>
@@ -1125,15 +1332,15 @@ export function CandidatePublicProfileView({
                       )}
                     </div>
                     {proj.description && (
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <p className={cn('text-sm', 'text-muted-foreground', 'leading-relaxed')}>
                         {proj.description}
                       </p>
                     )}
                     {proj.skills && proj.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
+                      <div className={cn('flex', 'flex-wrap', 'gap-1.5', 'mt-1')}>
                         {proj.skills.map((s, i) => (
-                          <Badge key={i} variant="outline" className="gap-1 text-[11px] h-5 px-1.5">
-                            <SkillIcon name={s} className="w-3 h-3" />
+                          <Badge key={i} variant="outline" className={cn('gap-1', 'text-[11px]', 'h-5', 'px-1.5')}>
+                            <SkillIcon name={s} className={cn('w-3', 'h-3')} />
                             {s}
                           </Badge>
                         ))}
@@ -1153,13 +1360,13 @@ export function CandidatePublicProfileView({
               {certificationsData.map((cert, idx) => (
                 <div key={cert.id}>
                   {idx > 0 && <Separator className="mb-4" />}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0 space-y-0.5">
-                      <p className="text-sm font-semibold">{cert.name}</p>
-                      <p className="text-sm text-muted-foreground">{cert.issuing_org}</p>
+                  <div className={cn('flex', 'items-start', 'justify-between', 'gap-4')}>
+                    <div className={cn('flex-1', 'min-w-0', 'space-y-0.5')}>
+                      <p className={cn('text-sm', 'font-semibold')}>{cert.name}</p>
+                      <p className={cn('text-sm', 'text-muted-foreground')}>{cert.issuing_org}</p>
                       {cert.credential_id && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Hash className="h-3 w-3" />
+                        <div className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground')}>
+                          <Hash className={cn('h-3', 'w-3')} />
                           {cert.credential_id}
                         </div>
                       )}
@@ -1168,24 +1375,24 @@ export function CandidatePublicProfileView({
                           href={cert.credential_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                          className={cn('inline-flex', 'items-center', 'gap-1', 'text-xs', 'text-primary', 'hover:underline')}
                         >
-                          <Globe className="h-3 w-3" />
+                          <Globe className={cn('h-3', 'w-3')} />
                           View credential
                         </a>
                       )}
                     </div>
-                    <div className="shrink-0 text-right space-y-0.5">
+                    <div className={cn('shrink-0', 'text-right', 'space-y-0.5')}>
                       {cert.issue_date && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                          <CalendarDays className="h-3 w-3" />
+                        <div className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground', 'justify-end')}>
+                          <CalendarDays className={cn('h-3', 'w-3')} />
                           {formatIssueDate(cert.issue_date)}
                         </div>
                       )}
                       {cert.does_not_expire ? (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5">No Expiry</Badge>
+                        <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5')}>No Expiry</Badge>
                       ) : cert.expiration_date ? (
-                        <p className="text-xs text-muted-foreground">
+                        <p className={cn('text-xs', 'text-muted-foreground')}>
                           Expires {formatIssueDate(cert.expiration_date)}
                         </p>
                       ) : null}
@@ -1204,18 +1411,18 @@ export function CandidatePublicProfileView({
               {eventCertificates.map((cert, idx) => (
                 <div key={cert.ticketId}>
                   {idx > 0 && <Separator className="mb-3" />}
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{cert.eventTitle}</p>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <CalendarDays className="h-3 w-3" />
+                  <div className={cn('flex', 'items-center', 'justify-between', 'gap-4')}>
+                    <div className={cn('flex-1', 'min-w-0')}>
+                      <p className={cn('text-sm', 'font-medium')}>{cert.eventTitle}</p>
+                      <div className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground', 'mt-0.5')}>
+                        <CalendarDays className={cn('h-3', 'w-3')} />
                         {new Date(cert.eventDate).toLocaleDateString("en-IN", {
                           dateStyle: "medium",
                         })}
                       </div>
                     </div>
-                    <Badge variant="secondary" className="shrink-0 gap-1 text-xs">
-                      <Award className="h-3 w-3" />
+                    <Badge variant="secondary" className={cn('shrink-0', 'gap-1', 'text-xs')}>
+                      <Award className={cn('h-3', 'w-3')} />
                       Attended
                     </Badge>
                   </div>
