@@ -2,7 +2,6 @@
 
 import React, { useState } from "react"
 import { EventTicket } from "../types"
-import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -43,7 +42,7 @@ export function ExportEventAttendeesModal({ tickets, eventName, trigger }: Expor
     )
   }
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (selectedFields.length === 0) {
       toast.error("Please select at least one field to export.")
       return
@@ -54,6 +53,7 @@ export function ExportEventAttendeesModal({ tickets, eventName, trigger }: Expor
     }
 
     try {
+      const XLSX = await import("xlsx")
       const exportData = tickets.map((t) => {
         const row: any = {}
         if (selectedFields.includes("name")) row["Candidate Name"] = t.candidate_name || "Unknown"

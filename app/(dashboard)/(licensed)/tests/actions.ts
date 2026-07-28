@@ -121,7 +121,7 @@ async function fetchCandidateTests(
     .eq("candidate_id", userId)
 
   const submittedTestIds = (attempts ?? [])
-    .filter((a: any) => a.status === "submitted")
+    .filter((a: any) => a.status === "submitted" || a.status === "auto_submitted")
     .map((a: any) => a.test_id)
 
   const searchFilter = (q: any) => {

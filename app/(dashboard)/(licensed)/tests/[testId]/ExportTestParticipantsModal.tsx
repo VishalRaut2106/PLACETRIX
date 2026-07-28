@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import * as XLSX from "xlsx"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -67,6 +66,7 @@ export function ExportTestParticipantsModal({ testId, testName, totalAttempts, t
 
     try {
       setIsExporting(true)
+      const XLSX = await import("xlsx")
       // Fetch all attempts directly from the server bypassing pagination
       const allAttempts = await fetchAllTestAttemptsForExportAction(testId)
       

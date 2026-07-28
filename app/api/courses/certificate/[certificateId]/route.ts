@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { jsPDF } from "jspdf"
+import type { jsPDF } from "jspdf"
 import QRCode from "qrcode"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ export async function GET(_request: NextRequest, props: RouteParams) {
       loadMontserratFont()
     ])
     const hasGaramond = !!garamond.regular
-
+    const { jsPDF } = await import("jspdf")
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "pt",

@@ -22,6 +22,12 @@ import {
     AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -48,10 +54,15 @@ import {
     Shuffle,
     Star,
     MessageSquare,
+    MonitorSmartphone,
+    Keyboard,
+    ShieldCheck,
+    HelpCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
 import { Textarea } from "@/components/ui/textarea"
+import { createClient } from "@/lib/supabase/client"
 import type { AttemptTest, AttemptQuestion, AttemptInfo, SavedAnswer } from "./_types"
 
 
@@ -194,14 +205,79 @@ function TimerDisplay({
 }
 
 
+// ─── Keyboard Shortcuts Modal ──────────────────────────────────────────────────
+
+function KeyboardShortcutsDialog({
+    open,
+    onOpenChange,
+}: {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-base font-bold">
+                        <Keyboard className="h-5 w-5 text-primary" />
+                        Keyboard Shortcuts
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2.5 py-2 text-xs">
+                    <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-3">
+                        <span className="font-medium text-foreground">Select Option A, B, C, D, E</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">Ctrl</kbd>
+                            <span>+</span>
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">A / B / C / D</kbd>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-3">
+                        <span className="font-medium text-foreground">Save & Next</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">Ctrl</kbd>
+                            <span>+</span>
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">S / Enter</kbd>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-3">
+                        <span className="font-medium text-foreground">Clear Response</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">Ctrl</kbd>
+                            <span>+</span>
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">Backspace</kbd>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-3">
+                        <span className="font-medium text-foreground">Toggle Flag for Review</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">Ctrl</kbd>
+                            <span>+</span>
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">F</kbd>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-3">
+                        <span className="font-medium text-foreground">Previous / Next Question</span>
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">←</kbd>
+                            <span>/</span>
+                            <kbd className="rounded border bg-background px-1.5 py-0.5 font-semibold shadow-xs">→</kbd>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+
 // ─── Question Navigator ───────────────────────────────────────────────────────
 
 function QuestionNavigator({
     questions: displayQuestions,
     currentIndex,
     answers,
-    savingIds,
-    unsyncedIds,
+    syncedAnswers = {},
     flagged,
     disabled,
     onJump,
@@ -209,42 +285,59 @@ function QuestionNavigator({
     questions: AttemptQuestion[]
     currentIndex: number
     answers: Record<string, string[]>
-    savingIds: Record<string, boolean>
-    unsyncedIds: Record<string, boolean>
+    syncedAnswers?: Record<string, string[]>
     flagged: Record<string, boolean>
     disabled?: boolean
     onJump: (i: number) => void
 }) {
-    const answeredCount = displayQuestions.filter((q) => (answers[q.id] ?? []).length > 0).length
+    const savedCount = useMemo(() => {
+        return displayQuestions.filter((q) => {
+            const current = answers[q.id] ?? []
+            const synced = syncedAnswers[q.id] ?? []
+            return current.length > 0 && JSON.stringify([...current].sort()) === JSON.stringify([...synced].sort())
+        }).length
+    }, [displayQuestions, answers, syncedAnswers])
+
+    const unsavedCount = useMemo(() => {
+        return displayQuestions.filter((q) => {
+            const current = answers[q.id] ?? []
+            const synced = syncedAnswers[q.id] ?? []
+            return current.length > 0 && JSON.stringify([...current].sort()) !== JSON.stringify([...synced].sort())
+        }).length
+    }, [displayQuestions, answers, syncedAnswers])
+
+    const flaggedCount = useMemo(() => {
+        return Object.values(flagged).filter(Boolean).length
+    }, [flagged])
 
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Progress
-                </p>
-                <div className="flex min-w-0 items-center gap-2">
-                    <Progress
-                        value={(answeredCount / displayQuestions.length) * 100}
-                        className="h-1.5 min-w-0 flex-1"
-                    />
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                        {answeredCount}/{displayQuestions.length}
+                <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <span>Progress</span>
+                    <span className="tabular-nums font-semibold text-foreground">
+                        {savedCount} / {displayQuestions.length} Saved
                     </span>
                 </div>
+                <Progress
+                    value={(savedCount / displayQuestions.length) * 100}
+                    className="h-2 w-full rounded-full"
+                />
             </div>
 
             <div>
                 <p className="mb-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Questions
+                    Question Palette
                 </p>
                 <div className="grid grid-cols-5 gap-2">
                     {displayQuestions.map((q, i) => {
-                        const answered = (answers[q.id] ?? []).length > 0
+                        const localAns = answers[q.id] ?? []
+                        const syncedAns = syncedAnswers[q.id] ?? []
+                        const hasLocal = localAns.length > 0
+                        const isSaved = hasLocal && JSON.stringify([...localAns].sort()) === JSON.stringify([...syncedAns].sort())
+                        const isPending = hasLocal && !isSaved
                         const isFlagged = flagged[q.id] ?? false
                         const isCurrent = i === currentIndex
-                        const isSaving = savingIds[q.id]
-                        const isUnsynced = unsyncedIds[q.id]
 
                         return (
                             <button
@@ -252,28 +345,24 @@ function QuestionNavigator({
                                 onClick={() => !disabled && onJump(i)}
                                 disabled={disabled}
                                 className={cn(
-                                    "relative aspect-square w-full rounded-full border text-xs font-semibold transition-all",
-                                    isCurrent
-                                        ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary ring-offset-1"
-                                        : isFlagged
-                                            ? answered
-                                                ? "border-amber-400 bg-amber-100 text-amber-800 hover:bg-amber-200 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300"
-                                                : "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                                            : answered
-                                                ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                                                : "border-border bg-background text-muted-foreground hover:border-muted-foreground hover:text-foreground",
-                                    (isSaving || isUnsynced) && !isCurrent && "animate-pulse",
+                                    "relative aspect-square w-full rounded-xl border text-xs font-bold transition-all duration-150",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                    isCurrent && "ring-2 ring-primary ring-offset-2 z-10 scale-105 shadow-sm",
+                                    isSaved
+                                        ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                        : isPending
+                                            ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300"
+                                            : isFlagged
+                                                ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
+                                                : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground",
                                     disabled && "cursor-not-allowed opacity-60"
                                 )}
                             >
                                 {i + 1}
                                 {isFlagged && (
-                                    <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3 items-center justify-center rounded-full border border-background bg-amber-500">
-                                        <Flag className="h-1.5 w-1.5 fill-white text-white" />
+                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-sm dark:border-indigo-900">
+                                        <Flag className="h-2 w-2 fill-white text-white" />
                                     </span>
-                                )}
-                                {(isSaving || isUnsynced) && (
-                                    <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex h-1 w-1 rounded-full bg-primary" />
                                 )}
                             </button>
                         )
@@ -281,20 +370,24 @@ function QuestionNavigator({
                 </div>
             </div>
 
-            <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t">
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-sm border border-primary/40 bg-primary/10" />
-                    Answered
+                    <div className="h-3 w-3 shrink-0 rounded-md border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40" />
+                    <span>Saved ({savedCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-sm border border-border bg-background" />
-                    Not answered
+                    <div className="h-3 w-3 shrink-0 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-950/40" />
+                    <span>Unsaved ({unsavedCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="relative h-3 w-3 shrink-0 rounded-sm border border-amber-400 bg-amber-100 dark:bg-amber-900/40">
-                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    <div className="h-3 w-3 shrink-0 rounded-md border border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                        <Flag className="h-2 w-2 fill-indigo-600 text-indigo-600 dark:fill-indigo-400 dark:text-indigo-400" />
                     </div>
-                    Flagged for review
+                    <span>Flagged ({flaggedCount})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 shrink-0 rounded-md border border-border bg-background" />
+                    <span>Unanswered</span>
                 </div>
             </div>
         </div>
@@ -306,6 +399,7 @@ function QuestionNavigator({
 
 function OptionButton({
     option,
+    optionIndex,
     isSelected,
     questionType,
     isSaving,
@@ -313,6 +407,7 @@ function OptionButton({
     onClick,
 }: {
     option: AttemptQuestion["options"][number]
+    optionIndex: number
     isSelected: boolean
     questionType: "single_correct" | "multiple_correct"
     isSaving: boolean
@@ -320,21 +415,25 @@ function OptionButton({
     onClick: () => void
 }) {
     const isSingle = questionType === "single_correct"
+    const letter = String.fromCharCode(65 + optionIndex)
 
     return (
         <button
             onClick={onClick}
             disabled={isSaving || disabled}
             className={cn(
-                "flex w-full min-h-[3rem] items-center gap-3 rounded-xl border p-4 sm:p-5 text-left text-sm transition-all",
-                "hover:border-primary/50 hover:bg-primary/5 active:scale-[0.99]",
+                "group relative flex w-full min-h-[3.25rem] items-center gap-3.5 rounded-xl border p-4 sm:p-5 text-left text-sm transition-all duration-150",
+                "hover:border-primary/50 hover:bg-primary/5 active:scale-[0.995]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
                 isSelected
-                    ? "border-primary bg-primary/10 dark:bg-primary/15"
-                    : "border-border bg-background",
+                    ? "border-primary border-l-4 border-l-primary bg-primary/10 text-foreground font-semibold shadow-sm dark:bg-primary/15"
+                    : "border-border bg-background text-foreground/90 hover:text-foreground",
                 (isSaving || disabled) && "cursor-wait opacity-70"
             )}
         >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-[11px] font-bold text-muted-foreground group-hover:border-primary/40 group-hover:text-primary">
+                {letter}
+            </span>
             <span className="shrink-0">
                 {isSingle ? (
                     isSelected ? (
@@ -374,6 +473,7 @@ function QuestionView({
     disabled,
     onAnswer,
     onToggleFlag,
+    onClearResponse,
 }: {
     question: AttemptQuestion
     index: number
@@ -387,8 +487,10 @@ function QuestionView({
     disabled?: boolean
     onAnswer: (optionId: string) => void
     onToggleFlag: () => void
+    onClearResponse: () => void
 }) {
     const isActuallySynced = JSON.stringify([...selectedIds].sort()) === JSON.stringify([...syncedIds].sort())
+    const hasSelection = selectedIds.length > 0
 
     return (
         <div className="space-y-6">
@@ -445,10 +547,11 @@ function QuestionView({
             </div>
 
             <div className="space-y-2.5">
-                {question.options.map((opt) => (
+                {question.options.map((opt, optIdx) => (
                     <OptionButton
                         key={opt.id}
                         option={opt}
+                        optionIndex={optIdx}
                         isSelected={selectedIds.includes(opt.id)}
                         questionType={question.question_type}
                         isSaving={isSaving}
@@ -457,6 +560,22 @@ function QuestionView({
                     />
                 ))}
             </div>
+
+            {/* ── Clear Selection Control ────────────────────────────────────── */}
+            {hasSelection && (
+                <div className="flex items-center justify-start pt-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClearResponse}
+                        disabled={disabled || isSaving}
+                        className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                        Clear Selection
+                    </Button>
+                </div>
+            )}
 
             {saveError ? (
                 <p className="flex items-center gap-1.5 text-xs text-destructive font-medium">
@@ -468,12 +587,12 @@ function QuestionView({
                     {isSaving ? (
                         <>
                             <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                            <span className="text-primary font-medium">Saving to server…</span>
+                            <span className="text-primary font-medium">Saving to database…</span>
                         </>
-                    ) : (isUnsynced || !isActuallySynced) ? (
+                    ) : (!isActuallySynced) ? (
                         <>
-                            <Clock className="h-3 w-3 text-amber-500" />
-                            <span className="text-amber-600 dark:text-amber-400 font-medium">Changes pending…</span>
+                            <Clock className="h-3 w-3 text-amber-500 animate-pulse" />
+                            <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved changes (Saving automatically…)</span>
                         </>
                     ) : (
                         <>
@@ -573,7 +692,7 @@ function IntroScreen({
                     <div className="flex items-start gap-2">
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <p>
-                            <strong>Important update:</strong> You must manually save your answers using the Save button or the <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border border-amber-300 bg-amber-100 px-1 font-mono text-[10px] font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-300">CTRL+S</kbd> keyboard shortcut.
+                            <strong>Answers are auto-saved every 5 seconds.</strong> You do not need to manually save anything.
                         </p>
                     </div>
                     <div className="flex items-start gap-2">
@@ -882,45 +1001,6 @@ function SubmittedScreen({
                         </div>
                     </div>
                 )}
-
-                {feedbackPhase === "thanks" && (
-                    <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950/20">
-                        <div className="flex items-center justify-center gap-2 text-emerald-700 dark:text-emerald-400">
-                            <p className="text-sm font-semibold">Thank you for your feedback!</p>
-                        </div>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400/80">
-                            Your response has been recorded and will help us improve.
-                        </p>
-                    </div>
-                )}
-
-                {/* ── Action Buttons ──────────────────────────────────────── */}
-                {feedbackPhase !== "form" && (
-                    <div className="pt-2">
-                        {feedbackPhase === "prompt" && attemptId && onSubmitFeedback ? (
-                            <div className="flex gap-3">
-                                <Button
-                                    className="flex-1 gap-2"
-                                    onClick={() => setFeedbackPhase("form")}
-                                >
-                                    <MessageSquare className="h-4 w-4" />
-                                    Share Feedback
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={onViewResults}
-                                >
-                                    View Results
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button onClick={onViewResults} className="w-full">
-                                View Results & Back to Dashboard
-                            </Button>
-                        )}
-                    </div>
-                )}
             </div>
         </div>
     )
@@ -934,22 +1014,19 @@ interface Props {
     questions: AttemptQuestion[]
     attemptInfo: AttemptInfo | null
     savedAnswers: SavedAnswer[]
+    candidateId: string
     onStartAttempt: () => Promise<AttemptInfo>
-    onSaveAnswer?: (
+    onSync: (
         attemptId: string,
-        questionId: string,
-        selectedIds: string[],
-        timeSpentSeconds?: number
-    ) => Promise<void>
-    onSaveAnswersBatch?: (
-        attemptId: string,
-        answers: Array<{
+        sessionToken: string,
+        batch: Array<{
             questionId: string
             selectedOptionIds: string[]
-            timeSpentSeconds?: number
+            timeSpentSeconds: number
         }>
-    ) => Promise<void>
-    onSubmit?: (attemptId: string, timeSpentSeconds: number) => Promise<{ error?: string; redirectPath?: string }>
+    ) => Promise<{ ok: boolean; error?: string }>
+    onClaimSession: (attemptId: string, sessionToken: string) => Promise<{ ok: boolean; error?: string }>
+    onSubmit?: (attemptId: string) => Promise<{ error?: string; redirectPath?: string }>
     serverNow: string
     // Called on every detected violation — fire-and-forget, never throws.
     onViolation?: (
@@ -977,9 +1054,10 @@ export function AttemptClient({
     questions,
     attemptInfo: initialAttemptInfo,
     savedAnswers,
+    candidateId,
     onStartAttempt,
-    onSaveAnswer,
-    onSaveAnswersBatch,
+    onSync,
+    onClaimSession,
     onSubmit,
     onViolation,
     onSubmitFeedback,
@@ -1015,7 +1093,7 @@ export function AttemptClient({
     const [phase, setPhase] = useState<"intro" | "active" | "submitted">("intro")
     const [submitReason, setSubmitReason] = useState<"manual" | "auto">("manual")
     const [submitRedirectPath, setSubmitRedirectPath] = useState<string | null>(null)
-    const [showUpdateNotice, setShowUpdateNotice] = useState(false)
+    const [showShortcutsModal, setShowShortcutsModal] = useState(false)
     const router = useRouter()
 
     // ── Server Time Sync ───────────────────────────────────────────────────────
@@ -1058,12 +1136,13 @@ export function AttemptClient({
         return {}
     })
 
-    const [savingIds, setSavingIds] = useState<Record<string, boolean>>({})
-    const [unsyncedIds, setUnsyncedIds] = useState<Record<string, boolean>>({})
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle')
+    const [syncError, setSyncError] = useState<string | null>(null)
+    const [sessionState, setSessionState] = useState<'ok' | 'conflict' | 'superseded'>('ok')
+    const [conflictSince, setConflictSince] = useState<string | null>(null)
     const [syncedAnswers, setSyncedAnswers] = useState<Record<string, string[]>>(
         () => Object.fromEntries(savedAnswers.map((a) => [a.question_id, a.selected_option_ids]))
     )
-    const [saveErrors, setSaveErrors] = useState<Record<string, string | null>>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
     const [showSubmitDialog, setShowSubmitDialog] = useState(false)
@@ -1077,9 +1156,26 @@ export function AttemptClient({
     const [showFocusWarning, setShowFocusWarning] = useState(false)
     const [focusLostCount, setFocusLostCount] = useState(initialAttemptInfo?.tab_switch_count ?? 0)
 
+    // ── Session Token (sessionStorage per tab) ─────────────────────────────────
+    const sessionTokenRef = useRef<string>("")
+    useEffect(() => {
+        const key = `pt_session_${test.id}`
+        let token = attemptInfo?.active_session_token || sessionStorage.getItem(key)
+        if (!token) {
+            token = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2)
+            sessionStorage.setItem(key, token)
+        } else {
+            sessionStorage.setItem(key, token)
+        }
+        sessionTokenRef.current = token
+    }, [test.id, attemptInfo?.active_session_token])
+
     // ── Refs ───────────────────────────────────────────────────────────────────
     const autoSubmitted = useRef(false)
     const handleSubmitRef = useRef<((auto?: boolean) => Promise<void>) | undefined>(undefined)
+    const performSyncRef = useRef<((isFinal?: boolean) => Promise<boolean>) | null>(null)
+    const awayStartRef = useRef<number | null>(null)
+    const beaconSentRef = useRef(false)
 
     // Synchronous mutex: prevents dual-event firing (visibilitychange + blur)
     // from counting as two separate violations for the same user action.
@@ -1099,6 +1195,7 @@ export function AttemptClient({
     const currentIndexRef = useRef(currentIndex)
     const questionsRef = useRef(displayQuestions)
     const answersRef = useRef(answers)
+    const syncedAnswersRef = useRef(syncedAnswers)
     const syncPromiseRef = useRef<Promise<boolean> | null>(null)
     const pacingBufferRef = useRef<Record<string, number>>({})
     const lastSyncAtRef = useRef<number>(0)
@@ -1124,6 +1221,7 @@ export function AttemptClient({
     useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
     useEffect(() => { questionsRef.current = displayQuestions }, [displayQuestions])
     useEffect(() => { answersRef.current = answers }, [answers])
+    useEffect(() => { syncedAnswersRef.current = syncedAnswers }, [syncedAnswers])
 
 
     // ── Fullscreen helpers ─────────────────────────────────────────────────────
@@ -1211,16 +1309,38 @@ export function AttemptClient({
         }
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === "hidden") triggerFocusLoss()
+            if (document.visibilityState === "hidden") {
+                awayStartRef.current = getNowOnServer().getTime()
+                if (phase === "active" && attemptInfo) {
+                    beaconSentRef.current = true
+                    try {
+                        navigator.sendBeacon(
+                            "/api/attempt/beacon",
+                            JSON.stringify({
+                                attemptId: attemptInfo.id,
+                                type: "tab_switch",
+                                count: focusLostCountRef.current + 1,
+                                timestamp: getNowOnServer().toISOString(),
+                            })
+                        )
+                    } catch {}
+                }
+                triggerFocusLoss()
+            } else if (document.visibilityState === "visible") {
+                if (awayStartRef.current !== null) {
+                    const nowMs = getNowOnServer().getTime()
+                    lastSyncAtRef.current = nowMs
+                    timeTrackingRef.current = {
+                        ...timeTrackingRef.current,
+                        enteredAtServerTime: nowMs,
+                    }
+                    awayStartRef.current = null
+                }
+            }
         }
 
         const handleBlur = () => {
-            // Longer delay (200 ms) to:
-            //   a) avoid false positives from shadcn dialogs that briefly steal focus, and
-            //   b) ensure showFocusWarningRef is up-to-date before we check it.
             setTimeout(() => {
-                // Suppress blur when the focus-warning dialog is already open —
-                // clicking "I Understand" itself causes a transient blur.
                 if (!document.hasFocus() && !showFocusWarningRef.current) {
                     triggerFocusLoss()
                 }
@@ -1229,7 +1349,6 @@ export function AttemptClient({
 
         // 3. Copy / keyboard blocking / Navigation ──────────────────────────
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Guard: stop logic if the user is typing in an input/textarea.
             if (
                 e.target instanceof HTMLInputElement ||
                 e.target instanceof HTMLTextAreaElement
@@ -1238,21 +1357,15 @@ export function AttemptClient({
             }
 
             const ctrl = e.ctrlKey || e.metaKey
-            // Block copy, save, view-source, print, select all
-            if (ctrl && ["c", "p", "s", "u", "a"].includes(e.key.toLowerCase())) {
+
+            // Copy & DevTools blocking
+            if (ctrl && ["p", "u"].includes(e.key.toLowerCase())) {
                 e.preventDefault()
             }
-            // Block DevTools shortcuts
             if (ctrl && e.shiftKey && ["i", "j", "c"].includes(e.key.toLowerCase())) {
                 e.preventDefault()
             }
             if (e.key === "F12") e.preventDefault()
-
-            // Ctrl + S (Save)
-            if (ctrl && e.key.toLowerCase() === "s") {
-                e.preventDefault()
-                syncBatch()
-            }
 
             if (
                 !showSubmitDialogRef.current &&
@@ -1261,22 +1374,69 @@ export function AttemptClient({
                 !showFullscreenWarningRef.current &&
                 !isSubmittingRef.current
             ) {
-                // 'F' key: Toggle flag for review
-                if (e.key.toLowerCase() === "f") {
-                    const q = questionsRef.current[currentIndexRef.current]
-                    if (q) {
-                        toggleFlag(q.id)
+                const keyLower = e.key.toLowerCase()
+                const q = questionsRef.current[currentIndexRef.current]
+
+                // Action shortcuts requiring Ctrl / Cmd key
+                if (ctrl) {
+                    // Option select via Ctrl+1..5 or Ctrl+A..E
+                    if (q && (["1", "2", "3", "4", "5"].includes(e.key) || ["a", "b", "c", "d", "e"].includes(keyLower))) {
+                        let optIndex = -1
+                        if (["1", "2", "3", "4", "5"].includes(e.key)) {
+                            optIndex = parseInt(e.key, 10) - 1
+                        } else {
+                            optIndex = keyLower.charCodeAt(0) - 97
+                        }
+                        if (optIndex >= 0 && optIndex < q.options.length) {
+                            const opt = q.options[optIndex]
+                            handleAnswer(q.id, opt.id, q.question_type)
+                            e.preventDefault()
+                            return
+                        }
+                    }
+
+                    // Save & Next via Ctrl+S or Ctrl+Enter
+                    if (keyLower === "s" || e.key === "Enter") {
+                        handleNextRef.current?.()
+                        e.preventDefault()
+                        return
+                    }
+
+                    // Clear selection via Ctrl+Backspace, Ctrl+Delete, or Ctrl+X
+                    if (e.key === "Backspace" || e.key === "Delete" || keyLower === "x") {
+                        handleClearResponseRef.current?.()
+                        e.preventDefault()
+                        return
+                    }
+
+                    // Toggle Flag via Ctrl+F
+                    if (keyLower === "f") {
+                        if (q) {
+                            toggleFlag(q.id)
+                            e.preventDefault()
+                            return
+                        }
+                    }
+
+                    // Previous / Next via Ctrl+Left / Ctrl+Right
+                    if (e.key === "ArrowLeft") {
+                        handlePreviousRef.current?.()
+                        e.preventDefault()
+                        return
+                    } else if (e.key === "ArrowRight") {
+                        handleNextRef.current?.()
+                        e.preventDefault()
+                        return
+                    }
+                } else {
+                    // Arrow navigation without modifier keys
+                    if (e.key === "ArrowLeft") {
+                        handlePreviousRef.current?.()
+                        e.preventDefault()
+                    } else if (e.key === "ArrowRight") {
+                        handleNextRef.current?.()
                         e.preventDefault()
                     }
-                }
-
-                // Arrow keys for Next/Prev question
-                if (e.key === "ArrowLeft") {
-                    setCurrentIndex((i) => Math.max(0, i - 1))
-                    e.preventDefault()
-                } else if (e.key === "ArrowRight") {
-                    setCurrentIndex((i) => Math.min(questionsLengthRef.current - 1, i + 1))
-                    e.preventDefault()
                 }
             }
         }
@@ -1286,12 +1446,26 @@ export function AttemptClient({
         const handleDragStart = (e: DragEvent) => e.preventDefault()
 
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (autoSubmitted.current || isSubmittingRef.current) return;
+            if (autoSubmitted.current || isSubmittingRef.current) return
             e.preventDefault()
-            e.returnValue = "" // Modern browsers require setting this property
+            e.returnValue = ""
+
+            if (!beaconSentRef.current && attemptInfo) {
+                try {
+                    navigator.sendBeacon(
+                        "/api/attempt/beacon",
+                        JSON.stringify({
+                            attemptId: attemptInfo.id,
+                            type: "tab_close",
+                            count: focusLostCountRef.current + 1,
+                            timestamp: getNowOnServer().toISOString(),
+                        })
+                    )
+                } catch {}
+            }
+            beaconSentRef.current = false
         }
 
-        // Register all listeners
         document.addEventListener("fullscreenchange", handleFullscreenChange)
         document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
         document.addEventListener("mozfullscreenchange", handleFullscreenChange)
@@ -1315,11 +1489,69 @@ export function AttemptClient({
             window.removeEventListener("blur", handleBlur)
             window.removeEventListener("beforeunload", handleBeforeUnload)
         }
-        // ─── Intentionally only [phase] in deps ───────────────────────────────
-        // isSubmitting and showFocusWarning are read from their ref mirrors so
-        // this effect registers exactly once when the test becomes active.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
+    }, [phase, attemptInfo, getNowOnServer, onViolation, test.strict_mode])
+
+
+    // ── Supabase Realtime Channels ──────────────────────────────────────────────
+    useEffect(() => {
+        if (!attemptInfo || phase !== "active") return
+        const supabase = createClient()
+
+        // 1. Presence: Live active candidate tracking for institute dashboard
+        const liveChannel = supabase.channel(`pt-test-live-${test.id}`)
+        liveChannel.subscribe(async (status) => {
+            if (status === "SUBSCRIBED") {
+                await liveChannel.track({
+                    userId: candidateId,
+                    attemptId: attemptInfo.id,
+                })
+            }
+        })
+
+        // 2. Broadcast: Instant session kick if another device claims session
+        const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
+        sessionChannel
+            .on("broadcast", { event: "session_claimed" }, () => {
+                setSessionState("superseded")
+            })
+            .subscribe()
+
+        // 3. Postgres Changes: Status changes (force-submit by institute)
+        const attemptChannel = supabase.channel(`pt-attempt-${attemptInfo.id}`)
+        attemptChannel
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "test_attempts",
+                    filter: `id=eq.${attemptInfo.id}`,
+                },
+                (payload: any) => {
+                    const updated = payload.new
+                    if (updated && ["submitted", "auto_submitted"].includes(updated.status)) {
+                        setPhase("submitted")
+                        setSubmitReason("auto")
+                    }
+                    if (
+                        updated &&
+                        updated.active_session_token &&
+                        sessionTokenRef.current &&
+                        updated.active_session_token !== sessionTokenRef.current
+                    ) {
+                        setSessionState("superseded")
+                    }
+                }
+            )
+            .subscribe()
+
+        return () => {
+            liveChannel.untrack()
+            supabase.removeChannel(liveChannel)
+            supabase.removeChannel(sessionChannel)
+            supabase.removeChannel(attemptChannel)
+        }
+    }, [attemptInfo?.id, phase, test.id, candidateId])
 
 
     // ── Toggle flag ────────────────────────────────────────────────────────────
@@ -1329,175 +1561,167 @@ export function AttemptClient({
     }, [])
 
 
-    // ── Save answer ────────────────────────────────────────────────────────────
-
-    const saveAnswer = useCallback(
-        async (questionId: string, selectedIds: string[], timeSpentSeconds: number = 0) => {
-            if (!onSaveAnswer || !attemptInfo) return
-            setSavingIds((prev) => ({ ...prev, [questionId]: true }))
-            setSaveErrors((prev) => ({ ...prev, [questionId]: null }))
-            try {
-                await onSaveAnswer(attemptInfo.id, questionId, selectedIds, timeSpentSeconds)
-                setSyncedAnswers((prev) => ({ ...prev, [questionId]: selectedIds }))
-                setUnsyncedIds((prev) => ({ ...prev, [questionId]: false }))
-            } catch (err: any) {
-                if (err?.message === "NEXT_REDIRECT" || err?.digest?.includes("NEXT_REDIRECT")) throw err
-                const msg = err?.message ?? "Failed to save answer"
-                const userFriendlyMsg = msg.toLowerCase().includes("unexpected response")
-                    ? "Your session may have expired. Please refresh the page."
-                    : msg
-                setSaveErrors((prev) => ({ ...prev, [questionId]: userFriendlyMsg }))
-                toast.error(userFriendlyMsg)
-                setUnsyncedIds((prev) => ({ ...prev, [questionId]: true }))
-                throw err
-            } finally {
-                setSavingIds((prev) => ({ ...prev, [questionId]: false }))
-            }
-        },
-        [attemptInfo, onSaveAnswer]
-    )
-
-    // BATCH SAVING logic
+    // ── 60-Second Combined Sync Loop ──────────────────────────────────────────
     const batchQueueRef = useRef<Set<string>>(new Set())
-    const isSyncingRef = useRef(false)
 
-    const syncBatch = useCallback(async (isFinalSync = false) => {
-        // If a sync is already in flight, wait for it then re-sync if needed
-        if (isSyncingRef.current) {
-            if (!isFinalSync && isSubmittingRef.current) return true
-            // Wait for the current sync to finish, then recurse to pick up queued changes
+    const performSync = useCallback(
+        async (isFinalSync = false): Promise<boolean> => {
+            if (!onSync || !attemptInfo || (isSubmittingRef.current && !isFinalSync)) return true
+
+            // Mutex lock: if another sync is currently in flight, wait for it to complete
             if (syncPromiseRef.current) {
-                await syncPromiseRef.current
+                try {
+                    await syncPromiseRef.current
+                } catch {}
             }
-            // After waiting, if there are queued items, run again
-            if (batchQueueRef.current.size > 0) {
-                return syncBatch(isFinalSync)
-            }
-            return true
-        }
 
-        if ((!isFinalSync && isSubmittingRef.current) || !onSaveAnswersBatch || !attemptInfo) return true
-
-        // Helper to commit recent seconds for a question into the batch buffer
-        const commitPacing = (id: string, nowMs: number) => {
+            // Commit current question pacing delta to local state buffer
+            const nowMs = getNowOnServer().getTime()
             const track = timeTrackingRef.current
-            if (!id || id !== track.id || track.enteredAtServerTime <= 0) return 0
-
-            const baseTime = lastSyncAtRef.current > track.enteredAtServerTime
-                ? lastSyncAtRef.current
-                : track.enteredAtServerTime
-
-            const elapsed = Math.max(0, Math.floor((nowMs - baseTime) / 1000))
-            if (elapsed > 0) {
-                pacingBufferRef.current[id] = (pacingBufferRef.current[id] ?? 0) + elapsed
-                batchQueueRef.current.add(id)
-                lastSyncAtRef.current = nowMs
-                // Mark as unsynced so UI shows progress
-                setUnsyncedIds(prev => ({ ...prev, [id]: true }))
+            if (track.id && !isSubmittingRef.current) {
+                const baseTime = Math.max(lastSyncAtRef.current, track.enteredAtServerTime)
+                const elapsed = Math.max(0, Math.floor((nowMs - baseTime) / 1000))
+                if (elapsed > 0) {
+                    pacingBufferRef.current[track.id] = (pacingBufferRef.current[track.id] ?? 0) + elapsed
+                    // Kept in local state (pacingBufferRef). Server sync is ONLY triggered when options change or on final submit.
+                    lastSyncAtRef.current = nowMs
+                }
             }
-            return elapsed
-        }
 
-        const nowMs = getNowOnServer().getTime()
-        const track = timeTrackingRef.current
-        if (track.id) {
-            commitPacing(track.id, nowMs)
-        }
-
-        if (batchQueueRef.current.size === 0) return true
-
-        const syncInternal = async (): Promise<boolean> => {
-            isSyncingRef.current = true
             const idsToSync = Array.from(batchQueueRef.current)
+            if (idsToSync.length === 0 && !isFinalSync) return true
+
             batchQueueRef.current.clear()
 
-            // Snapshot the current answers at the moment we build the batch.
-            // This lets us detect if the user changed an answer during the RPC call.
-            const batch = idsToSync.map(id => ({
+            const batch = idsToSync.map((id) => ({
                 questionId: id,
                 selectedOptionIds: [...(answersRef.current[id] ?? [])],
-                timeSpentSeconds: pacingBufferRef.current[id] ?? 0
+                timeSpentSeconds: pacingBufferRef.current[id] ?? 0,
             }))
 
-            // Snapshot the deltas we're about to clear on success
-            const clearedDeltas: Record<string, number> = {}
-            batch.forEach(item => { clearedDeltas[item.questionId] = item.timeSpentSeconds })
+            setSyncStatus("syncing")
 
-            const savingManifest: Record<string, boolean> = {}
-            idsToSync.forEach(id => savingManifest[id] = true)
-            setSavingIds(prev => ({ ...prev, ...savingManifest }))
+            const syncTask = (async (): Promise<boolean> => {
+                try {
+                    const result = await onSync(attemptInfo.id, sessionTokenRef.current, batch)
 
-            try {
-                await onSaveAnswersBatch(attemptInfo.id, batch)
+                    if (!result.ok) {
+                        idsToSync.forEach((id) => batchQueueRef.current.add(id))
 
-                const newSynced: Record<string, string[]> = {}
-                const newUnsynced: Record<string, boolean> = {}
-                const doneSaving: Record<string, boolean> = {}
+                        if (result.error === "session_superseded") {
+                            setSessionState("superseded")
+                            return false
+                        }
 
-                batch.forEach(item => {
-                    newSynced[item.questionId] = item.selectedOptionIds
-                    doneSaving[item.questionId] = false
-                    // Success! Clear these specific deltas from the buffer
-                    pacingBufferRef.current[item.questionId] = Math.max(0, (pacingBufferRef.current[item.questionId] ?? 0) - (clearedDeltas[item.questionId] ?? 0))
-
-                    // CRITICAL: Only mark as synced if the current answer still
-                    // matches what we just sent. If the user changed their answer
-                    // while the RPC was in flight, keep it marked as unsynced so
-                    // the next save captures the latest value.
-                    const currentAnswer = answersRef.current[item.questionId] ?? []
-                    const sentAnswer = item.selectedOptionIds
-                    const answersMatch =
-                        currentAnswer.length === sentAnswer.length &&
-                        [...currentAnswer].sort().join(',') === [...sentAnswer].sort().join(',')
-
-                    if (answersMatch) {
-                        newUnsynced[item.questionId] = false
-                    } else {
-                        // Answer changed during sync — re-queue for next sync
-                        newUnsynced[item.questionId] = true
-                        batchQueueRef.current.add(item.questionId)
+                        setSyncStatus("error")
+                        setSyncError(result.error ?? "Sync failed")
+                        return false
                     }
-                })
 
-                setSyncedAnswers(prev => ({ ...prev, ...newSynced }))
-                setUnsyncedIds(prev => ({ ...prev, ...newUnsynced }))
-                setSavingIds(prev => ({ ...prev, ...doneSaving }))
-
-                // If new items were queued during the sync, chain another sync
-                if (batchQueueRef.current.size > 0) {
-                    // Let the finally block release the lock first
-                    setTimeout(() => syncBatch(isFinalSync), 0)
+                    // Success
+                    idsToSync.forEach((id) => { pacingBufferRef.current[id] = 0 })
+                    const newSynced: Record<string, string[]> = {}
+                    batch.forEach((b) => { newSynced[b.questionId] = b.selectedOptionIds })
+                    setSyncedAnswers((prev) => ({ ...prev, ...newSynced }))
+                    setSyncStatus("idle")
+                    setSyncError(null)
+                    return true
+                } catch (err: any) {
+                    idsToSync.forEach((id) => batchQueueRef.current.add(id))
+                    setSyncStatus("error")
+                    setSyncError(err?.message ?? "Network error")
+                    return false
+                } finally {
+                    syncPromiseRef.current = null
                 }
+            })()
 
-                return true
-            } catch (err: any) {
-                console.error("[AttemptClient] Sync failed:", err)
-                // Put IDs back in the queue to retry
-                idsToSync.forEach(id => batchQueueRef.current.add(id))
-                setSavingIds(prev => {
-                    const updated = { ...prev }
-                    idsToSync.forEach(id => updated[id] = false)
-                    return updated
-                })
-                // Note: pacingBufferRef remains intact for retry
-                toast.error("Network error: some answers failed to sync.")
-                return false
-            } finally {
-                isSyncingRef.current = false
-                syncPromiseRef.current = null
+            syncPromiseRef.current = syncTask
+            return syncTask
+        },
+        [attemptInfo, onSync, getNowOnServer]
+    )
+
+    useEffect(() => {
+        performSyncRef.current = performSync
+    }, [performSync])
+
+    // ── Navigation & Integrated Auto-Save Handlers ─────────────────────────────
+
+    const currentQuestion = displayQuestions[currentIndex]
+
+    const handleNext = useCallback(async () => {
+        if (isSubmittingRef.current) return
+        await performSync()
+        setCurrentIndex((i) => Math.min(displayQuestions.length - 1, i + 1))
+    }, [displayQuestions.length, performSync])
+
+    const handlePrevious = useCallback(async () => {
+        if (isSubmittingRef.current) return
+        await performSync()
+        setCurrentIndex((i) => Math.max(0, i - 1))
+    }, [performSync])
+
+    const handleJump = useCallback(async (targetIndex: number) => {
+        if (isSubmittingRef.current || targetIndex === currentIndex) return
+        await performSync()
+        setCurrentIndex(targetIndex)
+    }, [currentIndex, performSync])
+
+    const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    const triggerDebouncedSync = useCallback(() => {
+        if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current)
+        autoSyncTimerRef.current = setTimeout(() => {
+            if (!isSubmittingRef.current && performSyncRef.current) {
+                performSyncRef.current()
             }
+        }, 600)
+    }, [])
+
+    const handleClearResponse = useCallback(() => {
+        if (!currentQuestion || isSubmittingRef.current) return
+        const qId = currentQuestion.id
+        answersRef.current[qId] = []
+
+        const synced = syncedAnswersRef.current[qId] ?? []
+        if (synced.length > 0) {
+            batchQueueRef.current.add(qId)
+        } else {
+            batchQueueRef.current.delete(qId)
         }
 
-        syncPromiseRef.current = syncInternal()
-        toast.promise(syncPromiseRef.current, {
-            loading: "Saving changes...",
-            success: "All changes saved to server.",
-            error: (err) => err?.message || "Failed to save answers."
-        })
-        return syncPromiseRef.current
-    }, [attemptInfo, onSaveAnswersBatch, getNowOnServer]) // commitPacing is internal to useCallback
+        setAnswers((prev) => ({ ...prev, [qId]: [] }))
+        triggerDebouncedSync()
+    }, [currentQuestion, triggerDebouncedSync])
 
-    // Removed recurring sync timer (manual saves only)
+    const handleNextRef = useRef<() => Promise<void>>(async () => {})
+    const handlePreviousRef = useRef<() => Promise<void>>(async () => {})
+    const handleClearResponseRef = useRef<(() => void) | undefined>(undefined)
+
+    useEffect(() => {
+        handleNextRef.current = handleNext
+        handlePreviousRef.current = handlePrevious
+        handleClearResponseRef.current = handleClearResponse
+    }, [handleNext, handlePrevious, handleClearResponse])
+
+    // Session heartbeat loop every 60 seconds (keeps session token active in DB without auto-saving unsaved work)
+    useEffect(() => {
+        if (phase !== "active" || !attemptInfo || !onSync) return
+
+        const id = setInterval(async () => {
+            if (!isSubmittingRef.current && sessionTokenRef.current) {
+                try {
+                    const res = await onSync(attemptInfo.id, sessionTokenRef.current, [])
+                    if (!res.ok && res.error === "session_superseded") {
+                        setSessionState("superseded")
+                    }
+                } catch {}
+            }
+        }, 60_000)
+
+        return () => clearInterval(id)
+    }, [phase, attemptInfo, onSync])
 
 
     // ── Handle option select ───────────────────────────────────────────────────
@@ -1510,13 +1734,6 @@ export function AttemptClient({
         ) => {
             if (isSubmittingRef.current) return
 
-            // Immediately mark as "unsynced" and clear errors
-            if (onSaveAnswersBatch && attemptInfo) {
-                setUnsyncedIds((prev) => ({ ...prev, [questionId]: true }))
-                setSaveErrors((prev) => ({ ...prev, [questionId]: null }))
-            }
-
-            // Calculate 'next' outside of the state setter to ensure synchronous Ref update
             const current = answersRef.current[questionId] ?? []
             const next =
                 questionType === "single_correct"
@@ -1525,27 +1742,31 @@ export function AttemptClient({
                         ? current.filter((id) => id !== optionId)
                         : [...current, optionId]
 
-            // Synchronously update the ref so syncBatch (on interval) sees it immediately
             answersRef.current[questionId] = next
-            batchQueueRef.current.add(questionId)
 
-            // Trigger the re-render with the new state
+            // Only queue question for save if the new selection differs from what is saved on the server!
+            const synced = syncedAnswersRef.current[questionId] ?? []
+            const isDifferentFromSynced = JSON.stringify([...next].sort()) !== JSON.stringify([...synced].sort())
+
+            if (isDifferentFromSynced) {
+                batchQueueRef.current.add(questionId)
+            } else {
+                batchQueueRef.current.delete(questionId)
+            }
+
             setAnswers((prev) => ({ ...prev, [questionId]: next }))
+            triggerDebouncedSync()
         },
-        [onSaveAnswersBatch, attemptInfo]
+        [triggerDebouncedSync]
     )
 
-
-
-
-    // ── Submit ─────────────────────────────────────────────────────────────────
 
     // ── Submit ─────────────────────────────────────────────────────────────────
 
     const handleSubmit = useCallback(
         async (auto = false) => {
             if (isSubmittingRef.current || !attemptInfo) return
-            isSubmittingRef.current = true // Atomic guard
+            isSubmittingRef.current = true
             setIsSubmitting(true)
             setSubmitError(null)
             setShowSubmitDialog(false)
@@ -1553,32 +1774,22 @@ export function AttemptClient({
             setShowFullscreenWarning(false)
             setShowFocusWarning(false)
 
-            const timeSpentSeconds = Math.floor(
-                (getNowOnServer().getTime() - new Date(attemptInfo.started_at).getTime()) / 1000
-            )
-
             try {
-                // Ensure any in-flight background sync finishes
-                if (syncPromiseRef.current) {
-                    await syncPromiseRef.current
-                }
-
-                // Trigger one last sync to flush everything (answers + final pacing)
-                if (phase === "active") {
-                    const syncSuccess = await syncBatch(true)
-                    if (syncSuccess === false) {
-                        throw new Error("Some answers could not be saved to the database. Please check your connection and try again.")
+                // Final flush of all pending answers and pacing
+                if (phase === "active" && performSyncRef.current) {
+                    const syncOk = await performSyncRef.current(true)
+                    if (syncOk === false && !auto) {
+                        throw new Error("Failed to save pending answers. Please check your connection and retry.")
                     }
                 }
 
-                await leaveFullscreen()              // ← exit fullscreen FIRST
+                await leaveFullscreen()
 
-                // Clear persistent local state for this attempt
                 const prefix = `pt_attempt_${attemptInfo.id}`
                 localStorage.removeItem(`${prefix}_idx`)
                 localStorage.removeItem(`${prefix}_flags`)
 
-                const submitResult = await onSubmit?.(attemptInfo.id, timeSpentSeconds)
+                const submitResult = await onSubmit?.(attemptInfo.id)
                 if (submitResult?.error) {
                     throw new Error(submitResult.error)
                 }
@@ -1592,15 +1803,12 @@ export function AttemptClient({
                 }
                 setPhase("submitted")
             } catch (err: any) {
-                // REQUIRED for Next.js 15: Re-throw redirect errors so the router can handle them.
                 if (err?.message === "NEXT_REDIRECT" || err?.digest?.includes("NEXT_REDIRECT")) throw err
 
                 setIsSubmitting(false)
-                isSubmittingRef.current = false // Allow retry!
+                isSubmittingRef.current = false
                 const msg = err?.message ?? "Submission failed. Please try again."
 
-                // "An unexpected response" usually means the server returned HTML (redirect to login) 
-                // instead of the action response, likely due to session expiry.
                 const lowerMsg = msg.toLowerCase()
                 const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
                     ? "Your session may have expired. Please refresh the page and try finishing again."
@@ -1610,8 +1818,7 @@ export function AttemptClient({
                 toast.error(userFriendlyMsg)
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [attemptInfo, onSubmit, leaveFullscreen, phase, syncBatch, router, getNowOnServer]
+        [attemptInfo, onSubmit, leaveFullscreen, phase, test.id]
     )
 
     useEffect(() => {
@@ -1648,9 +1855,22 @@ export function AttemptClient({
     }, [phase, test.time_limit_seconds, attemptInfo])
 
 
-    // ── Derived ────────────────────────────────────────────────────────────────
+    const savedCount = useMemo(() => {
+        return displayQuestions.filter((q) => {
+            const current = answers[q.id] ?? []
+            const synced = syncedAnswers[q.id] ?? []
+            return current.length > 0 && JSON.stringify([...current].sort()) === JSON.stringify([...synced].sort())
+        }).length
+    }, [displayQuestions, answers, syncedAnswers])
 
-    const currentQuestion = displayQuestions[currentIndex]
+    const pendingCount = useMemo(() => {
+        return displayQuestions.filter((q) => {
+            const current = answers[q.id] ?? []
+            const synced = syncedAnswers[q.id] ?? []
+            return current.length > 0 && JSON.stringify([...current].sort()) !== JSON.stringify([...synced].sort())
+        }).length
+    }, [displayQuestions, answers, syncedAnswers])
+
     const currentAnswers = answers[currentQuestion?.id ?? ""] ?? []
     const answeredCount = displayQuestions.filter((q) => (answers[q.id] ?? []).length > 0).length
     const unansweredCount = displayQuestions.length - answeredCount
@@ -1661,12 +1881,6 @@ export function AttemptClient({
     const timerDanger = timeRemaining !== null && timeRemaining <= 60
     const timerWarning = timeRemaining !== null && timeRemaining > 60 && timeRemaining <= 300
     const isLastQuestion = currentIndex === displayQuestions.length - 1
-
-    const isAnySaving = Object.values(savingIds).some(Boolean)
-    const isAnyUnsynced = Object.values(unsyncedIds).some(Boolean)
-    const unsyncedCount = Object.values(unsyncedIds).filter(Boolean).length
-    const hasUnsyncedWork = isAnySaving || isAnyUnsynced
-
 
     // ── Tracking Offline and Question Pacing ───────────────────────────────────
 
@@ -1693,21 +1907,12 @@ export function AttemptClient({
 
         // If we switched away from a previous question:
         if (track.id && track.id !== currentQuestion.id && track.enteredAtServerTime > 0) {
-            // Unify: the commitPacing logic within syncBatch is exactly what we need here,
-            // but since it's inside useCallback, we replicate the logic or rely on a syncBatch trigger.
-            // Best is to call syncBatch() but only after committing the final delta for the previous question.
-
-            const baseTime = lastSyncAtRef.current > track.enteredAtServerTime
-                ? lastSyncAtRef.current
-                : track.enteredAtServerTime
-
+            const baseTime = Math.max(lastSyncAtRef.current, track.enteredAtServerTime)
             const elapsed = Math.max(0, Math.floor((nowServerTime - baseTime) / 1000))
 
             if (elapsed > 0 && attemptInfo) {
                 pacingBufferRef.current[track.id] = (pacingBufferRef.current[track.id] ?? 0) + elapsed
                 batchQueueRef.current.add(track.id)
-                setUnsyncedIds(prev => ({ ...prev, [track.id]: true }))
-                // NO automatic sync on switch anymore; wait for manual save or submission
             }
         }
 
@@ -1716,11 +1921,79 @@ export function AttemptClient({
             timeTrackingRef.current = { id: currentQuestion.id, enteredAtServerTime: nowServerTime }
             lastSyncAtRef.current = nowServerTime
         }
-    }, [currentIndex, currentQuestion, phase, attemptInfo, syncBatch, getNowOnServer])
+    }, [currentIndex, currentQuestion, phase, attemptInfo, performSync, getNowOnServer])
 
 
 
     // ── Intro ──────────────────────────────────────────────────────────────────
+
+    // ── Session Conflict & Superseded Screens ──────────────────────────────────
+    if (sessionState === "conflict") {
+        return (
+            <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+                <div className="mx-auto w-full max-w-md space-y-6 rounded-2xl border bg-card p-6 shadow-lg">
+                    <div className="flex items-center gap-3 text-amber-600 dark:text-amber-500">
+                        <MonitorSmartphone className="h-6 w-6 shrink-0" />
+                        <h2 className="text-lg font-bold text-foreground">Test Open on Another Device</h2>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                        This test session is currently active on another device or tab.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button variant="outline" onClick={() => router.push(`/tests/${test.id}`)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={async () => {
+                            if (!attemptInfo) return
+                            const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
+                            if (res.ok) {
+                                try {
+                                    const supabase = createClient()
+                                    const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
+                                    await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
+                                } catch {}
+                                setSessionState("ok")
+                            }
+                        }}>
+                            Switch to This Device
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (sessionState === "superseded") {
+        return (
+            <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+                <div className="mx-auto w-full max-w-md space-y-6 rounded-2xl border border-destructive/30 bg-card p-6 shadow-lg">
+                    <div className="flex items-center gap-3 text-destructive">
+                        <AlertTriangle className="h-6 w-6 shrink-0" />
+                        <h2 className="text-lg font-bold text-foreground">Session Moved to Another Device</h2>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                        Your test session was opened and claimed on another device. Interaction on this window is paused. Your progress is preserved.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <Button onClick={async () => {
+                            if (!attemptInfo) return
+                            const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
+                            if (res.ok) {
+                                try {
+                                    const supabase = createClient()
+                                    const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
+                                    await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
+                                } catch {}
+                                setSessionState("ok")
+                            }
+                        }}>
+                            Reclaim This Session
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     if (phase === "submitted") {
         return (
@@ -1738,72 +2011,36 @@ export function AttemptClient({
 
     if (phase === "intro") {
         return (
-            <>
-                <AlertDialog open={showUpdateNotice} onOpenChange={setShowUpdateNotice}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2 text-primary">
-                                Important Update
-                            </AlertDialogTitle>
-                            <AlertDialogDescription asChild>
-                                <div className="space-y-3 pt-2 text-foreground">
-                                    <p>
-                                        <strong>New changes to Placetrix:</strong>
-                                    </p>
-                                    <p>
-                                        Answers are no longer saved automatically. You will now need to manually save your pending selections!
-                                    </p>
-                                    <p>
-                                        Use the <strong>Save Changes</strong> button at the top of the interface, or press the <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">CTRL + S</kbd> shortcut to save your progress periodically.
-                                    </p>
-                                </div>
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setShowUpdateNotice(false)}>
-                                Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction onClick={async () => {
-                                setShowUpdateNotice(false)
-                                await enterFullscreen()
-                                setPhase("active")
-                            }}>
-                                I Understand, Start Test
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-
-                <IntroScreen
-                    test={test}
-                    questions={displayQuestions}
-                    isResuming={isResuming}
-                    isStarting={isStarting}
-                    onBegin={async () => {
-                        let info = attemptInfo
-                        if (!info) {
-                            setIsStarting(true)
-                            try {
-                                info = await onStartAttempt()
-                                setAttemptInfo(info)
-                                setFocusLostCount(info.tab_switch_count)
-                                focusLostCountRef.current = info.tab_switch_count
-                            } catch (err: any) {
-                                const msg = err?.message ?? "Failed to start test"
-                                const lowerMsg = msg.toLowerCase()
-                                const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
-                                    ? "Your session may have expired. Please refresh the page and try again."
-                                    : msg
-                                toast.error(userFriendlyMsg)
-                                setIsStarting(false)
-                                return
-                            }
+            <IntroScreen
+                test={test}
+                questions={displayQuestions}
+                isResuming={isResuming}
+                isStarting={isStarting}
+                onBegin={async () => {
+                    let info = attemptInfo
+                    if (!info) {
+                        setIsStarting(true)
+                        try {
+                            info = await onStartAttempt()
+                            setAttemptInfo(info)
+                            setFocusLostCount(info.tab_switch_count)
+                            focusLostCountRef.current = info.tab_switch_count
+                        } catch (err: any) {
+                            const msg = err?.message ?? "Failed to start test"
+                            const lowerMsg = msg.toLowerCase()
+                            const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
+                                ? "Your session may have expired. Please refresh the page and try again."
+                                : msg
+                            toast.error(userFriendlyMsg)
                             setIsStarting(false)
+                            return
                         }
-                        setShowUpdateNotice(true)
-                    }}
-                />
-            </>
+                        setIsStarting(false)
+                    }
+                    await enterFullscreen()
+                    setPhase("active")
+                }}
+            />
         )
     }
 
@@ -1844,7 +2081,6 @@ export function AttemptClient({
                     <AlertDialogFooter>
                         <AlertDialogAction
                             onClick={() => {
-                                // Re-arm the guard so the next real violation is detected.
                                 focusGuardRef.current = false
                                 setShowFocusWarning(false)
                             }}
@@ -1890,6 +2126,61 @@ export function AttemptClient({
             {/* ── Question column ───────────────────────────────────────────────── */}
             <main className="flex min-w-0 flex-1 flex-col">
 
+                {/* Top Glassmorphic Header */}
+                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <Badge variant="outline" className="shrink-0 gap-1 text-xs font-semibold">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                            Proctored
+                        </Badge>
+                        <h1 className="truncate text-sm font-bold text-foreground">
+                            {test.title}
+                        </h1>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowShortcutsModal(true)}
+                            className="hidden sm:flex h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            <Keyboard className="h-3.5 w-3.5" />
+                            Shortcuts
+                        </Button>
+                        {test.time_limit_seconds && timeRemaining !== null && (
+                            <div className="hidden md:flex">
+                                <TimerDisplay
+                                    timeRemaining={timeRemaining}
+                                    timerDanger={timerDanger}
+                                    timerWarning={timerWarning}
+                                    compact
+                                />
+                            </div>
+                        )}
+                    </div>
+                </header>
+
+                {/* Global sync error banner */}
+                {syncStatus === "error" && (
+                    <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30 px-6 py-3">
+                        <div className="mx-auto flex flex-wrap items-center gap-3 text-sm font-medium text-amber-800 dark:text-amber-300">
+                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 min-w-0">
+                                Couldn't sync answers ({syncError}). Your selections are preserved locally.
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="shrink-0 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-300"
+                                onClick={() => performSyncRef.current?.()}
+                            >
+                                Retry
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
 
 
                 {/* Submit error banner */}
@@ -1931,15 +2222,16 @@ export function AttemptClient({
                             total={displayQuestions.length}
                             selectedIds={currentAnswers}
                             syncedIds={syncedAnswers[currentQuestion.id] ?? []}
-                            isSaving={!!savingIds[currentQuestion.id]}
-                            isUnsynced={!!unsyncedIds[currentQuestion.id]}
-                            saveError={saveErrors[currentQuestion.id] ?? null}
+                            isSaving={syncStatus === "syncing"}
+                            isUnsynced={syncStatus === "error"}
+                            saveError={syncStatus === "error" ? syncError : null}
                             isFlagged={flagged[currentQuestion.id] ?? false}
                             disabled={isSubmitting}
                             onAnswer={(optId) =>
                                 handleAnswer(currentQuestion.id, optId, currentQuestion.question_type)
                             }
                             onToggleFlag={() => toggleFlag(currentQuestion.id)}
+                            onClearResponse={handleClearResponse}
                         />
                     )}
 
@@ -1948,7 +2240,7 @@ export function AttemptClient({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+                            onClick={handlePrevious}
                             disabled={currentIndex === 0}
                         >
                             <ChevronLeft className="mr-1 h-4 w-4" />
@@ -1970,9 +2262,9 @@ export function AttemptClient({
                             </Button>
                         ) : (
                             <Button
-                                variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
+                                onClick={handleNext}
+                                className="font-semibold px-5"
                             >
                                 Next
                                 <ChevronRight className="ml-1 h-4 w-4" />
@@ -1988,40 +2280,6 @@ export function AttemptClient({
                 <div className="sticky top-0 h-screen w-full overflow-y-auto">
                     <div className="flex flex-col gap-5 p-5 lg:p-6">
 
-                        <div className="min-w-0 overflow-hidden border-b pb-4 flex flex-col gap-3">
-                            <div className="flex justify-between items-start gap-2">
-                                <p className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-snug">
-                                    {test.title}
-                                </p>
-                                {isOffline && (
-                                    <Badge variant="destructive" className="h-5 px-1.5 text-[10px] shrink-0">Offline</Badge>
-                                )}
-                            </div>
-
-                            <Button
-                                variant={unsyncedCount > 0 ? "default" : "outline"}
-                                className={cn(
-                                    "w-full gap-2 transition-all shadow-sm",
-                                    unsyncedCount > 0 && "bg-primary text-primary-foreground hover:bg-primary/90",
-                                    unsyncedCount === 0 && "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-600 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                )}
-                                onClick={() => syncBatch()}
-                                disabled={isSubmitting || unsyncedCount === 0 || isAnySaving}
-                            >
-                                {isAnySaving ? (
-                                    <><Loader2 className="h-3.5 w-3.5 animate-spin" />Saving…</>
-                                ) : unsyncedCount > 0 ? (
-                                    <>
-                                        <span>Save Changes ({unsyncedCount})</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Saved</span>
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-
                         {test.time_limit_seconds && timeRemaining !== null && (
                             <TimerDisplay
                                 timeRemaining={timeRemaining}
@@ -2035,11 +2293,10 @@ export function AttemptClient({
                                 questions={displayQuestions}
                                 currentIndex={currentIndex}
                                 answers={answers}
-                                savingIds={savingIds}
-                                unsyncedIds={unsyncedIds}
+                                syncedAnswers={syncedAnswers}
                                 flagged={flagged}
                                 disabled={isSubmitting}
-                                onJump={setCurrentIndex}
+                                onJump={handleJump}
                             />
                         </div>
 
@@ -2070,7 +2327,7 @@ export function AttemptClient({
                         variant="outline"
                         size="icon"
                         className="h-9 w-9 shrink-0"
-                        onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+                        onClick={handlePrevious}
                         disabled={currentIndex === 0}
                         aria-label="Previous question"
                     >
@@ -2142,7 +2399,7 @@ export function AttemptClient({
                             variant="outline"
                             size="icon"
                             className="h-9 w-9 shrink-0"
-                            onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
+                            onClick={handleNext}
                             aria-label="Next question"
                         >
                             <ChevronRight className="h-4 w-4" />
@@ -2162,43 +2419,17 @@ export function AttemptClient({
                                 <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">Offline</Badge>
                             )}
                         </div>
-                        <Button
-                            variant={unsyncedCount > 0 ? "default" : "outline"}
-                            size="sm"
-                            className={cn(
-                                "w-full gap-2 transition-all shadow-sm mt-2",
-                                unsyncedCount > 0 && "bg-primary text-primary-foreground hover:bg-primary/90",
-                                unsyncedCount === 0 && "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-600 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400"
-                            )}
-                            onClick={() => syncBatch()}
-                            disabled={isSubmitting || unsyncedCount === 0 || isAnySaving}
-                        >
-                            {isAnySaving ? (
-                                <><Loader2 className="h-3.5 w-3.5 animate-spin" />Saving…</>
-                            ) : unsyncedCount > 0 ? (
-                                <>
-                                    <Clock className="h-3.5 w-3.5" />
-                                    <span>Save ({unsyncedCount})</span>
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                    <span>Saved</span>
-                                </>
-                            )}
-                        </Button>
                     </SheetHeader>
                     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
                         <QuestionNavigator
                             questions={displayQuestions}
                             currentIndex={currentIndex}
                             answers={answers}
-                            savingIds={savingIds}
-                            unsyncedIds={unsyncedIds}
+                            syncedAnswers={syncedAnswers}
                             flagged={flagged}
                             disabled={isSubmitting}
                             onJump={(i) => {
-                                setCurrentIndex(i)
+                                handleJump(i)
                                 setNavSheetOpen(false)
                             }}
                         />
@@ -2222,66 +2453,68 @@ export function AttemptClient({
 
             {/* ── Submit dialog ─────────────────────────────────────────────────── */}
             <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Submit your test?</AlertDialogTitle>
+                        <AlertDialogTitle className="text-xl font-bold">Submit Assessment?</AlertDialogTitle>
                         <AlertDialogDescription asChild>
-                            <div className="space-y-3">
-                                <p>
-                                    You have answered{" "}
-                                    <span className="font-semibold text-foreground">{answeredCount}</span> of{" "}
-                                    <span className="font-semibold text-foreground">{questions.length}</span> questions.
+                            <div className="space-y-4 pt-2">
+                                <p className="text-sm text-muted-foreground">
+                                    Are you sure you want to finish and submit your test? Once submitted, your answers cannot be modified.
                                 </p>
-                                {unansweredCount > 0 && (
-                                    <div className="flex items-start gap-2 rounded-xl border border-destructive bg-destructive/10 p-4">
-                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                                        <p className="text-sm text-destructive">
-                                            {unansweredCount}{" "}
-                                            {unansweredCount === 1 ? "question is" : "questions are"} unanswered.
-                                            You cannot change answers after submitting.
-                                        </p>
+
+                                {/* Structured Summary Grid */}
+                                <div className="grid grid-cols-2 gap-2.5 rounded-xl border bg-muted/30 p-3.5 text-xs">
+                                    <div className="flex flex-col gap-0.5 rounded-lg border bg-background p-2.5">
+                                        <span className="text-muted-foreground font-medium">Saved Answers</span>
+                                        <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{savedCount}</span>
                                     </div>
-                                )}
-                                {flaggedCount > 0 && (
-                                    <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 p-4">
-                                        <Flag className="mt-0.5 h-4 w-4 shrink-0 fill-amber-500 text-amber-600 dark:text-amber-400" />
-                                        <p className="text-sm text-amber-700 dark:text-amber-300">
-                                            {flaggedCount}{" "}
-                                            {flaggedCount === 1 ? "question is" : "questions are"} flagged for review.
-                                            Make sure you have revisited them before submitting.
-                                        </p>
+                                    <div className="flex flex-col gap-0.5 rounded-lg border bg-background p-2.5">
+                                        <span className="text-muted-foreground font-medium">Unsaved Changes</span>
+                                        <span className="text-base font-bold text-amber-600 dark:text-amber-400">{pendingCount}</span>
                                     </div>
-                                )}
-                                {unsyncedCount > 0 && (
-                                    <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/30 p-4">
-                                        <Clock className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                                            You have <span className="font-bold underline">{unsyncedCount}</span> unsaved {unsyncedCount === 1 ? "change" : "changes"}.
-                                            All pending answers and pacing data will be automatically saved to our database before the test is submitted.
+                                    <div className="flex flex-col gap-0.5 rounded-lg border bg-background p-2.5">
+                                        <span className="text-muted-foreground font-medium">Flagged for Review</span>
+                                        <span className="text-base font-bold text-indigo-600 dark:text-indigo-400">{flaggedCount}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 rounded-lg border bg-background p-2.5">
+                                        <span className="text-muted-foreground font-medium">Unanswered</span>
+                                        <span className="text-base font-bold text-muted-foreground">{unansweredCount}</span>
+                                    </div>
+                                </div>
+
+                                {pendingCount > 0 && (
+                                    <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 p-3.5">
+                                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                                        <p className="text-xs text-amber-800 dark:text-amber-300">
+                                            You have {pendingCount} unsaved answer{pendingCount > 1 ? "s" : ""}. Submitting will flush and save them now.
                                         </p>
                                     </div>
                                 )}
                             </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isSubmitting}>Go back</AlertDialogCancel>
+                    <AlertDialogFooter className="mt-2">
+                        <AlertDialogCancel disabled={isSubmitting}>Continue Test</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => handleSubmit()}
                             disabled={isSubmitting}
-                            className={cn(hasUnsyncedWork && "bg-blue-600 hover:bg-blue-700")}
+                            className="bg-primary text-primary-foreground font-semibold"
                         >
                             {isSubmitting ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</>
-                            ) : hasUnsyncedWork ? (
-                                "Sync & Submit"
                             ) : (
-                                "Submit Test"
+                                "Confirm Submission"
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* ── Keyboard Shortcuts Modal ────────────────────────────────────── */}
+            <KeyboardShortcutsDialog
+                open={showShortcutsModal}
+                onOpenChange={setShowShortcutsModal}
+            />
         </div>
     )
 }

@@ -172,77 +172,68 @@ export async function startAttemptAction(testId: string): Promise<AttemptInfo> {
 }
 
 
-// ─── Save Answer ───────────────────────────────────────────────────────────────
-//
-// Delegates to the save_answer RPC which:
-//   • Verifies the caller owns the attempt and it is still in_progress.
-//   • Upserts the answer row (attempt_id, question_id) — idempotent.
-// ──────────────────────────────────────────────────────────────────────────────
-
-export async function saveAnswerAction(
+// ─── Sync Attempt (Combined Heartbeat + Answer Delta Batch) ───────────────────
+export async function syncAction(
   attemptId: string,
-  questionId: string,
-  selectedOptionIds: string[],
-  timeSpentSeconds = 0
-): Promise<void> {
+  sessionToken: string,
+  batch: Array<{
+    questionId: string
+    selectedOptionIds: string[]
+    timeSpentSeconds: number
+  }>
+): Promise<{ ok: boolean; error?: string }> {
   const { supabase } = await requireAuth()
 
-  const { error } = await (supabase as any).rpc("test_attempt_save_answer", {
+  const { data, error } = await (supabase as any).rpc("test_attempt_sync", {
     p_attempt_id: attemptId,
-    p_question_id: questionId,
-    p_selected_option_ids: selectedOptionIds,
-    p_time_spent_seconds: timeSpentSeconds,
+    p_session_token: sessionToken,
+    p_batch: batch,
   })
 
   if (error) {
-    console.error("[saveAnswerAction] RPC error:", error)
-    throw new Error(error.message || "Failed to save answer")
+    console.error("[syncAction] RPC error:", error)
+    return { ok: false, error: error.message || "Failed to sync attempt" }
   }
+
+  if (data?.error) {
+    return { ok: false, error: data.error }
+  }
+
+  return { ok: true }
 }
 
 
-/**
- * Batch version of saveAnswerAction.
- * Reduces server round-trips by processing multiple answers in one call.
- */
-export async function saveAnswersBatchAction(
+// ─── Claim Session ─────────────────────────────────────────────────────────────
+export async function claimSessionAction(
   attemptId: string,
-  answers: Array<{
-    questionId: string
-    selectedOptionIds: string[]
-    timeSpentSeconds?: number
-  }>
-): Promise<void> {
+  sessionToken: string
+): Promise<{ ok: boolean; error?: string }> {
   const { supabase } = await requireAuth()
 
-  // Use the new bulk RPC to save everything in one round-trip.
-  const { error } = await (supabase as any).rpc("test_attempt_bulk_save_answers", {
+  const { data, error } = await (supabase as any).rpc("test_attempt_claim_session", {
     p_attempt_id: attemptId,
-    p_batch: answers, // jsonb array
+    p_session_token: sessionToken,
   })
 
   if (error) {
-    console.error("[saveAnswersBatchAction] RPC error:", error)
-    throw new Error(error.message || "Failed to save answers in batch")
+    console.error("[claimSessionAction] RPC error:", error)
+    return { ok: false, error: error.message || "Failed to claim session" }
   }
+
+  if (data?.error) {
+    return { ok: false, error: data.error }
+  }
+
+  return { ok: true }
 }
 
 
 // ─── Submit Attempt ────────────────────────────────────────────────────────────
-//
-// 1. Calls grade_attempt_v2 which scores every answer, persists
-//    time_spent_seconds, and marks the attempt as submitted — all atomically.
-// 2. Redirects to the test results page.
-// ──────────────────────────────────────────────────────────────────────────────
-
 export async function submitAttemptAction(
-  attemptId: string,
-  timeSpentSeconds: number
+  attemptId: string
 ): Promise<{ error?: string; redirectPath?: string }> {
   const { supabase, userId } = await requireAuth()
 
-  // Verify ownership before grading so a malicious caller cannot grade someone
-  // else's attempt by guessing a UUID.
   const { data: ownerCheck } = await (supabase as any)
     .from("test_attempts")
     .select("id")
@@ -257,7 +248,6 @@ export async function submitAttemptAction(
 
   const { data: result, error } = await (supabase as any).rpc("test_attempt_grade", {
     p_attempt_id: attemptId,
-    p_final_time_spent: timeSpentSeconds,
   })
 
   if (error) {
