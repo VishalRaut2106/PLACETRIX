@@ -5,6 +5,16 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ArrowRightIcon,
   ClipboardCheck,
@@ -18,6 +28,7 @@ import {
   GithubIcon,
   InstagramIcon,
   LinkedinIcon,
+  LogOut,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -156,6 +167,73 @@ function UserAvatar({
   );
 }
 
+function UserAvatarMenu({ user }: { user: UserProfile }) {
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to log out:", err);
+      setIsLoggingOut(false);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="group focus:outline-none rounded-full p-0.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+          aria-label="User menu"
+        >
+          <UserAvatar user={user} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-56 rounded-xl border border-black/10 bg-white/90 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90"
+      >
+        <DropdownMenuLabel className="p-2 font-normal">
+          <div className="flex flex-col space-y-1 min-w-0">
+            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
+              {user.full_name || "Your Account"}
+            </p>
+            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="my-1 bg-black/10 dark:bg-white/10" />
+        <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-2.5 py-2 text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-200 dark:hover:bg-white/10">
+          <Link href="/home">
+            <span>Dashboard</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-2.5 py-2 text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-200 dark:hover:bg-white/10">
+          <Link href="/myprofile">
+            <span>My Profile</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="my-1 bg-black/10 dark:bg-white/10" />
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="cursor-pointer rounded-lg px-2.5 py-2 text-sm"
+        >
+          <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function AuthButtons({
   size,
 }: {
@@ -250,21 +328,49 @@ function MobileNav({
                     </div>
                   </div>
                 ) : user ? (
-                  <Link
-                    href="/home"
-                    onClick={closeMenu}
-                    className="mb-3 flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.03] p-3 dark:border-white/10 dark:bg-white/[0.04]"
-                  >
-                    <UserAvatar user={user} className="size-10" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
-                        {user.full_name || "Your account"}
-                      </p>
-                      <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-                        {user.email}
-                      </p>
+                  <div className="mb-3 flex flex-col gap-2 rounded-xl border border-black/10 bg-black/[0.03] p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                    <Link
+                      href="/home"
+                      onClick={closeMenu}
+                      className="flex items-center gap-3"
+                    >
+                      <UserAvatar user={user} className="size-10" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+                          {user.full_name || "Your account"}
+                        </p>
+                        <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                          {user.email}
+                        </p>
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-2 pt-2 border-t border-black/10 dark:border-white/10">
+                      <Link
+                        href="/myprofile"
+                        onClick={closeMenu}
+                        className="flex-1 rounded-lg bg-black/5 py-1.5 text-center text-xs font-medium text-zinc-800 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-200 dark:hover:bg-white/15"
+                      >
+                        Profile
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          closeMenu();
+                          try {
+                            const supabase = createClient();
+                            await supabase.auth.signOut();
+                            window.location.href = "/";
+                          } catch (err) {
+                            console.error("Logout error:", err);
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-1.5 text-center text-xs font-medium text-red-600 hover:bg-red-500/20 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 cursor-pointer"
+                      >
+                        <LogOut className="size-3.5" />
+                        <span>Log out</span>
+                      </button>
                     </div>
-                  </Link>
+                  </div>
                 ) : (
                   <div className="mb-3">
                     <Button className="w-full" asChild>
@@ -357,7 +463,7 @@ function HeaderVisual({ user, isLoading }: HeaderVisualProps) {
               {isLoading ? (
                 <div className="size-8 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
               ) : user ? (
-                <UserAvatar user={user} />
+                <UserAvatarMenu user={user} />
               ) : (
                 <AuthButtons size="sm" />
               )}
@@ -371,13 +477,7 @@ function HeaderVisual({ user, isLoading }: HeaderVisualProps) {
   );
 }
 
-interface HeaderShellProps {
-  initialUser?: UserProfile | null;
-}
-
-function HeaderShell({
-  initialUser = null,
-}: HeaderShellProps) {
+function useAuthProfile(initialUser: UserProfile | null = null) {
   const [user, setUser] = React.useState<UserProfile | null>(initialUser);
   const [isFetching, setIsFetching] = React.useState(false);
   const mounted = useMounted();
@@ -412,10 +512,24 @@ function HeaderShell({
 
   const isLoading = !mounted || isFetching;
 
+  return { user, isLoading };
+}
+
+interface HeaderShellProps {
+  user: UserProfile | null;
+  isLoading?: boolean;
+}
+
+function HeaderShell({ user, isLoading }: HeaderShellProps) {
   return <HeaderVisual user={user} isLoading={isLoading} />;
 }
 
-function HeroSection() {
+interface HeroSectionProps {
+  user: UserProfile | null;
+  isLoading?: boolean;
+}
+
+function HeroSection({ user, isLoading }: HeroSectionProps) {
   return (
     <section className="relative isolate min-h-[100svh] w-full overflow-hidden bg-white pb-0 pt-16 text-zinc-950 dark:bg-black dark:text-white md:-mt-14 md:min-h-[calc(100dvh+3.5rem)] md:pt-28 lg:pt-32">
       <div
@@ -526,21 +640,49 @@ function HeroSection() {
                 progress, and stay ahead of every campus drive, all in one place.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-                <Button size="lg" className="rounded-full font-medium shadow-sm" asChild>
-                  <Link href="/auth/sign-up">
-                    Get Started
-                  </Link>
-                </Button>
+              <div className="flex flex-col items-center justify-center gap-4 pt-1">
+                {isLoading ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-36 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
+                    <div className="h-11 w-28 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
+                  </div>
+                ) : user ? (
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button size="lg" className="rounded-full font-medium shadow-sm" asChild>
+                      <Link href="/home">
+                        Go to Dashboard
+                      </Link>
+                    </Button>
 
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-zinc-200 bg-white/75 text-zinc-900 backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:text-white"
-                  asChild
-                >
-                  <Link href="/auth/login">Sign In</Link>
-                </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full border-zinc-200 bg-white/75 text-zinc-900 backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      asChild
+                    >
+                      <Link href="/myprofile">
+                        My Profile
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button size="lg" className="rounded-full font-medium shadow-sm" asChild>
+                      <Link href="/auth/sign-up">
+                        Get Started
+                      </Link>
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full border-zinc-200 bg-white/75 text-zinc-900 backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      asChild
+                    >
+                      <Link href="/auth/login">Sign In</Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -978,15 +1120,21 @@ function Footer() {
   );
 }
 
-export default function LandingPage() {
+interface LandingPageProps {
+  initialUser?: UserProfile | null;
+}
+
+export default function LandingPage({ initialUser = null }: LandingPageProps) {
+  const { user, isLoading } = useAuthProfile(initialUser);
+
   return (
     <div
       suppressHydrationWarning
       className="select-none relative flex min-h-screen flex-col overflow-hidden bg-white text-zinc-950 supports-[overflow:clip]:overflow-clip dark:bg-black dark:text-white"
     >
-      <HeaderShell />
+      <HeaderShell user={user} isLoading={isLoading} />
       <main className="flex flex-col">
-        <HeroSection />
+        <HeroSection user={user} isLoading={isLoading} />
         <FeaturesSection />
         <TestimonialsSection />
         <CTASection />
