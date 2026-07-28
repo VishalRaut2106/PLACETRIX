@@ -151,7 +151,7 @@ function TestCard({ test }: { test: CandidateTest }) {
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <Card className="p-0 gap-0 overflow-hidden hover:bg-muted/50 transition-colors">
+        <Card className="p-0 gap-0 overflow-hidden hover:bg-muted transition-colors">
           <Link href={`tests/${test.id}`} className="block">
             <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4">
               <CardTitle className="font-semibold truncate">

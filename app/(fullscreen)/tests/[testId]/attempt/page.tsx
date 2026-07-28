@@ -6,8 +6,8 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AttemptClient } from "./AttemptClient"
 import {
-  saveAnswerAction,
-  saveAnswersBatchAction,
+  syncAction,
+  claimSessionAction,
   submitAttemptAction,
   recordViolationAction,
   startAttemptAction,
@@ -30,28 +30,35 @@ export default async function AttemptPage({
 
   const userId = authData.claims.sub
 
-  // Verify that this test is targeted to one of the candidate's cohorts
-  const { data: memberRows } = await (supabase as any)
-    .from("cohort_students")
-    .select("cohort_id")
-    .eq("student_id", userId)
-
-  const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
-
-  if (cohortIds.length === 0) {
-    redirect("/tests")
-  }
-
-  const { data: isTargeted } = await (supabase as any)
+  // Verify cohort targeting (only if test has specific cohort restrictions)
+  const { count: targetCohortCount } = await (supabase as any)
     .from("test_cohorts")
-    .select("cohort_id")
+    .select("cohort_id", { count: "exact", head: true })
     .eq("test_id", testId)
-    .in("cohort_id", cohortIds)
-    .limit(1)
-    .maybeSingle()
 
-  if (!isTargeted) {
-    redirect("/tests")
+  if (targetCohortCount && targetCohortCount > 0) {
+    const { data: memberRows } = await (supabase as any)
+      .from("cohort_students")
+      .select("cohort_id")
+      .eq("student_id", userId)
+
+    const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
+
+    if (cohortIds.length === 0) {
+      redirect("/tests")
+    }
+
+    const { data: isTargeted } = await (supabase as any)
+      .from("test_cohorts")
+      .select("cohort_id")
+      .eq("test_id", testId)
+      .in("cohort_id", cohortIds)
+      .limit(1)
+      .maybeSingle()
+
+    if (!isTargeted) {
+      redirect("/tests")
+    }
   }
 
   // ── 1. Consolidated Initialization (RPC) ────────────────────────────────────
@@ -69,8 +76,6 @@ export default async function AttemptPage({
     redirect("/tests")
   }
 
-  // Capture the server timestamp immediately after the RPC returns so that
-  // it reflects real server-side time rather than the pre-RPC instant.
   const serverNow = new Date()
 
   if (initResult.status === "expired") {
@@ -127,9 +132,10 @@ export default async function AttemptPage({
       savedAnswers={savedAnswers}
       serverNow={serverNow.toISOString()}
       shuffleSeed={shuffleSeedString}
+      candidateId={userId}
       onStartAttempt={startAttemptAction.bind(null, testId)}
-      onSaveAnswer={saveAnswerAction}
-      onSaveAnswersBatch={saveAnswersBatchAction}
+      onSync={syncAction}
+      onClaimSession={claimSessionAction}
       onSubmit={submitAttemptAction}
       onViolation={recordViolationAction}
       onSubmitFeedback={submitFeedbackAction}

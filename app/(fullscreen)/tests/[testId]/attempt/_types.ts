@@ -36,6 +36,7 @@ export interface AttemptInfo {
   expires_at: string | null
   tab_switch_count: number
   attempt_number: number
+  active_session_token?: string | null
 }
 
 export interface SavedAnswer {

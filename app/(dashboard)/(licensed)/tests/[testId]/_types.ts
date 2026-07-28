@@ -134,6 +134,7 @@ export interface InstituteAttemptRow
   started_at: string     // same — guaranteed by .filter() in page.tsx
   status: "in_progress" | "submitted" | "abandoned" | "auto_submitted"
   tab_switch_count: number | null
+  actual_time_spent_seconds: number | null
   branch: string | null
   passout_year: number | null
 }

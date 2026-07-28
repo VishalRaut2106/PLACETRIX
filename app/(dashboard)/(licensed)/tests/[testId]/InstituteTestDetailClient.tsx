@@ -1461,6 +1461,7 @@ function mapRawAttempt(a: any): InstituteAttemptRow {
     total_marks: a.total_marks ?? null,
     percentage: a.percentage ?? null,
     time_spent_seconds: a.time_spent_seconds ?? null,
+    actual_time_spent_seconds: a.actual_time_spent_seconds ?? null,
     started_at: a.started_at,
     submitted_at: a.submitted_at ?? null,
     tab_switch_count: a.tab_switch_count ?? null,

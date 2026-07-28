@@ -14,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Download, FileSpreadsheet } from "lucide-react"
 import type { OpportunityApplication } from "../types"
-import * as XLSX from "xlsx"
 
 interface ExportApplicantsModalProps {
   open: boolean
@@ -57,8 +56,9 @@ export function ExportApplicantsModal({
     })
   }
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (applications.length === 0) return
+    const XLSX = await import("xlsx")
 
     // 1. Filter data based on selected fields
     const exportData = applications.map((app) => {

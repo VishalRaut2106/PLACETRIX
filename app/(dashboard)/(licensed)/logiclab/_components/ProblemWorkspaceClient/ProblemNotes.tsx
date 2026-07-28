@@ -13,7 +13,11 @@ import {
 import { ProblemDescriptionViewer } from "./ProblemDescriptionViewer"
 import { cn } from "@/lib/utils"
 
-import Editor from "@monaco-editor/react"
+import dynamic from "next/dynamic"
+
+const Editor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+})
 import { useTheme } from "next-themes"
 import { createClient } from "@/lib/supabase/client"
 import { LANGUAGES } from "../../_constants"

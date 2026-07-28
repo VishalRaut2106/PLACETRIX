@@ -189,5 +189,9 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return redirectRes;
   }
 
+  if (isProtected(pathname) || isAuthPage(pathname)) {
+    supabaseResponse.headers.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  }
+
   return supabaseResponse;
 }

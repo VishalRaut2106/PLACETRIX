@@ -6,7 +6,7 @@ import "./globals.css";
 import { cirka } from "@/app/fonts";
 import { Toaster } from "@/components/ui/sonner";
 import { Outfit, EB_Garamond, Source_Code_Pro } from "next/font/google";
-import "./globals.css";
+import { AuthSync } from "@/components/auth/auth-sync";
 
 const fontSans = Outfit({
   subsets: ["latin"],
@@ -90,10 +90,11 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
-        ><TooltipProvider>{children}
-            <Toaster position="top-right"
-              richColors
-            />
+        >
+          <TooltipProvider>
+            <AuthSync />
+            {children}
+            <Toaster position="top-right" richColors />
           </TooltipProvider>
         </ThemeProvider>
       </body>

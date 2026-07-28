@@ -218,6 +218,7 @@ function mapAttemptRow(a: any): InstituteAttemptRow {
     total_marks: a.total_marks ?? null,
     percentage: a.percentage ?? null,
     time_spent_seconds: a.time_spent_seconds ?? null,
+    actual_time_spent_seconds: a.actual_time_spent_seconds ?? null,
     started_at: a.started_at,
     submitted_at: a.submitted_at ?? null,
     tab_switch_count: a.tab_switch_count ?? null,
@@ -256,7 +257,7 @@ async function fetchInstituteView(
     (supabase as any)
       .from("test_attempts")
       .select(
-        "id, tab_switch_count, status, score, total_marks, percentage, time_spent_seconds, started_at, submitted_at, profile:profiles!candidate_id(full_name, email, candidate_academic_details(passout_year, course:institute_courses(course_name)))"
+        "id, tab_switch_count, status, score, total_marks, percentage, time_spent_seconds, actual_time_spent_seconds, started_at, submitted_at, profile:profiles!candidate_id(full_name, email, candidate_academic_details(passout_year, course:institute_courses(course_name)))"
       )
       .eq("test_id", testId)
       .not("started_at", "is", null)

@@ -3,8 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   devIndicators: false,
   serverExternalPackages: ["pdf-parse"],
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@tabler/icons-react",
+      "date-fns",
+      "recharts",
+    ],
+  },
   images: {
-    // Flag added
+    minimumCacheTTL: 31536000,
     dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {

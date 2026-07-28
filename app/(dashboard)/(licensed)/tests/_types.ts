@@ -6,7 +6,7 @@ export type DerivedCandidateStatus = "live" | "upcoming" | "past"
 export type DerivedInstituteStatus = "draft" | "live" | "upcoming" | "past"
 
 export interface CandidateTestAttempt {
-  status: "in_progress" | "submitted"
+  status: "in_progress" | "submitted" | "auto_submitted"
   submitted_at?: string
   score?: number
   total_marks?: number
