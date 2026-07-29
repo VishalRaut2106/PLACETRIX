@@ -66,7 +66,7 @@ export function ExportTestParticipantsModal({ testId, testName, totalAttempts, t
 
     try {
       setIsExporting(true)
-      const XLSX = await import("xlsx")
+      const XLSX = await import("xlsx-js-style")
       // Fetch all attempts directly from the server bypassing pagination
       const allAttempts = await fetchAllTestAttemptsForExportAction(testId)
       
@@ -92,17 +92,125 @@ export function ExportTestParticipantsModal({ testId, testName, totalAttempts, t
         return row
       })
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData)
       const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Test Participants")
+      const worksheet: any = {}
 
-      // Auto-fit columns
-      const maxLens = Object.keys(exportData[0] || {}).map((key) => {
-        const lengths = exportData.map((row: any) => String(row[key] ?? "").length)
-        lengths.push(key.length)
-        return { wch: Math.max(...lengths) + 3 }
+      const headers = Object.keys(exportData[0] || {})
+      const totalCols = headers.length
+
+      // ── Branch abbreviation map ──────────────────────────────────────────────
+      const branchAbbr: Record<string, string> = {
+        "artificial intelligence and data science": "AI & DS",
+        "computer engineering": "CE",
+        "electronics and telecommunications engineering": "E&TC",
+        "information technology": "IT",
+        "master of business administration (mba)": "MBA",
+        "mechanical engineering": "MECH",
+      }
+
+      function abbreviateBranch(branch: string | null | undefined): string {
+        if (!branch || branch === "N/A") return branch || "N/A"
+        const lower = branch.toLowerCase().trim()
+        return branchAbbr[lower] ?? branch
+      }
+
+      // Helper to produce a cell address like A1, B2 etc.
+      function cellAddr(col: number, row: number) {
+        return XLSX.utils.encode_cell({ c: col, r: row })
+      }
+
+      // ── Row 0: blank spacer ──────────────────────────────────────────────────
+      // (no cells written = blank row)
+
+      // ── Row 1: Test name centered across all columns ─────────────────────────
+      const titleCell = cellAddr(0, 1)
+      worksheet[titleCell] = {
+        v: testName,
+        t: "s",
+        s: {
+          font: { bold: true, sz: 14, color: { rgb: "1A1A2E" } },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          fill: { fgColor: { rgb: "EFF6FF" }, patternType: "solid" },
+        },
+      }
+      // Merge title across all columns
+      if (!worksheet["!merges"]) worksheet["!merges"] = []
+      worksheet["!merges"].push({ s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } })
+
+      // ── Row 2: Header row with background color ──────────────────────────────
+      const headerStyle = {
+        font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "1E3A5F" }, patternType: "solid" },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: {
+          top: { style: "thin", color: { rgb: "FFFFFF" } },
+          bottom: { style: "thin", color: { rgb: "FFFFFF" } },
+          left: { style: "thin", color: { rgb: "FFFFFF" } },
+          right: { style: "thin", color: { rgb: "FFFFFF" } },
+        },
+      }
+
+      headers.forEach((header, colIdx) => {
+        const addr = cellAddr(colIdx, 2)
+        worksheet[addr] = { v: header, t: "s", s: headerStyle }
       })
-      worksheet["!cols"] = maxLens
+
+      // ── Rows 3+: Data rows centered ──────────────────────────────────────────
+      const dataStyle = {
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: {
+          top: { style: "thin", color: { rgb: "E2E8F0" } },
+          bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+          left: { style: "thin", color: { rgb: "E2E8F0" } },
+          right: { style: "thin", color: { rgb: "E2E8F0" } },
+        },
+      }
+
+      exportData.forEach((row: any, rowIdx: number) => {
+        headers.forEach((header, colIdx) => {
+          let value = row[header]
+
+          // Abbreviate branch
+          if (header === "Branch / Course") {
+            value = abbreviateBranch(value)
+          }
+
+          const addr = cellAddr(colIdx, rowIdx + 3)
+          const isNumber = typeof value === "number"
+          worksheet[addr] = {
+            v: value,
+            t: isNumber ? "n" : "s",
+            s: dataStyle,
+          }
+        })
+      })
+
+      // ── Sheet dimensions ─────────────────────────────────────────────────────
+      worksheet["!ref"] = XLSX.utils.encode_range({
+        s: { r: 0, c: 0 },
+        e: { r: exportData.length + 2, c: totalCols - 1 },
+      })
+
+      // ── Column widths (auto-fit) ─────────────────────────────────────────────
+      const colWidths = headers.map((key) => {
+        const lengths = exportData.map((row: any) => {
+          let v = row[key]
+          if (key === "Branch / Course") v = abbreviateBranch(v)
+          return String(v ?? "").length
+        })
+        lengths.push(key.length)
+        return { wch: Math.max(...lengths) + 4 }
+      })
+      worksheet["!cols"] = colWidths
+
+      // ── Row heights ──────────────────────────────────────────────────────────
+      worksheet["!rows"] = [
+        { hpt: 10 },   // row 0: blank spacer
+        { hpt: 28 },   // row 1: title
+        { hpt: 22 },   // row 2: header
+      ]
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Test Participants")
 
       const safeName = testName.replace(/[^a-zA-Z0-9]/g, "_")
       XLSX.writeFile(workbook, `${safeName}_participants.xlsx`)
