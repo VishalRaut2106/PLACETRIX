@@ -38,10 +38,15 @@ interface TabConfig {
 }
 
 function formatDateTime(dt: string): string {
-  return new Date(dt).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
+  try {
+    return new Date(dt).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "short",
+    })
+  } catch {
+    return dt
+  }
 }
 
 // ─── Stats Bar ────────────────────────────────────────────────────────────────

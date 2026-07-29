@@ -80,7 +80,15 @@ import { QRCheckInScanner } from "./QRCheckInScanner"
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDateTime(dt: string): string {
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+  try {
+    return new Date(dt).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "short",
+    })
+  } catch {
+    return dt
+  }
 }
 
 function formatTimeOnly(dtStr: string): string {
@@ -130,7 +138,7 @@ function MetaItem({
 
 // ─── Manual Check-in Dialog ──────────────────────────────────────────────────
 
-function ManualCheckInDialog({ onCheckIn }: { onCheckIn: (ticketId: string) => void }) {
+function ManualCheckInDialog({ eventId, onCheckIn }: { eventId: string; onCheckIn: (ticketId: string) => void }) {
   const [open, setOpen] = useState(false)
   const [ticketId, setTicketId] = useState("")
   const [isPending, startTransition] = useTransition()
@@ -142,7 +150,7 @@ function ManualCheckInDialog({ onCheckIn }: { onCheckIn: (ticketId: string) => v
     }
     startTransition(async () => {
       try {
-        await markAttendanceAction(ticketId.trim())
+        await markAttendanceAction(ticketId.trim(), eventId)
         toast.success("Attendee checked in successfully!")
         onCheckIn(ticketId.trim())
         setTicketId("")
@@ -425,6 +433,7 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
                       </button>
                     </DialogTrigger>
                     <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl p-3 md:p-4 border overflow-hidden rounded-2xl bg-card" showCloseButton={false}>
+                      <DialogTitle className="sr-only">Event Banner</DialogTitle>
                       <div className="relative">
                         <img
                           src={buildStorageUrl("event-banners", event.event_banner) || ""}
@@ -662,8 +671,8 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
         <TabsContent value="attendees" className="m-0 space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <QRCheckInScanner onCheckIn={onCheckIn} tickets={initialTickets} />
-              <ManualCheckInDialog onCheckIn={onCheckIn} />
+              <QRCheckInScanner eventId={event.id} onCheckIn={onCheckIn} tickets={initialTickets} />
+              <ManualCheckInDialog eventId={event.id} onCheckIn={onCheckIn} />
               {filteredTickets.length > 0 && (
                 <ExportEventAttendeesModal tickets={filteredTickets} eventName={event.title} />
               )}
@@ -748,7 +757,7 @@ function AttendeeRow({
   const handleCheckIn = () => {
     startTransition(async () => {
       try {
-        await markAttendanceAction(ticket.id)
+        await markAttendanceAction(ticket.id, ticket.event_id)
         toast.success(`${ticket.candidate_name} checked in!`)
         onCheckIn()
       } catch (err: any) {
@@ -810,7 +819,7 @@ function AttendeeCard({
   const handleCheckIn = () => {
     startTransition(async () => {
       try {
-        await markAttendanceAction(ticket.id)
+        await markAttendanceAction(ticket.id, ticket.event_id)
         toast.success(`${ticket.candidate_name} checked in!`)
         onCheckIn()
       } catch (err: any) {

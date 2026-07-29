@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import QRCode from "qrcode"
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,15 @@ import type { EventStatus, TicketStatus, AttendanceStatus, EventAgendaItem } fro
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDateTime(dt: string): string {
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+  try {
+    return new Date(dt).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "short",
+    })
+  } catch {
+    return dt
+  }
 }
 
 function formatTimeOnly(dtStr: string): string {
@@ -124,6 +133,48 @@ export function QRTicketCard({
   eventTitle: string
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [attendanceStatus, setAttendanceStatus] = useState(ticket.attendance_status)
+
+  useEffect(() => {
+    setAttendanceStatus(ticket.attendance_status)
+  }, [ticket.attendance_status])
+
+  useEffect(() => {
+    const supabase = createClient()
+    
+    // Subscribe to real-time changes on this specific ticket
+    const channel = supabase
+      .channel(`ticket-${ticket.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'event_tickets', filter: `id=eq.${ticket.id}` },
+        (payload) => {
+          if (payload.new && payload.new.attendance_status) {
+            setAttendanceStatus(payload.new.attendance_status)
+          }
+        }
+      )
+      .subscribe()
+
+    // Bulletproof Fallback: Poll every 1.5 seconds in case WebSockets are blocked by the server proxy
+    const pollInterval = setInterval(async () => {
+      if (attendanceStatus === "Present") return
+      const { data } = await supabase
+        .from("event_tickets")
+        .select("attendance_status")
+        .eq("id", ticket.id)
+        .maybeSingle()
+        
+      if (data && data.attendance_status === "Present") {
+        setAttendanceStatus("Present")
+      }
+    }, 1500)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(pollInterval)
+    }
+  }, [ticket.id, attendanceStatus])
 
   useEffect(() => {
     QRCode.toDataURL(ticket.id, {
@@ -148,15 +199,22 @@ export function QRTicketCard({
                 <Hourglass className="mr-1 h-3 w-3" /> Waitlisted
               </Badge>
             )}
-            {ticket.attendance_status === "Present" && (
+            {attendanceStatus === "Present" && (
               <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/30">
                 <UserCheck className="mr-1 h-3 w-3" /> Checked In
               </Badge>
             )}
           </div>
 
-          {/* QR Code */}
-          {ticket.status === "Confirmed" && qrDataUrl ? (
+          {/* QR Code or Verified Animation */}
+          {attendanceStatus === "Present" ? (
+            <div className="bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/30 shadow-sm mb-3 flex flex-col items-center justify-center aspect-square w-48 h-48 animate-in fade-in zoom-in duration-500">
+              <div className="h-20 w-20 rounded-full bg-emerald-500/20 flex items-center justify-center animate-bounce">
+                <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-500" />
+              </div>
+              <p className="font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mt-4">Present</p>
+            </div>
+          ) : ticket.status === "Confirmed" && qrDataUrl ? (
             <div className="bg-white p-3 rounded-xl shadow-sm mb-3">
               <img src={qrDataUrl} alt="QR Ticket" className="w-48 h-48" />
             </div>
@@ -405,6 +463,7 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
                     </button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl p-3 md:p-4 border overflow-hidden rounded-2xl bg-card" showCloseButton={false}>
+                    <DialogTitle className="sr-only">Event Banner</DialogTitle>
                     <div className="relative">
                       <img
                         src={buildStorageUrl("event-banners", event.event_banner) || ""}

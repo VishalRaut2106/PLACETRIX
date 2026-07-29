@@ -1,4 +1,4 @@
-"use server"
+  "use server"
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
@@ -235,19 +235,23 @@ export async function concludeEventAction(eventId: string) {
 }
 
 
-export async function markAttendanceAction(ticketId: string) {
+export async function markAttendanceAction(ticketId: string, eventId: string) {
   await requireStaff()
   const supabase = await createClient()
 
   // Check if ticket exists and is confirmed
-  const { data: ticket, error: fetchError } = await (supabase as any)
+    const { data: ticket, error: fetchError } = await (supabase as any)
     .from("event_tickets")
-    .select("id, status, attendance_status, candidate_id")
+    .select("id, status, attendance_status, candidate_id, event_id, profile:profiles(full_name)")
     .eq("id", ticketId)
     .maybeSingle()
 
   if (fetchError || !ticket) {
-    throw new Error("Ticket not found.")
+    throw new Error("Ticket not found in the database.")
+  }
+
+  if (ticket.event_id !== eventId) {
+    throw new Error("Invalid ticket! This ticket is for a different event.")
   }
 
   if (ticket.status !== "Confirmed") {
@@ -269,7 +273,8 @@ export async function markAttendanceAction(ticketId: string) {
   }
 
   revalidatePath("/events")
-  return { success: true, candidateId: ticket.candidate_id }
+  const candidateName = ticket.profile?.full_name || "Attendee"
+  return { success: true, candidateId: ticket.candidate_id, candidateName }
 }
 
 // ─── Candidate Actions ────────────────────────────────────────────────────────
