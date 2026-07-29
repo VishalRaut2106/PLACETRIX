@@ -903,78 +903,9 @@ function AttemptsTab({
 
   return (
     <div className="space-y-5">
-      {/* Summary strip & export */}
-      <div className={cn('flex', 'flex-col', 'sm:flex-row', 'sm:items-center', 'justify-between', 'gap-4')}>
-        <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-x-4', 'gap-y-1', 'px-1', 'text-sm')}>
-          <span>
-            <span className={cn('font-semibold', 'tabular-nums')}>{stats.submitted}</span>
-            <span className={cn('ml-1', 'text-muted-foreground')}>Submitted</span>
-          </span>
-          <Separator orientation="vertical" className="h-3.5" />
-          <span>
-            <span className={cn('font-semibold', 'tabular-nums')}>{stats.in_progress}</span>
-            <span className={cn('ml-1', 'text-muted-foreground')}>In Progress</span>
-          </span>
-          {scoresVisible && stats.avg_pct != null && (
-            <>
-              <Separator orientation="vertical" className="h-3.5" />
-              <span>
-                <span className={cn('font-semibold', 'tabular-nums')}>{stats.avg_pct.toFixed(2)}%</span>
-                <span className={cn('ml-1', 'text-muted-foreground')}>Avg Score</span>
-              </span>
-            </>
-          )}
-          <Separator orientation="vertical" className="h-3.5" />
-          <span className={cn('flex', 'items-center', 'gap-1', 'text-muted-foreground')}>
-            Showing <span className={cn('font-semibold', 'text-foreground', 'tabular-nums')}>{pageRows.length}</span> of{" "}
-            <span className={cn('font-semibold', 'text-foreground', 'tabular-nums')}>{totalCount}</span>
-            {activeFilterCount > 0 && <span className={cn('text-xs', 'text-muted-foreground/60', 'ml-1')}>(filtered)</span>}
-          </span>
-        </div>
-
-        <div className={cn('flex', 'items-center', 'gap-2')}>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={isLoadingPage || isExporting}
-            onClick={async () => {
-              setIsLoadingPage(true)
-              try {
-                await Promise.all([
-                  onFetchPage({
-                    search: searchQuery.trim(),
-                    statusFilter,
-                    scoreFilter,
-                    sortCol,
-                    sortDir,
-                    page: 0,
-                  }),
-                  onFetchStats(),
-                ])
-                setPage(0)
-                toast.success("Attempts refreshed")
-              } catch (err) {
-                toast.error("Failed to refresh attempts")
-              } finally {
-                setIsLoadingPage(false)
-              }
-            }}
-          >
-            {isLoadingPage ? (
-              <Loader2 className={cn('h-4', 'w-4', 'animate-spin')} />
-            ) : (
-              <RotateCw className={cn('h-4', 'w-4')} />
-            )}
-            Refresh
-          </Button>
-
-          <ExportTestParticipantsModal testId={test.id} testName={test.title} totalAttempts={stats.total} />
-        </div>
-      </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      <div className={cn('flex', 'flex-col', 'gap-2', 'rounded-xl', 'border', 'bg-muted/10', 'p-3')}>
+      <div className={cn('flex', 'flex-col', 'gap-2', 'rounded-xl', 'border', 'bg-muted/10', 'px-3', 'pb-3', 'pt-2')}>
         <div className={cn('flex', 'flex-col', 'sm:flex-row', 'gap-2')}>
           {/* Search — input updates instantly; query is debounced 300ms */}
           <div className={cn('relative', 'flex-1', 'min-w-0')}>
@@ -1773,37 +1704,53 @@ export function InstituteTestDetailClient({
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="overflow-x-auto">
-          <TabsList className={cn('inline-flex', 'h-9', 'gap-0.5', 'rounded-lg', 'bg-muted', 'p-1')}>
-            {[
-              { value: "overview", label: "Overview", icon: <Info className={cn('h-3.5', 'w-3.5')} />, count: null },
-              { value: "questions", label: "Questions", icon: <ListChecks className={cn('h-3.5', 'w-3.5')} />, count: test.questions.length },
-              { value: "attempts", label: "Attempts", icon: <Users className={cn('h-3.5', 'w-3.5')} />, count: liveStats.total },
-              { value: "analytics", label: "Analytics", icon: <BarChart2 className={cn('h-3.5', 'w-3.5')} />, count: null },
-              { value: "feedback", label: "Feedback", icon: <RotateCw className={cn('h-3.5', 'w-3.5')} />, count: test.feedbacks?.length || null },
-            ].map(({ value, label, icon, count }) => (
-              <TabsTrigger
-                key={value}
-                value={value}
-                className={cn('gap-1.5', 'rounded-md', 'px-3', 'text-xs', 'font-medium', 'data-[state=active]:bg-background', 'data-[state=active]:shadow-sm')}
-              >
-                {icon}
-                <span>{label}</span>
-                {count != null && count > 0 && (
-                  <span
-                    className={cn(
-                      "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
-                      activeTab === value
-                        ? "bg-foreground text-background"
-                        : "bg-muted-foreground/20 text-muted-foreground"
-                    )}
-                  >
-                    {count}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="flex items-center justify-between gap-2">
+          <div className="overflow-x-auto">
+            <TabsList className={cn('inline-flex', 'h-9', 'gap-0.5', 'rounded-lg', 'bg-muted', 'p-1')}>
+              {[
+                { value: "overview", label: "Overview", icon: <Info className={cn('h-3.5', 'w-3.5')} />, count: null },
+                { value: "questions", label: "Questions", icon: <ListChecks className={cn('h-3.5', 'w-3.5')} />, count: test.questions.length },
+                { value: "attempts", label: "Attempts", icon: <Users className={cn('h-3.5', 'w-3.5')} />, count: liveStats.total },
+                { value: "analytics", label: "Analytics", icon: <BarChart2 className={cn('h-3.5', 'w-3.5')} />, count: null },
+                { value: "feedback", label: "Feedback", icon: <RotateCw className={cn('h-3.5', 'w-3.5')} />, count: test.feedbacks?.length || null },
+              ].map(({ value, label, icon, count }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className={cn('gap-1.5', 'rounded-md', 'px-3', 'text-xs', 'font-medium', 'data-[state=active]:bg-background', 'data-[state=active]:shadow-sm')}
+                >
+                  {icon}
+                  <span>{label}</span>
+                  {count != null && count > 0 && (
+                    <span
+                      className={cn(
+                        "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums",
+                        activeTab === value
+                          ? "bg-foreground text-background"
+                          : "bg-muted-foreground/20 text-muted-foreground"
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          {/* Refresh + Export — visible in the tab bar row */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => router.refresh()}
+            >
+              <RotateCw className="h-4 w-4" />
+              Refresh
+            </Button>
+            <ExportTestParticipantsModal testId={test.id} testName={test.title} totalAttempts={liveStats.total} />
+          </div>
         </div>
 
         <TabsContent value="overview" className="m-0">
