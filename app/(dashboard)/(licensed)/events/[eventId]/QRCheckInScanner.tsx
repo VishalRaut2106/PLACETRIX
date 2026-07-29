@@ -39,7 +39,7 @@ const SCANNER_COMPONENTS = {
 
 const SCANNER_STYLES = {
   container: { width: "100%", height: "100%", margin: "0 auto" },
-  video: { objectFit: "cover" as const, transform: "scaleX(-1)" },
+  video: { objectFit: "cover" as const },
 }
 
 export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScannerProps) {
@@ -48,6 +48,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false)
   const [showAlreadyPresentOverlay, setShowAlreadyPresentOverlay] = useState(false)
   const [showMoveQrOverlay, setShowMoveQrOverlay] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [isPending, startTransition] = useTransition()
   
   // Use refs for state accessed inside the scan callback to avoid recreating the callback 
@@ -60,10 +61,13 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
 
   const [lastCheckedInName, setLastCheckedInName] = useState<string | null>(null)
 
-  // Keep refs updated
+  // Keep refs updated and detect device type
   useEffect(() => {
     ticketsRef.current = tickets
     onCheckInRef.current = onCheckIn
+    
+    // Check if the user is on a mobile device to disable the mirror effect
+    setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
   }, [tickets, onCheckIn])
 
   const handleScan = useCallback((results: { rawValue: string }[]) => {
@@ -248,7 +252,11 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
                 onScan={handleScan}
                 onError={handleError}
                 components={SCANNER_COMPONENTS}
-                styles={SCANNER_STYLES}
+                styles={{
+                  ...SCANNER_STYLES,
+                  // Mirror the camera horizontally ONLY on non-mobile devices (laptops)
+                  video: { ...SCANNER_STYLES.video, transform: isMobile ? "none" : "scaleX(-1)" }
+                }}
               />
             )}
           </div>
