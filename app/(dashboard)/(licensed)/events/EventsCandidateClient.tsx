@@ -42,6 +42,11 @@ function formatDateTime(dt: string): string {
   })
 }
 
+function isEventPast(eventDate: string, durationMinutes?: number): boolean {
+  const end = new Date(new Date(eventDate).getTime() + (durationMinutes || 0) * 60000)
+  return end < new Date()
+}
+
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({
   isPast,
@@ -120,7 +125,7 @@ function CandidateEventCard({
 }: {
   event: CandidateEventListItem
 }) {
-  const isPast = new Date(event.date) < new Date()
+  const isPast = isEventPast(event.date, event.duration_minutes)
   const spotsLeft = Math.max(0, event.capacity - event.tickets_confirmed)
 
   return (
@@ -232,10 +237,9 @@ export function EventsCandidateClient({
 
   // Calculate counts based on all listings
   const stats = useMemo(() => {
-    const now = new Date()
-    const upcoming = events.filter(e => new Date(e.date) >= now).length
+    const upcoming = events.filter(e => !isEventPast(e.date, e.duration_minutes)).length
     const my = events.filter(e => e.my_ticket_status !== null && e.my_ticket_status !== "Cancelled").length
-    const past = events.filter(e => new Date(e.date) < now).length
+    const past = events.filter(e => isEventPast(e.date, e.duration_minutes)).length
     return { upcoming, my, past }
   }, [events])
 
@@ -247,7 +251,6 @@ export function EventsCandidateClient({
 
   // Client-side filtering & search
   const filteredEvents = useMemo(() => {
-    const now = new Date()
     return events.filter(event => {
       const matchSearch =
         event.title.toLowerCase().includes(searchInput.toLowerCase()) ||
@@ -257,13 +260,13 @@ export function EventsCandidateClient({
       if (!matchSearch) return false
 
       if (activeTab === "upcoming") {
-        return new Date(event.date) >= now
+        return !isEventPast(event.date, event.duration_minutes)
       }
       if (activeTab === "my") {
         return event.my_ticket_status !== null && event.my_ticket_status !== "Cancelled"
       }
       if (activeTab === "past") {
-        return new Date(event.date) < now
+        return isEventPast(event.date, event.duration_minutes)
       }
       return true
     })
