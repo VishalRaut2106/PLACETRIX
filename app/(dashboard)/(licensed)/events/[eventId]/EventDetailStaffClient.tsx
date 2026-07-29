@@ -387,10 +387,10 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
 
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 px-4 py-4 md:py-8 md:px-8 w-full animate-in fade-in duration-500">
       {/* Back Button */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <Button variant="ghost" asChild className="gap-1.5 -ml-3 self-start hover:bg-muted/50 rounded-xl transition-all">
+        <Button variant="ghost" asChild className="gap-1.5 -ml-2 md:-ml-3 self-start hover:bg-muted/50 rounded-xl transition-all">
           <Link href="/events">
             <ArrowLeft className="h-4 w-4" /> Back to Events
           </Link>
@@ -661,7 +661,7 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
         {/* Tab 2: Attendees */}
         <TabsContent value="attendees" className="m-0 space-y-4">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <QRCheckInScanner onCheckIn={onCheckIn} tickets={initialTickets} />
               <ManualCheckInDialog onCheckIn={onCheckIn} />
               {filteredTickets.length > 0 && (
@@ -820,19 +820,19 @@ function AttendeeCard({
   }
 
   return (
-    <Card className="rounded-2xl border bg-card p-5 space-y-4 shadow-2xs">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <Card className="rounded-2xl border bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary border font-bold text-xs shadow-2xs">
             {getInitials(ticket.candidate_name || "Unknown")}
           </div>
-          <div>
-            <h4 className="font-bold text-sm text-foreground">{ticket.candidate_name}</h4>
-            <p className="text-muted-foreground text-[10px] mt-0.5 font-medium">{ticket.candidate_email}</p>
+          <div className="min-w-0 flex-1 pr-2">
+            <h4 className="font-bold text-sm text-foreground truncate">{ticket.candidate_name}</h4>
+            <p className="text-muted-foreground text-[10px] mt-0.5 font-medium truncate">{ticket.candidate_email}</p>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5">
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
           <TicketStatusBadge status={ticket.status} />
           <AttendanceBadge status={ticket.attendance_status} />
         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useTransition, useCallback } from "react"
+import React, { useState, useTransition, useCallback, useRef, useEffect } from "react"
 import dynamic from "next/dynamic"
 
 const Scanner = dynamic(() => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner), {
@@ -24,69 +24,103 @@ interface QRCheckInScannerProps {
   tickets: { id: string; attendance_status: string; candidate_name?: string }[]
 }
 
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle2 } from "lucide-react"
+
+// Extract static objects to prevent Scanner re-renders
+const SCANNER_COMPONENTS = {
+  audio: false,
+  onOff: false, // Hides the camera switch button that was pushing the red ring left
+  torch: false,
+  zoom: false,
+  finder: true,
+}
+
+const SCANNER_STYLES = {
+  container: { width: "100%", height: "100%", margin: "0 auto" },
+  video: { objectFit: "cover" as const },
+}
+
 export function QRCheckInScanner({ onCheckIn, tickets }: QRCheckInScannerProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
-  // Prevent scanning the same QR code multiple times continuously
-  const [lastScanned, setLastScanned] = useState<string | null>(null)
+  
+  // Use refs for state accessed inside the scan callback to avoid recreating the callback 
+  // and restarting the camera feed.
+  const lastScannedRef = useRef<string | null>(null)
+  const isPendingRef = useRef(false)
+  const ticketsRef = useRef(tickets)
+  const onCheckInRef = useRef(onCheckIn)
+
   const [lastCheckedInName, setLastCheckedInName] = useState<string | null>(null)
 
-  const handleScan = useCallback(
-    (results: { rawValue: string }[]) => {
-      if (results.length === 0) return
-      const ticketId = results[0].rawValue
+  // Keep refs updated
+  useEffect(() => {
+    ticketsRef.current = tickets
+    onCheckInRef.current = onCheckIn
+    isPendingRef.current = isPending
+  }, [tickets, onCheckIn, isPending])
 
-      // If we are currently checking in a ticket or we just scanned this one, ignore.
-      if (isPending || ticketId === lastScanned) return
+  const handleScan = useCallback((results: { rawValue: string }[]) => {
+    if (results.length === 0) return
+    const ticketId = results[0].rawValue
 
-      setLastScanned(ticketId)
-      
-      const ticket = tickets.find((t) => t.id === ticketId)
-      if (!ticket) {
-        toast.error("Invalid QR code: Ticket not found.")
-        setTimeout(() => setLastScanned(null), 2000)
-        return
+    // Check refs instead of state
+    if (isPendingRef.current || ticketId === lastScannedRef.current) return
+
+    lastScannedRef.current = ticketId
+    
+    const ticket = ticketsRef.current.find((t) => t.id === ticketId)
+    if (!ticket) {
+      toast.error("Invalid QR code: Ticket not found.")
+      setTimeout(() => { lastScannedRef.current = null }, 2000)
+      return
+    }
+
+    if (ticket.attendance_status === "Present") {
+      toast.error(`${ticket.candidate_name || 'Attendee'} is already checked in!`)
+      setTimeout(() => { lastScannedRef.current = null }, 2000)
+      return
+    }
+
+    // Instantly provide feedback
+    const audio = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU")
+    audio.play().catch(() => {})
+    
+    toast.success(`${ticket.candidate_name || 'Attendee'} checked in!`)
+    setLastCheckedInName(ticket.candidate_name || "Unknown Attendee")
+    onCheckInRef.current(ticketId)
+    
+    // Allow the next ticket to be scanned after 2 seconds
+    setTimeout(() => { lastScannedRef.current = null }, 2000)
+
+    // Perform DB update
+    startTransition(async () => {
+      try {
+        await markAttendanceAction(ticketId)
+      } catch (err: any) {
+        toast.error(err.message || "Failed to check in on server.")
       }
-
-      if (ticket.attendance_status === "Present") {
-        toast.error(`${ticket.candidate_name || 'Attendee'} is already checked in!`)
-        setTimeout(() => setLastScanned(null), 2000)
-        return
-      }
-
-      // Instantly provide feedback and keep scanner open for next scan
-      const audio = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU")
-      audio.play().catch(() => {})
-      
-      toast.success(`${ticket.candidate_name || 'Attendee'} checked in!`)
-      setLastCheckedInName(ticket.candidate_name || "Unknown Attendee")
-      onCheckIn(ticketId)
-      
-      // Allow the next ticket to be scanned after 2 seconds
-      setTimeout(() => setLastScanned(null), 2000)
-
-      // Perform the DB update in the background
-      startTransition(async () => {
-        try {
-          await markAttendanceAction(ticketId)
-        } catch (err: any) {
-          toast.error(err.message || "Failed to check in on server.")
-        }
-      })
-    },
-    [isPending, lastScanned, onCheckIn]
-  )
+    })
+  }, []) // Empty dependencies = stable callback!
 
   const handleError = useCallback((error: unknown) => {
-    // Ignore routine NotAllowedError (user denied camera) or NotFoundError (no camera)
-    // The Scanner component displays a fallback message anyway.
-    console.error("QR Scanner Error:", error)
+    const msg = String(error)
+    if (msg.includes("NotAllowedError") || msg.includes("permission") || msg.includes("secure context")) {
+      console.warn("Camera blocked by browser (expected on local HTTP).", error)
+      return
+    }
+    // Use warn instead of error to prevent Next.js from showing the massive red dev overlay
+    console.warn("QR Scanner Issue:", error)
   }, [])
 
   return (
     <Dialog open={open} onOpenChange={(val) => {
       setOpen(val)
-      if (!val) setLastScanned(null)
+      if (!val) {
+        lastScannedRef.current = null
+        setLastCheckedInName(null)
+      }
     }}>
       <DialogTrigger asChild>
         <Button variant="default" className="gap-1.5 h-10 rounded-xl text-xs font-semibold">
@@ -94,54 +128,65 @@ export function QRCheckInScanner({ onCheckIn, tickets }: QRCheckInScannerProps) 
           Scan QR
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-2xl overflow-hidden p-0 border-none bg-background">
-        <div className="p-6 pb-4">
-          <DialogHeader>
-            <DialogTitle>Scan Ticket QR</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground/80">
-              Point your camera at the candidate's QR ticket. They will be checked in automatically.
+      {/* Standard modal sizing, not fullscreen */}
+      <DialogContent className="sm:max-w-md w-[95vw] max-h-[95vh] rounded-2xl overflow-y-auto overflow-x-hidden p-0 bg-background flex flex-col gap-0 border shadow-2xl">
+        
+        {/* Standard Header */}
+        <div className="p-4 sm:p-5 border-b bg-muted/20 shrink-0">
+          <DialogHeader className="text-left sm:text-left">
+            <DialogTitle className="text-foreground text-base font-semibold">Scan QR Ticket</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
+              Point your camera at the candidate's QR ticket.
             </DialogDescription>
           </DialogHeader>
         </div>
         
-        <div className="relative bg-black w-full aspect-square flex items-center justify-center">
-          {isPending && (
-            <div className="absolute inset-0 z-10 bg-black/60 flex flex-col items-center justify-center text-white gap-3 backdrop-blur-sm">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="font-semibold tracking-wide animate-pulse">Processing Ticket...</p>
-            </div>
-          )}
+        {/* Main Content Area */}
+        <div className="flex flex-col w-full bg-muted/10">
           
-          {open && (
-            <Scanner
-              onScan={handleScan}
-              onError={handleError}
-              components={{
-                onOff: true, 
-                torch: true, 
-                zoom: true, 
-                finder: true, 
-              }}
-              styles={{
-                container: { width: "100%", height: "100%" },
-                video: { objectFit: "cover" },
-              }}
-            />
-          )}
+          {/* Scanner Box - Forced to a perfect square to fix red ring */}
+          <div className="relative bg-black w-full aspect-square flex-shrink-0 overflow-hidden shadow-inner">
+            {isPending && (
+              <div className="absolute inset-0 z-10 bg-black/60 flex flex-col items-center justify-center text-white gap-3 backdrop-blur-sm transition-all">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="font-semibold tracking-wide animate-pulse">Processing...</p>
+              </div>
+            )}
+            
+            {open && (
+              <Scanner
+                onScan={handleScan}
+                onError={handleError}
+                components={SCANNER_COMPONENTS}
+                styles={SCANNER_STYLES}
+              />
+            )}
+          </div>
 
-          {lastCheckedInName && (
-            <div className="absolute bottom-4 left-4 right-4 z-20 bg-emerald-500/90 backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg border border-emerald-400 flex items-center justify-between animate-in slide-in-from-bottom-5">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Last Checked In</span>
-                <span className="font-semibold text-sm truncate">{lastCheckedInName}</span>
+          {/* Results Area - Below the scanner box */}
+          <div className="w-full p-4 sm:p-5 min-h-[100px] flex items-center justify-start border-t bg-background shrink-0">
+            {lastCheckedInName ? (
+              <div className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm mr-2 text-left">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
+                <div className="flex flex-col min-w-0 flex-1 pr-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 opacity-80 mb-0.5">
+                    Successfully Checked In
+                  </span>
+                  <span className="font-semibold text-base text-foreground truncate block">
+                    {lastCheckedInName}
+                  </span>
+                </div>
               </div>
-              <div className="h-8 w-8 rounded-full bg-emerald-400/30 flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            ) : (
+              <div className="w-full flex items-center justify-start gap-3 text-muted-foreground animate-pulse p-2 text-left mr-2">
+                <QrCode className="h-5 w-5 shrink-0 opacity-50" />
+                <p className="text-sm">Ready to scan. Waiting for QR...</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   )
 }
+
