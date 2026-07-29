@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/supabase/profile";
+import { getCurrentUserRankAction } from "@/app/(dashboard)/(licensed)/logiclab/leaderboard/actions";
 import { notFound } from "next/navigation";
 import { CandidatePublicProfileView } from "./CandidatePublicProfileView";
 
@@ -339,6 +340,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
     hard: { total: 0, solved: 0 },
   };
 
+  let userRank: number | null = null;
+  if (targetProfile.logiclab_points && targetProfile.logiclab_points > 0 && targetProfile.institute_id) {
+    userRank = await getCurrentUserRankAction(targetProfile.institute_id, targetProfile.id, targetProfile.logiclab_points);
+  }
+
   const logicLabData = {
     streakStats: { currentStreak, maxStreak, totalActiveDays: allActiveDates.size },
     activityCalendar,
@@ -346,6 +352,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     topics: sortedTopics,
     uniqueSolvedCount: solvedProblemIds.length,
     points: targetProfile.logiclab_points || 0,
+    rank: userRank,
     badges: userBadges?.map((ub: any) => ({
       ...ub.logiclab_badges,
       earned_at: ub.earned_at

@@ -58,6 +58,7 @@ export interface LogicLabData {
   topics: Array<{ name: string; solvedCount: number; totalCount: number; category: string }>;
   uniqueSolvedCount: number;
   points: number;
+  rank?: number | null;
   badges: any[];
   allBadges: any[];
 }
@@ -272,7 +273,7 @@ function PortfolioLink({ link }: { link: string }) {
   );
 }
 
-// ─── LogicLab Spider Web & Analytics Sub-components ───────────────────────────
+// ─── LogicLab Analytics Sub-components ───────────────────────────
 
 function SpiderWebRadarChart({
   topics,
@@ -328,9 +329,7 @@ function SpiderWebRadarChart({
         <span className={cn('font-semibold', 'uppercase', 'tracking-wider', 'text-muted-foreground', 'text-[11px]')}>
           Topic Dimension Radar
         </span>
-        <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5', 'font-normal')}>
-          Spider Web
-        </Badge>
+        
       </div>
 
       <div className={cn('relative', 'w-full', 'max-w-[260px]', 'aspect-square', 'flex', 'items-center', 'justify-center')}>
@@ -543,7 +542,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
       >
         <div className={cn('flex', 'items-center', 'justify-between', 'flex-wrap', 'gap-2')}>
           <CardTitle className={cn('flex', 'items-center', 'gap-2', 'text-base', 'font-semibold')}>
-            <Brain className={cn('h-4', 'w-4', 'text-emerald-500')} />
+            <Brain className={cn('h-4', 'w-4', 'text-foreground/50')} />
             LogicLab & Problem Solving Performance
           </CardTitle>
           <div className={cn('flex', 'items-center', 'gap-2')}>
@@ -566,9 +565,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
           {/* ── Key Stat Pills Row (Mobile Grid 2-col, Desktop 4-col) ── */}
           <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-4', 'gap-3')}>
             <div className={cn('rounded-xl', 'border', 'border-amber-500/20', 'bg-amber-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
-              <div className={cn('p-2', 'rounded-lg', 'bg-amber-500/10', 'text-amber-600', 'dark:text-amber-400', 'shrink-0')}>
-                <Flame className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
-              </div>
+
               <div className="min-w-0">
                 <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {streakStats.currentStreak} <span className={cn('text-xs', 'font-normal', 'text-muted-foreground')}>days</span>
@@ -578,9 +575,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
             </div>
 
             <div className={cn('rounded-xl', 'border', 'border-emerald-500/20', 'bg-emerald-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
-              <div className={cn('p-2', 'rounded-lg', 'bg-emerald-500/10', 'text-emerald-600', 'dark:text-emerald-400', 'shrink-0')}>
-                <Trophy className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
-              </div>
+
               <div className="min-w-0">
                 <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {totalSolved} <span className={cn('text-xs', 'font-normal', 'text-muted-foreground')}>/ {totalProblems}</span>
@@ -590,9 +585,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
             </div>
 
             <div className={cn('rounded-xl', 'border', 'border-blue-500/20', 'bg-blue-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
-              <div className={cn('p-2', 'rounded-lg', 'bg-blue-500/10', 'text-blue-600', 'dark:text-blue-400', 'shrink-0')}>
-                <Activity className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
-              </div>
+
               <div className="min-w-0">
                 <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {streakStats.totalActiveDays}
@@ -602,9 +595,7 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
             </div>
 
             <div className={cn('rounded-xl', 'border', 'border-indigo-500/20', 'bg-indigo-500/5', 'p-3.5', 'flex', 'items-center', 'gap-3')}>
-              <div className={cn('p-2', 'rounded-lg', 'bg-indigo-500/10', 'text-indigo-600', 'dark:text-indigo-400', 'shrink-0')}>
-                <Target className={cn('h-4', 'sm:h-5', 'w-4', 'sm:w-5')} />
-              </div>
+
               <div className="min-w-0">
                 <p className={cn('text-xl', 'sm:text-2xl', 'font-bold', 'tabular-nums', 'text-foreground', 'leading-tight', 'truncate')}>
                   {topics.length}
@@ -1040,36 +1031,12 @@ export function CandidatePublicProfileView({
                       CGPA {cgpa}
                     </Badge>
                   )}
-                  {logicLabData?.points ? (
+                  {logicLabData?.rank ? (
                     <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'text-amber-600', 'border-amber-500/30', 'bg-amber-500/10', 'rounded-full', 'dark:text-amber-400')}>
-                      <Sparkles className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
-                      {logicLabData.points} Points
+                      <Trophy className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
+                      Rank #{logicLabData.rank}
                     </Badge>
                   ) : null}
-                  {logicLabData?.badges && logicLabData.badges.length > 0 && (() => {
-                    const latestBadge = logicLabData.badges[0];
-                    const isImage = latestBadge.icon_name.endsWith('.png') || latestBadge.icon_name.endsWith('.svg') || latestBadge.icon_name.endsWith('.webp') || latestBadge.icon_name.includes('/');
-
-                    let IconComp = Award;
-                    if (!isImage) {
-                      if (latestBadge.icon_name === 'Flame') IconComp = Flame;
-                      else if (latestBadge.icon_name === 'Zap') IconComp = Zap;
-                      else if (latestBadge.icon_name === 'Trophy') IconComp = Trophy;
-                      else if (latestBadge.icon_name === 'Brain') IconComp = Brain;
-                      else if (latestBadge.icon_name === 'Target') IconComp = Target;
-                    }
-
-                    return (
-                      <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'text-indigo-600', 'border-indigo-500/30', 'bg-indigo-500/10', 'rounded-full', 'dark:text-indigo-400')}>
-                        {isImage ? (
-                          <img src={latestBadge.icon_name} alt="" className={cn('h-3.5', 'w-3.5', 'object-contain')} />
-                        ) : (
-                          <IconComp className={cn('h-3.5', 'w-3.5', 'shrink-0')} />
-                        )}
-                        {latestBadge.name}
-                      </Badge>
-                    );
-                  })()}
                   {publicData.gender && (
                     <Badge variant="outline" className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1', 'text-xs', 'rounded-full')}>
                       {GENDER_REVERSE[publicData.gender] ?? publicData.gender}
