@@ -94,6 +94,7 @@ function formatDateTime(dt: string): string {
 function formatTimeOnly(dtStr: string): string {
   try {
     return new Date(dtStr).toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
@@ -317,6 +318,7 @@ interface Props {
     title: string
     description: string | null
     date: string
+    end_date?: string | null
     venue: string
     capacity: number
     status: EventStatus
@@ -334,7 +336,11 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<"all" | "confirmed" | "waitlisted" | "present">("all")
   const [isPending, startTransition] = useTransition()
-  const isPast = new Date(event.date) < new Date()
+  
+  const eventEndTime = event.end_date 
+    ? new Date(event.end_date) 
+    : new Date(new Date(event.date).getTime() + (event.duration_minutes || 120) * 60000)
+  const isPast = eventEndTime < new Date()
 
   const onCheckIn = () => router.refresh()
 
@@ -537,8 +543,6 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
         </DropdownMenu>
       </div>
 
-      {/* Stats Bar */}
-      <StatsBarWidget stats={stats} activeFilter={filter} setFilter={setFilter} />
 
       {/* Tabs Layout */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -583,7 +587,7 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
                 <MetaItem
                   icon={<Clock className="h-4 w-4" />}
                   label="Date & Time"
-                  value={formatDateTime(event.date)}
+                  value={`${formatDateTime(event.date)} – ${formatTimeOnly(eventEndTime.toISOString())}`}
                 />
                 <MetaItem
                   icon={<MapPin className="h-4 w-4" />}

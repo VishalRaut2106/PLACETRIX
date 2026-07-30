@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ArrowLeft,
   Loader2,
@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Upload,
   X,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -38,18 +39,58 @@ const toISTDatetimeString = (isoStr?: string) => {
   if (!isoStr) return ""
   try {
     const d = new Date(isoStr)
-    // Add 5.5 hours to UTC to get IST time representation
-    const istTime = d.getTime() + (5.5 * 60 * 60 * 1000)
-    const istDate = new Date(istTime)
+    if (isNaN(d.getTime())) return ""
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    const parts = formatter.formatToParts(d)
+    const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "00"
     
-    const pad = (num: number) => String(num).padStart(2, '0')
-    const year = istDate.getUTCFullYear()
-    const month = pad(istDate.getUTCMonth() + 1)
-    const day = pad(istDate.getUTCDate())
-    const hours = pad(istDate.getUTCHours())
-    const minutes = pad(istDate.getUTCMinutes())
+    const year = getPart("year")
+    const month = getPart("month")
+    const day = getPart("day")
+    let hour = getPart("hour")
+    if (hour === "24") hour = "00"
+    const minute = getPart("minute")
     
-    return `${year}-${month}-${day}T${hours}:${minutes}`
+    return `${year}-${month}-${day}T${hour}:${minute}`
+  } catch {
+    return ""
+  }
+}
+
+const toUTCISOFromIST = (istLocalStr: string) => {
+  if (!istLocalStr) return ""
+  try {
+    const cleanStr = istLocalStr.replace(/Z|[+-]\d{2}:\d{2}$/, "")
+    const [datePart, timePart] = cleanStr.split("T")
+    if (!datePart || !timePart) return new Date(istLocalStr).toISOString()
+    const [year, month, day] = datePart.split("-").map(Number)
+    const [hours, minutes] = timePart.split(":").map(Number)
+    const utcMs = Date.UTC(year, month - 1, day, hours - 5, minutes - 30)
+    return new Date(utcMs).toISOString()
+  } catch {
+    return new Date(istLocalStr).toISOString()
+  }
+}
+
+const addMinutesToISTString = (istStr: string, mins: number) => {
+  if (!istStr) return ""
+  try {
+    const cleanStr = istStr.replace(/Z|[+-]\d{2}:\d{2}$/, "")
+    const [datePart, timePart] = cleanStr.split("T")
+    if (!datePart || !timePart) return ""
+    const [year, month, day] = datePart.split("-").map(Number)
+    const [hours, minutes] = timePart.split(":").map(Number)
+    const d = new Date(year, month - 1, day, hours, minutes + mins)
+    const pad = (n: number) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   } catch {
     return ""
   }
@@ -63,17 +104,28 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
     initialData?.cohort_ids ?? []
   )
 
+  const initialStartDate = initialData?.date ? toISTDatetimeString(initialData.date) : ""
+  const initialEndDate = initialData?.end_date 
+    ? toISTDatetimeString(initialData.end_date)
+    : initialStartDate 
+      ? addMinutesToISTString(initialStartDate, initialData?.duration_minutes ?? 120)
+      : ""
+
+  const [endDate, setEndDate] = useState<string>(initialEndDate)
+
   const [formData, setFormData] = useState<EventFormData>(
     initialData
       ? {
           ...initialData,
-          date: toISTDatetimeString(initialData.date),
+          date: initialStartDate,
+          end_date: initialData.end_date ? toISTDatetimeString(initialData.end_date) : null,
           speaker_name: initialData.speaker_name || "",
         }
       : {
           title: "",
           description: "",
           date: "",
+          end_date: null,
           venue: "",
           capacity: 100,
           status: "Draft",
@@ -82,6 +134,36 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
           speaker_name: "",
         }
   )
+
+  const handleStartDateChange = (newStartDate: string) => {
+    setFormData((p) => {
+      let duration = p.duration_minutes || 120
+      if (newStartDate && endDate) {
+        const startMs = new Date(newStartDate).getTime()
+        const endMs = new Date(endDate).getTime()
+        if (endMs > startMs) {
+          duration = Math.max(1, Math.round((endMs - startMs) / 60000))
+        } else {
+          setEndDate(addMinutesToISTString(newStartDate, duration))
+        }
+      } else if (newStartDate && !endDate) {
+        setEndDate(addMinutesToISTString(newStartDate, duration))
+      }
+      return { ...p, date: newStartDate, duration_minutes: duration }
+    })
+  }
+
+  const handleEndDateChange = (newEndDate: string) => {
+    setEndDate(newEndDate)
+    if (formData.date && newEndDate) {
+      const startMs = new Date(formData.date).getTime()
+      const endMs = new Date(newEndDate).getTime()
+      if (endMs > startMs) {
+        const duration = Math.max(1, Math.round((endMs - startMs) / 60000))
+        setFormData((p) => ({ ...p, duration_minutes: duration }))
+      }
+    }
+  }
 
   // Banner State
   const [bannerFile, setBannerFile] = useState<File | null>(null)
@@ -108,7 +190,15 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
       return
     }
     if (!formData.date) {
-      toast.error("Please select a Date and Time.")
+      toast.error("Please select a Start Date & Time.")
+      return
+    }
+    if (!endDate) {
+      toast.error("Please select an End Date & Time.")
+      return
+    }
+    if (new Date(endDate).getTime() <= new Date(formData.date).getTime()) {
+      toast.error("End Date & Time must be after Start Date & Time.")
       return
     }
     if (!formData.venue.trim()) {
@@ -116,11 +206,11 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
       return
     }
 
-    // Convert IST local datetime string to UTC ISO string before saving
     let utcIsoDate = ""
+    let utcIsoEndDate = ""
     try {
-      // Appending +05:30 forces standard parsing to treat the string as IST
-      utcIsoDate = new Date(`${formData.date}+05:30`).toISOString()
+      utcIsoDate = toUTCISOFromIST(formData.date)
+      utcIsoEndDate = toUTCISOFromIST(endDate)
     } catch {
       toast.error("Invalid Date format.")
       return
@@ -162,6 +252,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
         const payload: EventFormData = {
           ...formData,
           date: utcIsoDate,
+          end_date: utcIsoEndDate,
           status,
           event_banner: finalBannerPath,
           speaker_name: formData.speaker_name || null,
@@ -200,59 +291,42 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
             <h1 className="text-2xl font-bold font-cirka tracking-tight">
               {eventId ? "Edit Event" : "Create New Event"}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Define schedules, capacities, and target cohorts for campus drives or sessions.
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Fill in the details below to schedule an event for your institution.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link href={eventId ? `/events/${eventId}` : "/events"}>
-            <Button variant="outline" size="sm" disabled={isPending}>
-              Cancel
-            </Button>
-          </Link>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleSave("Draft")}
+            variant="outline"
             disabled={isPending}
-            className="gap-1.5"
+            onClick={() => handleSave("Draft")}
+            className="rounded-xl text-xs font-semibold"
           >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Save Draft
+            Save as Draft
           </Button>
           <Button
-            variant="default"
-            size="sm"
-            onClick={() => handleSave("Published")}
             disabled={isPending}
-            className="gap-1.5"
+            onClick={() => handleSave("Published")}
+            className="rounded-xl text-xs font-semibold gap-1.5"
           >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4" />
-            )}
-            Publish Event
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {eventId ? "Update Event" : "Publish Event"}
           </Button>
         </div>
       </div>
 
-      {/* Form Panel */}
-      <div className="grid lg:grid-cols-3 gap-6 w-full items-start">
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Details */}
         <div className="lg:col-span-2 space-y-6">
-          {/* General Details & Schedule */}
           <Card>
-            <CardContent className="p-5 space-y-5">
-              <h3 className="font-semibold text-sm border-b pb-2 text-foreground/90">
-                General Details & Schedule
-              </h3>
-              
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Event Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="title">Title *</Label>
                 <Input
@@ -273,30 +347,45 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                 />
               </div>
               
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="date">Start Date & Time (IST) *</Label>
                   <Input
                     id="date"
                     type="datetime-local"
                     value={formData.date}
-                    onChange={(e) => setFormData((p) => ({ ...p, date: e.target.value }))}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="duration">Duration (Minutes) *</Label>
+                  <Label htmlFor="end_date">End Date & Time (IST) *</Label>
                   <Input
-                    id="duration"
-                    type="number"
-                    min={15}
-                    value={formData.duration_minutes}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        duration_minutes: parseInt(e.target.value) || 120,
-                      }))
-                    }
+                    id="end_date"
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
                   />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="duration">Calculated Duration *</Label>
+                  <div className="relative">
+                    <Input
+                      id="duration"
+                      type="number"
+                      min={1}
+                      value={formData.duration_minutes}
+                      onChange={(e) => {
+                        const mins = parseInt(e.target.value) || 120
+                        setFormData((p) => ({ ...p, duration_minutes: mins }))
+                        if (formData.date) {
+                          setEndDate(addMinutesToISTString(formData.date, mins))
+                        }
+                      }}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+                      min
+                    </span>
+                  </div>
                 </div>
               </div>
 

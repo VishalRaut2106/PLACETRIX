@@ -46,6 +46,7 @@ import {
   Image as ImageIcon,
   X,
   Mic,
+  Lock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -70,6 +71,7 @@ function formatDateTime(dt: string): string {
 function formatTimeOnly(dtStr: string): string {
   try {
     return new Date(dtStr).toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
@@ -84,6 +86,7 @@ interface EventInfo {
   title: string
   description: string | null
   date: string
+  end_date?: string | null
   venue: string
   capacity: number
   status: EventStatus
@@ -141,7 +144,7 @@ export function QRTicketCard({
 
   useEffect(() => {
     const supabase = createClient()
-    
+
     // Subscribe to real-time changes on this specific ticket
     const channel = supabase
       .channel(`ticket-${ticket.id}`)
@@ -151,6 +154,9 @@ export function QRTicketCard({
         (payload) => {
           if (payload.new && payload.new.attendance_status) {
             setAttendanceStatus(payload.new.attendance_status)
+            if (payload.new.attendance_status === "Present") {
+              toast.success("Attendance marked present! Ticket verified.")
+            }
           }
         }
       )
@@ -164,9 +170,10 @@ export function QRTicketCard({
         .select("attendance_status")
         .eq("id", ticket.id)
         .maybeSingle()
-        
+
       if (data && data.attendance_status === "Present") {
         setAttendanceStatus("Present")
+        toast.success("Attendance marked present! Ticket verified.")
       }
     }, 1500)
 
@@ -200,7 +207,7 @@ export function QRTicketCard({
               </Badge>
             )}
             {attendanceStatus === "Present" && (
-              <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/30">
+              <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
                 <UserCheck className="mr-1 h-3 w-3" /> Checked In
               </Badge>
             )}
@@ -208,11 +215,19 @@ export function QRTicketCard({
 
           {/* QR Code or Verified Animation */}
           {attendanceStatus === "Present" ? (
-            <div className="bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/30 shadow-sm mb-3 flex flex-col items-center justify-center aspect-square w-48 h-48 animate-in fade-in zoom-in duration-500">
-              <div className="h-20 w-20 rounded-full bg-emerald-500/20 flex items-center justify-center animate-bounce">
-                <CheckCircle2 className="h-12 w-12 text-emerald-600 dark:text-emerald-500" />
+            <div className="relative bg-emerald-500/5 dark:bg-emerald-950/20 p-6 rounded-2xl border border-emerald-500/20 shadow-xs mb-3 flex flex-col items-center justify-center aspect-square w-48 h-48 transition-all animate-in fade-in zoom-in-95 duration-500">
+              <div className="relative flex items-center justify-center">
+                <span className="absolute inline-flex h-16 w-16 rounded-full bg-emerald-500/20 animate-ping opacity-30" />
+                <div className="relative h-14 w-14 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
               </div>
-              <p className="font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mt-4">Present</p>
+              <p className="font-bold text-sm tracking-wide text-emerald-600 dark:text-emerald-400 mt-3.5 flex items-center gap-1.5">
+                Marked Present
+              </p>
+              <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-medium mt-1">
+                Attendance Verified
+              </span>
             </div>
           ) : ticket.status === "Confirmed" && qrDataUrl ? (
             <div className="bg-white p-3 rounded-xl shadow-sm mb-3">
@@ -223,7 +238,7 @@ export function QRTicketCard({
               <div className="bg-muted rounded-xl p-8 mb-3 flex flex-col items-center gap-2">
                 <Hourglass className="h-10 w-10 text-amber-500" />
                 <p className="text-xs text-muted-foreground">
-                  Your QR ticket will appear here once you're confirmed.
+                  Your QR will appear here once you're confirmed.
                 </p>
               </div>
             )
@@ -254,7 +269,10 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  const isPast = new Date(event.date) < new Date()
+  const eventEndTime = event.end_date
+    ? new Date(event.end_date)
+    : new Date(new Date(event.date).getTime() + (event.duration_minutes || 120) * 60000)
+  const isPast = eventEndTime < new Date()
 
   const handleRSVP = () => {
     startTransition(async () => {
@@ -336,7 +354,7 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
                 </DialogContent>
               </Dialog>
 
-              {event.status !== "Concluded" && (
+              {event.status !== "Concluded" && ticket.attendance_status !== "Present" && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -368,6 +386,12 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+
+              {ticket.attendance_status === "Present" && (
+                <div className="flex items-center justify-center gap-2 text-[11px] font-medium text-muted-foreground bg-muted/40 py-2.5 px-3 rounded-xl border border-border/40">
+                  <Lock className="h-3.5 w-3.5" /> RSVP locked (Attendance marked present)
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -386,7 +410,7 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
               <div>
                 <p className="text-sm font-semibold">Event Ended</p>
                 <p className="text-xs mt-0.5 opacity-90">
-                  Closed on {formatDateTime(event.date)}.
+                  Closed on {formatDateTime(eventEndTime.toISOString())}.
                 </p>
               </div>
             </div>
@@ -443,45 +467,45 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
 
       {/* Page Header */}
       <div className="flex flex-col gap-1.5 min-w-0">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground break-words leading-tight">
-            {event.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground">
-            <span>
-              {event.speaker_name && (
-                <span className="font-semibold text-foreground mr-1.5">by {event.speaker_name} ·</span>
-              )}
-              <span className="text-muted-foreground">{event.venue}</span>
-            </span>
-            {event.event_banner && (
-              <>
-                <span className="text-muted-foreground/45">•</span>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-primary/5 px-2.5 py-0.5 rounded-md border border-primary/10">
-                      <ImageIcon className="h-3.5 w-3.5" /> View Banner
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl p-3 md:p-4 border overflow-hidden rounded-2xl bg-card" showCloseButton={false}>
-                    <DialogTitle className="sr-only">Event Banner</DialogTitle>
-                    <div className="relative">
-                      <img
-                        src={buildStorageUrl("event-banners", event.event_banner) || ""}
-                        alt="Event Banner"
-                        className="w-full h-auto max-h-[85vh] object-contain rounded-xl md:rounded-2xl"
-                      />
-                      <DialogClose asChild>
-                        <Button className="absolute top-4 right-4 h-8 w-8 rounded-full bg-foreground text-background hover:bg-foreground/80 shadow-md flex items-center justify-center p-0 cursor-pointer">
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </DialogClose>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </>
+        <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground break-words leading-tight">
+          {event.title}
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground">
+          <span>
+            {event.speaker_name && (
+              <span className="font-semibold text-foreground mr-1.5">by {event.speaker_name} ·</span>
             )}
-          </div>
+            <span className="text-muted-foreground">{event.venue}</span>
+          </span>
+          {event.event_banner && (
+            <>
+              <span className="text-muted-foreground/45">•</span>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer bg-primary/5 px-2.5 py-0.5 rounded-md border border-primary/10">
+                    <ImageIcon className="h-3.5 w-3.5" /> View Banner
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl p-3 md:p-4 border overflow-hidden rounded-2xl bg-card" showCloseButton={false}>
+                  <DialogTitle className="sr-only">Event Banner</DialogTitle>
+                  <div className="relative">
+                    <img
+                      src={buildStorageUrl("event-banners", event.event_banner) || ""}
+                      alt="Event Banner"
+                      className="w-full h-auto max-h-[85vh] object-contain rounded-xl md:rounded-2xl"
+                    />
+                    <DialogClose asChild>
+                      <Button className="absolute top-4 right-4 h-8 w-8 rounded-full bg-foreground text-background hover:bg-foreground/80 shadow-md flex items-center justify-center p-0 cursor-pointer">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </DialogClose>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
+      </div>
 
       {/* Two Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

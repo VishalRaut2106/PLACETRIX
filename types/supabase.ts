@@ -659,6 +659,7 @@ export type Database = {
           capacity: number
           created_at: string
           date: string
+          end_date: string | null
           description: string | null
           duration_minutes: number
           id: string
@@ -675,6 +676,7 @@ export type Database = {
           capacity: number
           created_at?: string
           date: string
+          end_date?: string | null
           description?: string | null
           duration_minutes?: number
           id?: string
@@ -691,6 +693,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           date?: string
+          end_date?: string | null
           description?: string | null
           duration_minutes?: number
           id?: string

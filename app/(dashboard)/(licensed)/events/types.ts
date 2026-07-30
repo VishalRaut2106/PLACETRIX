@@ -25,6 +25,7 @@ export interface EventListItem {
   title: string
   description: string | null
   date: string
+  end_date?: string | null
   venue: string
   capacity: number
   status: EventStatus
@@ -59,6 +60,7 @@ export interface CandidateEventListItem {
   title: string
   description: string | null
   date: string
+  end_date?: string | null
   venue: string
   capacity: number
   status: EventStatus
@@ -77,6 +79,7 @@ export interface EventFormData {
   title: string
   description: string
   date: string
+  end_date?: string | null
   venue: string
   capacity: number
   status: EventStatus

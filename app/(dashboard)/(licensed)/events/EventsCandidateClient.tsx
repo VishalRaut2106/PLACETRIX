@@ -47,8 +47,13 @@ function formatDateTime(dt: string): string {
   }
 }
 
-function isEventPast(eventDate: string, durationMinutes?: number): boolean {
-  const end = new Date(new Date(eventDate).getTime() + (durationMinutes || 0) * 60000)
+function isEventPast(eventDate: string, durationMinutes?: number, endDate?: string | null): boolean {
+  if (endDate) {
+    const end = new Date(endDate)
+    if (!isNaN(end.getTime())) return end < new Date()
+  }
+  const duration = typeof durationMinutes === "number" && durationMinutes > 0 ? durationMinutes : 120
+  const end = new Date(new Date(eventDate).getTime() + duration * 60000)
   return end < new Date()
 }
 
@@ -130,7 +135,7 @@ function CandidateEventCard({
 }: {
   event: CandidateEventListItem
 }) {
-  const isPast = isEventPast(event.date, event.duration_minutes)
+  const isPast = isEventPast(event.date, event.duration_minutes, event.end_date)
   const spotsLeft = Math.max(0, event.capacity - event.tickets_confirmed)
 
   return (
@@ -242,9 +247,9 @@ export function EventsCandidateClient({
 
   // Calculate counts based on all listings
   const stats = useMemo(() => {
-    const upcoming = events.filter(e => !isEventPast(e.date, e.duration_minutes)).length
+    const upcoming = events.filter(e => !isEventPast(e.date, e.duration_minutes, e.end_date)).length
     const my = events.filter(e => e.my_ticket_status !== null && e.my_ticket_status !== "Cancelled").length
-    const past = events.filter(e => isEventPast(e.date, e.duration_minutes)).length
+    const past = events.filter(e => isEventPast(e.date, e.duration_minutes, e.end_date)).length
     return { upcoming, my, past }
   }, [events])
 
@@ -265,13 +270,13 @@ export function EventsCandidateClient({
       if (!matchSearch) return false
 
       if (activeTab === "upcoming") {
-        return !isEventPast(event.date, event.duration_minutes)
+        return !isEventPast(event.date, event.duration_minutes, event.end_date)
       }
       if (activeTab === "my") {
         return event.my_ticket_status !== null && event.my_ticket_status !== "Cancelled"
       }
       if (activeTab === "past") {
-        return isEventPast(event.date, event.duration_minutes)
+        return isEventPast(event.date, event.duration_minutes, event.end_date)
       }
       return true
     })

@@ -167,7 +167,10 @@ function EventCard({
 }: {
   event: EventListItem
 }) {
-  const isPast = new Date(event.date) < new Date()
+  const eventEndTime = event.end_date 
+    ? new Date(event.end_date) 
+    : new Date(new Date(event.date).getTime() + (event.duration_minutes || 120) * 60000)
+  const isPast = eventEndTime < new Date()
 
   return (
     <Card className="overflow-hidden border-border/70 bg-card p-0 shadow-xs">

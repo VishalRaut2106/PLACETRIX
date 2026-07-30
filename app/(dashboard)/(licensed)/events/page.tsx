@@ -64,6 +64,7 @@ async function fetchInstituteEvents(
       title: event.title,
       description: event.description,
       date: event.date,
+      end_date: event.end_date ?? null,
       venue: event.venue,
       capacity: event.capacity,
       status: event.status,
@@ -130,7 +131,7 @@ async function fetchCandidateEvents(
   const { data: rawEvents } = await (supabase as any)
     .from("events")
     .select(`
-      id, title, description, date, venue, capacity, status, duration_minutes, created_at, event_banner, speaker_name,
+      id, title, description, date, end_date, venue, capacity, status, duration_minutes, created_at, event_banner, speaker_name,
       event_tickets(id, status, attendance_status, candidate_id)
     `)
     .eq("status", "Published")
@@ -147,6 +148,7 @@ async function fetchCandidateEvents(
       title: event.title,
       description: event.description,
       date: event.date,
+      end_date: event.end_date ?? null,
       venue: event.venue,
       capacity: event.capacity,
       status: event.status,

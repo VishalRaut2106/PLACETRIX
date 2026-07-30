@@ -37,23 +37,37 @@ export async function createEventAction(data: EventFormData) {
     throw new Error("Please select at least one cohort before publishing this event.")
   }
 
-  const { data: event, error } = await (supabase as any)
+  const eventPayload: any = {
+    institute_id: profile.institute_id,
+    title: data.title,
+    description: data.description || null,
+    date: data.date,
+    end_date: data.end_date || null,
+    venue: data.venue,
+    capacity: data.capacity,
+    status: data.status,
+    targeting_rules: data.targeting_rules,
+    duration_minutes: data.duration_minutes,
+    event_banner: data.event_banner || null,
+    speaker_name: data.speaker_name || null,
+  }
+
+  let { data: event, error } = await (supabase as any)
     .from("events")
-    .insert({
-      institute_id: profile.institute_id,
-      title: data.title,
-      description: data.description || null,
-      date: data.date,
-      venue: data.venue,
-      capacity: data.capacity,
-      status: data.status,
-      targeting_rules: data.targeting_rules,
-      duration_minutes: data.duration_minutes,
-      event_banner: data.event_banner || null,
-      speaker_name: data.speaker_name || null,
-    })
+    .insert(eventPayload)
     .select("id")
     .maybeSingle()
+
+  if (error && error.message && error.message.includes("end_date")) {
+    delete eventPayload.end_date
+    const retry = await (supabase as any)
+      .from("events")
+      .insert(eventPayload)
+      .select("id")
+      .maybeSingle()
+    event = retry.data
+    error = retry.error
+  }
 
   if (error || !event) {
     console.error("Error creating event:", error)
@@ -111,21 +125,33 @@ export async function updateEventAction(eventId: string, data: EventFormData) {
     throw new Error("Please select at least one cohort before publishing this event.")
   }
 
-  const { error } = await (supabase as any)
+  const updatePayload: any = {
+    title: data.title,
+    description: data.description || null,
+    date: data.date,
+    end_date: data.end_date || null,
+    venue: data.venue,
+    capacity: data.capacity,
+    status: data.status,
+    targeting_rules: data.targeting_rules,
+    duration_minutes: data.duration_minutes,
+    event_banner: data.event_banner || null,
+    speaker_name: data.speaker_name || null,
+  }
+
+  let { error } = await (supabase as any)
     .from("events")
-    .update({
-      title: data.title,
-      description: data.description || null,
-      date: data.date,
-      venue: data.venue,
-      capacity: data.capacity,
-      status: data.status,
-      targeting_rules: data.targeting_rules,
-      duration_minutes: data.duration_minutes,
-      event_banner: data.event_banner || null,
-      speaker_name: data.speaker_name || null,
-    })
+    .update(updatePayload)
     .eq("id", eventId)
+
+  if (error && error.message && error.message.includes("end_date")) {
+    delete updatePayload.end_date
+    const retry = await (supabase as any)
+      .from("events")
+      .update(updatePayload)
+      .eq("id", eventId)
+    error = retry.error
+  }
 
   if (error) {
     console.error("Error updating event:", error)
@@ -380,16 +406,20 @@ export async function cancelRsvpAction(eventId: string) {
   const profile = await requireCandidate()
   const supabase = await createClient()
 
-  // 1. Get the ticket to check if it was Confirmed
+  // 1. Get the ticket to check if it was Confirmed and attendance status
   const { data: ticket, error: fetchError } = await (supabase as any)
     .from("event_tickets")
-    .select("id, status")
+    .select("id, status, attendance_status")
     .eq("event_id", eventId)
     .eq("candidate_id", profile.id)
     .maybeSingle()
 
   if (fetchError || !ticket) {
     throw new Error("RSVP not found.")
+  }
+
+  if (ticket.attendance_status === "Present") {
+    throw new Error("Cannot cancel RSVP after attendance has been marked as present.")
   }
 
   const wasConfirmed = ticket.status === "Confirmed"
