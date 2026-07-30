@@ -122,30 +122,7 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
   }
 
   // ─── Candidate View ────────────────────────────────────────────────────────
-  // Check if candidate belongs to targeted cohorts of this event
-  const { data: memberRows } = await (supabase as any)
-    .from("cohort_students")
-    .select("cohort_id")
-    .eq("student_id", profile.id)
-
-  const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
-
-  if (cohortIds.length === 0) {
-    redirect("/events")
-  }
-
-  const { data: isTargeted } = await (supabase as any)
-    .from("event_cohorts")
-    .select("cohort_id")
-    .eq("event_id", eventId)
-    .in("cohort_id", cohortIds)
-    .limit(1)
-    .maybeSingle()
-
-  if (!isTargeted) {
-    redirect("/events")
-  }
-
+  // Check if candidate belongs to targeted cohorts of this event or already has a ticket
   const { data: myTicket } = await (supabase as any)
     .from("event_tickets")
     .select("id, status, attendance_status")
@@ -153,6 +130,26 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
     .eq("candidate_id", profile.id)
     .neq("status", "Cancelled")
     .maybeSingle()
+
+  const { data: eventCohorts } = await (supabase as any)
+    .from("event_cohorts")
+    .select("cohort_id")
+    .eq("event_id", eventId)
+
+  const targetedCohortIds = (eventCohorts ?? []).map((ec: any) => ec.cohort_id)
+
+  if (targetedCohortIds.length > 0 && !myTicket) {
+    const { data: memberRows } = await (supabase as any)
+      .from("cohort_students")
+      .select("cohort_id")
+      .eq("student_id", profile.id)
+
+    const candidateCohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
+    const isTargeted = targetedCohortIds.some((cId: string) => candidateCohortIds.includes(cId))
+    if (!isTargeted) {
+      redirect("/events")
+    }
+  }
 
   return (
     <EventDetailCandidateClient

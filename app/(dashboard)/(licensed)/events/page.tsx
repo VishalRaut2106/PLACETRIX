@@ -110,58 +110,63 @@ async function fetchCandidateEvents(
 
   const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
 
-  // If not in any cohort, show nothing
-  if (cohortIds.length === 0) {
-    return { events: [] }
-  }
-
-  // 3. Get event IDs targeted at these cohorts
-  const { data: eventCohortRows } = await (supabase as any)
-    .from("event_cohorts")
-    .select("event_id")
-    .in("cohort_id", cohortIds)
-
-  const eligibleEventIds = [...new Set((eventCohortRows ?? []).map((r: any) => r.event_id))]
-
-  if (eligibleEventIds.length === 0) {
-    return { events: [] }
-  }
-
-  // 4. Query published events from eligible set
-  const { data: rawEvents } = await (supabase as any)
+  // 3. Query all published events for this institute
+  const { data: rawEvents, error: eventsError } = await (supabase as any)
     .from("events")
     .select(`
-      id, title, description, date, end_date, venue, capacity, status, duration_minutes, created_at, event_banner, speaker_name,
-      event_tickets(id, status, attendance_status, candidate_id)
+      id, title, description, date, venue, capacity, status, duration_minutes, created_at, event_banner, speaker_name,
+      event_tickets(id, status, attendance_status, candidate_id),
+      event_cohorts(cohort_id)
     `)
     .eq("status", "Published")
     .eq("institute_id", instituteId)
-    .in("id", eligibleEventIds)
-    .order("date", { ascending: true })
+    .order("date", { ascending: false })
 
-  // 5. Map to CandidateEventListItem
-  const candidateEvents: CandidateEventListItem[] = (rawEvents ?? []).map((event: any) => {
-    const allTickets = event.event_tickets ?? []
-    const myTicket = allTickets.find((t: any) => t.candidate_id === userId && t.status !== "Cancelled")
-    return {
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      date: event.date,
-      end_date: event.end_date ?? null,
-      venue: event.venue,
-      capacity: event.capacity,
-      status: event.status,
-      duration_minutes: event.duration_minutes ?? 120,
-      event_banner: event.event_banner ?? null,
-      speaker_name: event.speaker_name ?? null,
-      created_at: event.created_at,
-      tickets_confirmed: allTickets.filter((t: any) => t.status === "Confirmed").length,
-      my_ticket_id: myTicket?.id ?? null,
-      my_ticket_status: myTicket?.status ?? null,
-      my_attendance_status: myTicket?.attendance_status ?? null,
-    }
-  })
+  if (eventsError) {
+    console.error("[fetchCandidateEvents] Error querying events:", eventsError)
+    return { events: [] }
+  }
+
+  if (!rawEvents || rawEvents.length === 0) {
+    return { events: [] }
+  }
+
+  // 4. Filter events visible to candidate:
+  // - Candidate has a ticket for this event
+  // - OR event has NO cohort targeting (open to all institute candidates)
+  // - OR event targeted cohorts include at least one of candidate's cohorts
+  const candidateEvents: CandidateEventListItem[] = rawEvents
+    .filter((event: any) => {
+      const allTickets = event.event_tickets ?? []
+      const hasMyTicket = allTickets.some((t: any) => t.candidate_id === userId && t.status !== "Cancelled")
+      if (hasMyTicket) return true
+
+      const targetedCohorts = (event.event_cohorts ?? []).map((ec: any) => ec.cohort_id)
+      if (targetedCohorts.length === 0) return true
+      return targetedCohorts.some((cId: string) => cohortIds.includes(cId))
+    })
+    .map((event: any) => {
+      const allTickets = event.event_tickets ?? []
+      const myTicket = allTickets.find((t: any) => t.candidate_id === userId && t.status !== "Cancelled")
+      return {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        end_date: null,
+        venue: event.venue,
+        capacity: event.capacity,
+        status: event.status,
+        duration_minutes: event.duration_minutes ?? 120,
+        event_banner: event.event_banner ?? null,
+        speaker_name: event.speaker_name ?? null,
+        created_at: event.created_at,
+        tickets_confirmed: allTickets.filter((t: any) => t.status === "Confirmed").length,
+        my_ticket_id: myTicket?.id ?? null,
+        my_ticket_status: myTicket?.status ?? null,
+        my_attendance_status: myTicket?.attendance_status ?? null,
+      }
+    })
 
   return { events: candidateEvents }
 }

@@ -26,7 +26,7 @@ import {
 import { cn } from "@/lib/utils"
 import type { CandidateEventListItem, TicketStatus } from "./types"
 
-type Tab = "upcoming" | "my" | "past"
+type Tab = "all" | "upcoming" | "my" | "past"
 
 interface TabConfig {
   value: Tab
@@ -243,19 +243,21 @@ export function EventsCandidateClient({
 }: Props) {
   // Search & tab filters state
   const [searchInput, setSearchInput] = useState("")
-  const [activeTab, setActiveTab] = useState<Tab>("upcoming")
+  const [activeTab, setActiveTab] = useState<Tab>("all")
 
   // Calculate counts based on all listings
   const stats = useMemo(() => {
+    const all = events.length
     const upcoming = events.filter(e => !isEventPast(e.date, e.duration_minutes, e.end_date)).length
     const my = events.filter(e => e.my_ticket_status !== null && e.my_ticket_status !== "Cancelled").length
     const past = events.filter(e => isEventPast(e.date, e.duration_minutes, e.end_date)).length
-    return { upcoming, my, past }
+    return { all, upcoming, my, past }
   }, [events])
 
   const tabConfig: TabConfig[] = [
+    { value: "all", label: "All Events", icon: <Calendar className="h-3.5 w-3.5" />, count: stats.all },
     { value: "upcoming", label: "Upcoming", icon: <CalendarClock className="h-3.5 w-3.5" />, count: stats.upcoming },
-    { value: "my", label: "My Tickets", icon: <CalendarClock className="h-3.5 w-3.5" />, count: stats.my },
+    { value: "my", label: "My Tickets", icon: <CheckCircle2 className="h-3.5 w-3.5" />, count: stats.my },
     { value: "past", label: "Past Events", icon: <FileText className="h-3.5 w-3.5" />, count: stats.past },
   ]
 
@@ -330,6 +332,37 @@ export function EventsCandidateClient({
       </div>
 
       <div className="space-y-4">
+        {/* Quick Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {tabConfig.map(({ value, label, icon, count }) => (
+            <Button
+              key={value}
+              variant={activeTab === value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab(value)}
+              className={cn(
+                "h-8 rounded-full text-xs shrink-0 gap-1.5 cursor-pointer",
+                activeTab === value
+                  ? "shadow-xs"
+                  : "border-border/60 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {icon}
+              <span>{label}</span>
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 text-[10px] rounded-full font-semibold tabular-nums",
+                  activeTab === value
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {count}
+              </span>
+            </Button>
+          ))}
+        </div>
+
         {/* Search (left) + Filters (right) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="flex flex-1 items-center gap-2">
@@ -357,7 +390,7 @@ export function EventsCandidateClient({
                 <Button variant="outline" className="gap-2 shrink-0 h-9">
                   <SlidersHorizontal className="h-4 w-4" />
                   <span>Filters</span>
-                  {activeTab !== "upcoming" && (
+                  {activeTab !== "all" && (
                     <Badge className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground font-semibold">
                       1
                     </Badge>
@@ -404,7 +437,7 @@ export function EventsCandidateClient({
         </div>
 
         {/* Active Filter Chips */}
-        {activeTab !== "upcoming" && (
+        {activeTab !== "all" && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">Active filters:</span>
             <Badge
@@ -413,7 +446,7 @@ export function EventsCandidateClient({
             >
               Status: <span className="capitalize font-semibold">{activeTab === "my" ? "My Tickets" : activeTab === "past" ? "Past Events" : activeTab}</span>
               <button
-                onClick={() => setActiveTab("upcoming")}
+                onClick={() => setActiveTab("all")}
                 className="rounded-full p-0.5 hover:bg-muted-foreground/20 text-muted-foreground transition-colors"
               >
                 <X className="h-3 w-3" />
@@ -422,7 +455,7 @@ export function EventsCandidateClient({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveTab("upcoming")}
+              onClick={() => setActiveTab("all")}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
               Clear all
