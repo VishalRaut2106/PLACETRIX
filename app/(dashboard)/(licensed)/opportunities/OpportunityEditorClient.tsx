@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Loader2, Save, Send, Building2, MapPin, IndianRupee, Calendar, Info, FileText } from "lucide-react"
 import { toast } from "sonner"
+import { DateTimePicker } from "@/components/ui/datetime-picker"
 import { createOpportunityAction, updateOpportunityAction } from "./actions"
 import type { 
   OpportunityListItem, 
@@ -389,12 +390,10 @@ export function OpportunityEditorClient({
 
                 <div className="space-y-1.5">
                   <Label htmlFor="deadline">Application Deadline *</Label>
-                  <Input 
+                  <DateTimePicker 
                     id="deadline" 
-                    type="datetime-local" 
                     value={formData.deadline} 
-                    onChange={e => setFormData({ ...formData, deadline: e.target.value })}
-                    required 
+                    onChange={val => setFormData({ ...formData, deadline: val })}
                   />
                 </div>
               </div>

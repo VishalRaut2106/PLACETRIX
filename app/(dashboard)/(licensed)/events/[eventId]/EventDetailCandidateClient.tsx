@@ -58,11 +58,18 @@ import type { EventStatus, TicketStatus, AttendanceStatus, EventAgendaItem } fro
 
 function formatDateTime(dt: string): string {
   try {
-    return new Date(dt).toLocaleString("en-IN", {
+    const d = new Date(dt)
+    if (isNaN(d.getTime())) return dt
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    const timeStr = d.toLocaleTimeString("en-US", {
       timeZone: "Asia/Kolkata",
-      dateStyle: "medium",
-      timeStyle: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     })
+    return `${day}/${month}/${year}, ${timeStr}`
   } catch {
     return dt
   }

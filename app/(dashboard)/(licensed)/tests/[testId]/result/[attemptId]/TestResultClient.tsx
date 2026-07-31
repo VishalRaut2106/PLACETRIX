@@ -74,7 +74,45 @@ function MetaItem({
 
 // ─── Option Item ──────────────────────────────────────────────────────────────
 
-function OptionItem({ opt, isSelected }: { opt: CandidateOption; isSelected: boolean }) {
+// ─── Option Item ──────────────────────────────────────────────────────────────
+
+function OptionItem({
+  opt,
+  isSelected,
+  isInProgress = false,
+}: {
+  opt: CandidateOption
+  isSelected: boolean
+  isInProgress?: boolean
+}) {
+  if (isInProgress) {
+    if (isSelected) {
+      return (
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 px-3 py-3">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <span className="text-sm leading-snug break-words text-foreground font-medium">
+              <MathText>{opt.option_text}</MathText>
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-blue-600 dark:text-blue-400">
+              Selected Answer
+            </span>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
+        <div className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border border-muted-foreground/30" />
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          <span className="text-sm leading-snug break-words text-muted-foreground">
+            <MathText>{opt.option_text}</MathText>
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   const isCorrect = opt.is_correct === true
 
   let containerClass = "border-border"
@@ -103,7 +141,6 @@ function OptionItem({ opt, isSelected }: { opt: CandidateOption; isSelected: boo
       </span>
     )
   } else if (!isCorrect && isSelected) {
-    const isPartial = (opt as any).marks_awarded > 0 // This logic is simplified for OptionItem
     containerClass = "border-destructive/20 bg-destructive/5"
     textClass = "text-foreground"
     Icon = <X className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
@@ -131,12 +168,20 @@ function OptionItem({ opt, isSelected }: { opt: CandidateOption; isSelected: boo
 function QuestionReviewItem({
   answer,
   index,
+  isInProgress = false,
 }: {
   answer: CandidateAnswerDetail
   index: number
+  isInProgress?: boolean
 }) {
   const isSkipped = (answer.selected_option_ids ?? []).length === 0
-  const isCorrect = answer.is_correct === true
+  const isOptionMatchCorrect = (() => {
+    if (answer.is_correct != null) return answer.is_correct === true
+    const correctOptionIds = (answer.options ?? []).filter((o) => o.is_correct === true).map((o) => o.id).sort()
+    const selectedOptionIds = [...(answer.selected_option_ids ?? [])].sort()
+    return correctOptionIds.length > 0 && JSON.stringify(correctOptionIds) === JSON.stringify(selectedOptionIds)
+  })()
+  const isCorrect = answer.is_correct === true || isOptionMatchCorrect
 
   return (
     <AccordionItem
@@ -156,6 +201,13 @@ function QuestionReviewItem({
               {isSkipped ? (
                 <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground">
                   Skipped
+                </Badge>
+              ) : isInProgress ? (
+                <Badge
+                  variant="secondary"
+                  className="h-4 border border-blue-200 bg-blue-50/50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-300 px-1.5 text-[10px] font-normal"
+                >
+                  Answer Recorded
                 </Badge>
               ) : (
                 <Badge
@@ -196,13 +248,14 @@ function QuestionReviewItem({
               key={opt.id}
               opt={opt}
               isSelected={(answer.selected_option_ids ?? []).includes(opt.id)}
+              isInProgress={isInProgress}
             />
           ))}
         </div>
 
-        {((answer.tags ?? []).length > 0 || answer.explanation) && (
+        {((answer.tags ?? []).length > 0 || (answer.explanation && !isInProgress)) && (
           <div className="mt-4 space-y-3 rounded-xl border bg-muted/40 p-3">
-            {answer.explanation && (
+            {answer.explanation && !isInProgress && (
               <div className="flex items-start gap-2.5">
                 <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <p className="text-xs leading-relaxed text-muted-foreground">
@@ -255,9 +308,11 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
   const isNotYetOpen =
     !!test.available_from && new Date(test.available_from).getTime() > nowMs
 
+  const isInProgress = attempt.status === "in_progress"
   const pct = resolvePct(attempt.percentage, attempt.score, attempt.total_marks)
   const displayAnswers = attempt.answers ?? []
 
+  const recordedCount = displayAnswers.filter((a) => (a.selected_option_ids ?? []).length > 0).length
   const correctCount = displayAnswers.filter((a) => a.is_correct === true).length
   const partialCount = displayAnswers.filter((a) => a.is_correct === false && (a.marks_awarded ?? 0) > 0).length
   const incorrectCount = displayAnswers.filter(
@@ -286,23 +341,32 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
           <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
             {test.title}
           </h1>
-          {isExpired && (
-            <Badge variant="secondary" className="h-5 gap-1 border bg-muted/30 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              <CalendarX className="h-3 w-3" />
-              Closed
+          {isInProgress ? (
+            <Badge variant="secondary" className="h-5 gap-1 border border-blue-200/60 bg-blue-50 px-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400">
+              <Clock className="h-3 w-3 animate-spin" />
+              In Progress
             </Badge>
-          )}
-          {isLive && (
-            <Badge variant="secondary" className="h-5 gap-1 border border-emerald-200/50 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
-              <Clock className="h-3 w-3" />
-              Live
-            </Badge>
-          )}
-          {isNotYetOpen && (
-            <Badge variant="secondary" className="h-5 gap-1 border border-amber-200/50 bg-amber-50 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
-              <CalendarClock className="h-3 w-3" />
-              Upcoming
-            </Badge>
+          ) : (
+            <>
+              {isExpired && (
+                <Badge variant="secondary" className="h-5 gap-1 border bg-muted/30 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <CalendarX className="h-3 w-3" />
+                  Closed
+                </Badge>
+              )}
+              {isLive && (
+                <Badge variant="secondary" className="h-5 gap-1 border border-emerald-200/50 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+                  <Clock className="h-3 w-3" />
+                  Live
+                </Badge>
+              )}
+              {isNotYetOpen && (
+                <Badge variant="secondary" className="h-5 gap-1 border border-amber-200/50 bg-amber-50 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+                  <CalendarClock className="h-3 w-3" />
+                  Upcoming
+                </Badge>
+              )}
+            </>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -353,19 +417,32 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
           {/* ── Score card ──────────────────────────────────────────────── */}
           <div className="rounded-xl border bg-card p-5 space-y-4">
 
-            {/* Top row: percentage + time badge */}
+            {/* Top row: percentage / in progress + time badge */}
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   Score
                 </p>
-                <p className={cn("mt-1 text-4xl font-bold tabular-nums tracking-tight", pctColorClass)}>
-                  {pct.toFixed(2)}%
-                </p>
-                {attempt.score != null && attempt.total_marks != null && (
-                  <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
-                    {attempt.score} / {attempt.total_marks} pts
-                  </p>
+                {isInProgress ? (
+                  <>
+                    <p className="mt-1 text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                      In Progress
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Test attempt is active. Final score will be calculated upon submission.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className={cn("mt-1 text-4xl font-bold tabular-nums tracking-tight", pctColorClass)}>
+                      {pct.toFixed(2)}%
+                    </p>
+                    {attempt.score != null && attempt.total_marks != null && (
+                      <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+                        {attempt.score} / {attempt.total_marks} pts
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -389,36 +466,54 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
             <Separator />
 
-            {/* Bottom row: correct · incorrect · skipped */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
-              <span>
-                <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-500">
-                  {correctCount}
+            {/* Bottom row: recorded / skipped OR correct · partial · incorrect · skipped */}
+            {isInProgress ? (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+                <span>
+                  <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
+                    {recordedCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">recorded</span>
                 </span>
-                <span className="ml-1 text-muted-foreground">correct</span>
-              </span>
-              <Separator orientation="vertical" className="h-3.5" />
-              <span>
-                <span className="font-semibold tabular-nums text-amber-600 dark:text-amber-500">
-                  {partialCount}
+                <Separator orientation="vertical" className="h-3.5" />
+                <span>
+                  <span className="font-semibold tabular-nums text-muted-foreground">
+                    {skippedCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">skipped</span>
                 </span>
-                <span className="ml-1 text-muted-foreground">partial</span>
-              </span>
-              <Separator orientation="vertical" className="h-3.5" />
-              <span>
-                <span className="font-semibold tabular-nums text-destructive">
-                  {incorrectCount}
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+                <span>
+                  <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-500">
+                    {correctCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">correct</span>
                 </span>
-                <span className="ml-1 text-muted-foreground">incorrect</span>
-              </span>
-              <Separator orientation="vertical" className="h-3.5" />
-              <span>
-                <span className="font-semibold tabular-nums text-muted-foreground">
-                  {skippedCount}
+                <Separator orientation="vertical" className="h-3.5" />
+                <span>
+                  <span className="font-semibold tabular-nums text-amber-600 dark:text-amber-500">
+                    {partialCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">partial</span>
                 </span>
-                <span className="ml-1 text-muted-foreground">skipped</span>
-              </span>
-            </div>
+                <Separator orientation="vertical" className="h-3.5" />
+                <span>
+                  <span className="font-semibold tabular-nums text-destructive">
+                    {incorrectCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">incorrect</span>
+                </span>
+                <Separator orientation="vertical" className="h-3.5" />
+                <span>
+                  <span className="font-semibold tabular-nums text-muted-foreground">
+                    {skippedCount}
+                  </span>
+                  <span className="ml-1 text-muted-foreground">skipped</span>
+                </span>
+              </div>
+            )}
 
           </div>
 
@@ -437,7 +532,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
               </div>
               <Accordion type="multiple" className="space-y-2">
                 {displayAnswers.map((a, i) => (
-                  <QuestionReviewItem key={a.question_id} answer={a} index={i} />
+                  <QuestionReviewItem key={a.question_id} answer={a} index={i} isInProgress={isInProgress} />
                 ))}
               </Accordion>
             </div>

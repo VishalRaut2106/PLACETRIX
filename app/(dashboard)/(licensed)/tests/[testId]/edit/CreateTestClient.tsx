@@ -21,6 +21,7 @@ import {
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion"
+import { DateTimePicker } from "@/components/ui/datetime-picker"
 import { MathText } from "@/components/others/latex-renderer"
 import { cn } from "@/lib/utils"
 import {
@@ -342,20 +343,18 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="available_from">Available From</Label>
-                <Input
+                <DateTimePicker
                   id="available_from"
-                  type="datetime-local"
                   value={values.available_from}
-                  onChange={set("available_from")}
+                  onChange={(val) => onChange({ ...values, available_from: val })}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="available_until">Available Until</Label>
-                <Input
+                <DateTimePicker
                   id="available_until"
-                  type="datetime-local"
                   value={values.available_until}
-                  onChange={set("available_until")}
+                  onChange={(val) => onChange({ ...values, available_until: val })}
                 />
               </div>
             </div>

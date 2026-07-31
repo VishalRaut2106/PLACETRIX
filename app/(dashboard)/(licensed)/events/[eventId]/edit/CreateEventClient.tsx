@@ -21,6 +21,10 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import { DateTimePicker } from "@/components/ui/datetime-picker"
 import { createEventAction, updateEventAction } from "../../actions"
 import type { EventFormData, EventStatus } from "../../types"
 import { createClient } from "@/lib/supabase/client"
@@ -95,6 +99,8 @@ const addMinutesToISTString = (istStr: string, mins: number) => {
     return ""
   }
 }
+
+
 
 export function CreateEventClient({ eventId, initialData, cohortOptions }: Props) {
   const router = useRouter()
@@ -350,20 +356,18 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="date">Start Date & Time (IST) *</Label>
-                  <Input
+                  <DateTimePicker
                     id="date"
-                    type="datetime-local"
                     value={formData.date}
-                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    onChange={(val) => handleStartDateChange(val)}
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="end_date">End Date & Time (IST) *</Label>
-                  <Input
+                  <DateTimePicker
                     id="end_date"
-                    type="datetime-local"
                     value={endDate}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    onChange={(val) => handleEndDateChange(val)}
                   />
                 </div>
                 <div className="grid gap-2">

@@ -91,7 +91,45 @@ function MetaItem({
 
 // ─── Option Item ──────────────────────────────────────────────────────────────
 
-function OptionItem({ opt, isSelected }: { opt: CandidateOption; isSelected: boolean }) {
+// ─── Option Item ──────────────────────────────────────────────────────────────
+
+function OptionItem({
+  opt,
+  isSelected,
+  isInProgress = false,
+}: {
+  opt: CandidateOption
+  isSelected: boolean
+  isInProgress?: boolean
+}) {
+  if (isInProgress) {
+    if (isSelected) {
+      return (
+        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20 px-3 py-3">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <span className="text-sm leading-snug break-words text-foreground font-medium">
+              <MathText>{opt.option_text}</MathText>
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-blue-600 dark:text-blue-400">
+              Selected Answer
+            </span>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
+        <div className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border border-muted-foreground/30" />
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          <span className="text-sm leading-snug break-words text-muted-foreground">
+            <MathText>{opt.option_text}</MathText>
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   const isCorrect = opt.is_correct === true
 
   let containerClass = "border-border"
@@ -147,12 +185,20 @@ function OptionItem({ opt, isSelected }: { opt: CandidateOption; isSelected: boo
 function QuestionReviewItem({
   answer,
   index,
+  isInProgress = false,
 }: {
   answer: CandidateAnswerDetail
   index: number
+  isInProgress?: boolean
 }) {
   const isSkipped = (answer.selected_option_ids ?? []).length === 0
-  const isCorrect = answer.is_correct === true
+  const isOptionMatchCorrect = (() => {
+    if (answer.is_correct != null) return answer.is_correct === true
+    const correctOptionIds = (answer.options ?? []).filter((o) => o.is_correct === true).map((o) => o.id).sort()
+    const selectedOptionIds = [...(answer.selected_option_ids ?? [])].sort()
+    return correctOptionIds.length > 0 && JSON.stringify(correctOptionIds) === JSON.stringify(selectedOptionIds)
+  })()
+  const isCorrect = answer.is_correct === true || isOptionMatchCorrect
 
   return (
     <AccordionItem
@@ -173,6 +219,13 @@ function QuestionReviewItem({
                 <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground">
                   Skipped
                 </Badge>
+              ) : isInProgress ? (
+                <Badge
+                  variant="secondary"
+                  className="h-4 border border-blue-200 bg-blue-50/50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-300 px-1.5 text-[10px] font-normal"
+                >
+                  Answer Recorded
+                </Badge>
               ) : (
                 <Badge
                   variant="secondary"
@@ -180,10 +233,16 @@ function QuestionReviewItem({
                     "h-4 border bg-transparent px-1.5 text-[10px] font-normal",
                     isCorrect
                       ? "border-emerald-200 text-emerald-600 dark:border-emerald-900 dark:text-emerald-400"
-                      : "border-destructive/20 text-destructive"
+                      : (answer.marks_awarded ?? 0) > 0
+                        ? "border-amber-200 text-amber-600 dark:border-amber-900 dark:text-amber-400"
+                        : "border-destructive/20 text-destructive"
                   )}
                 >
-                  {isCorrect ? "Correct" : "Incorrect"} · {answer.marks_awarded ?? 0}/
+                  {isCorrect
+                    ? "Correct"
+                    : (answer.marks_awarded ?? 0) > 0
+                      ? "Partially Correct"
+                      : "Incorrect"} · {answer.marks_awarded ?? 0}/
                   {answer.marks} pts
                 </Badge>
               )}
@@ -206,13 +265,14 @@ function QuestionReviewItem({
               key={opt.id}
               opt={opt}
               isSelected={(answer.selected_option_ids ?? []).includes(opt.id)}
+              isInProgress={isInProgress}
             />
           ))}
         </div>
 
-        {((answer.tags ?? []).length > 0 || answer.explanation) && (
+        {((answer.tags ?? []).length > 0 || (answer.explanation && !isInProgress)) && (
           <div className="mt-4 space-y-3 rounded-xl border bg-muted/40 p-3">
-            {answer.explanation && (
+            {answer.explanation && !isInProgress && (
               <div className="flex items-start gap-2.5">
                 <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <p className="text-xs leading-relaxed text-muted-foreground">

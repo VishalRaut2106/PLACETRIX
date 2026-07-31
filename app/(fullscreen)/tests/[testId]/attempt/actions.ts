@@ -239,7 +239,7 @@ export async function submitAttemptAction(
     .select("id")
     .eq("id", attemptId)
     .eq("candidate_id", userId)
-    .eq("status", "in_progress")
+    .in("status", ["in_progress", "auto_submitted"])
     .maybeSingle()
 
   if (!ownerCheck) {
