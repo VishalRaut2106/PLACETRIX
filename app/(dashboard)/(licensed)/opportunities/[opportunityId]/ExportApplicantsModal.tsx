@@ -61,8 +61,9 @@ export function ExportApplicantsModal({
     const XLSX = await import("xlsx")
 
     // 1. Filter data based on selected fields
-    const exportData = applications.map((app) => {
+    const exportData = applications.map((app, index) => {
       const row: Record<string, any> = {}
+      row["Sr. No."] = index + 1
       EXPORT_FIELDS.forEach((field) => {
         if (selectedFields.has(field.id)) {
           // Explicit casting to grab fields from app

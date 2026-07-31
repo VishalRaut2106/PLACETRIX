@@ -76,8 +76,9 @@ export function ExportTestParticipantsModal({ testId, testName, totalAttempts, t
         return
       }
 
-      const exportData = allAttempts.map((a: any) => {
+      const exportData = allAttempts.map((a: any, index: number) => {
         const row: any = {}
+        row["Sr. No."] = index + 1
         if (selectedFields.includes("name")) row["Candidate Name"] = a.student_name || "Unknown"
         if (selectedFields.includes("email")) row["Email Address"] = a.student_email || "N/A"
         if (selectedFields.includes("branch")) row["Branch / Course"] = a.branch || "N/A"

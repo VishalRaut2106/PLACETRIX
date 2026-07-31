@@ -54,8 +54,9 @@ export function ExportEventAttendeesModal({ tickets, eventName, trigger }: Expor
 
     try {
       const XLSX = await import("xlsx")
-      const exportData = tickets.map((t) => {
+      const exportData = tickets.map((t, index) => {
         const row: any = {}
+        row["Sr. No."] = index + 1
         if (selectedFields.includes("name")) row["Candidate Name"] = t.candidate_name || "Unknown"
         if (selectedFields.includes("email")) row["Email Address"] = t.candidate_email || "N/A"
         if (selectedFields.includes("course")) row["Course / Branch"] = t.candidate_course || "N/A"
