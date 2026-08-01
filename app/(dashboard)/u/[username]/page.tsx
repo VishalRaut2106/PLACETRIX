@@ -174,6 +174,8 @@ export default async function PublicProfilePage({ params }: PageProps) {
     { data: statsData },
     { data: standardSolvedSubs },
     { data: dailySolvedSubs },
+    { data: recentStandardRaw },
+    { data: recentDailyRaw },
   ] = await Promise.all([
     (supabase as any)
       .from("logiclab_daily_challenge_user_activity")
@@ -197,6 +199,20 @@ export default async function PublicProfilePage({ params }: PageProps) {
       .select("problem_id, status")
       .eq("user_id", targetProfile.id)
       .eq("status", "Accepted"),
+    (supabase as any)
+      .from("logiclab_problem_submissions")
+      .select("created_at, problem_id, logiclab_problems(id, title, difficulty)")
+      .eq("user_id", targetProfile.id)
+      .eq("status", "Accepted")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    (supabase as any)
+      .from("logiclab_daily_challenge_submissions")
+      .select("created_at, problem_id, logiclab_problems(id, title, difficulty)")
+      .eq("user_id", targetProfile.id)
+      .eq("status", "Accepted")
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   // Compute streaks accurately across all activity
@@ -345,6 +361,25 @@ export default async function PublicProfilePage({ params }: PageProps) {
     userRank = await getCurrentUserRankAction(targetProfile.institute_id, targetProfile.id, targetProfile.logiclab_points);
   }
 
+  // Deduplicate recent solved problems
+  const seenProblems = new Set();
+  const recentSolved = [];
+  const allRecentRaw = [...(recentStandardRaw || []), ...(recentDailyRaw || [])].sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  for (const sub of allRecentRaw) {
+    if (!seenProblems.has(sub.problem_id) && sub.logiclab_problems) {
+      seenProblems.add(sub.problem_id);
+      recentSolved.push({
+        id: sub.logiclab_problems.id || sub.problem_id,
+        title: sub.logiclab_problems.title || "Unknown Problem",
+        difficulty: sub.logiclab_problems.difficulty || "Medium",
+        created_at: sub.created_at
+      });
+      if (recentSolved.length >= 50) break;
+    }
+  }
+
   const logicLabData = {
     streakStats: { currentStreak, maxStreak, totalActiveDays: allActiveDates.size },
     activityCalendar,
@@ -353,6 +388,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     uniqueSolvedCount: solvedProblemIds.length,
     points: targetProfile.logiclab_points || 0,
     rank: userRank,
+    recentSolved,
     badges: userBadges?.map((ub: any) => ({
       ...ub.logiclab_badges,
       earned_at: ub.earned_at

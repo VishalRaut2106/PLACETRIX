@@ -21,7 +21,7 @@ import {
   Globe, Linkedin, Github, Mail, AtSign, Tag, Building2,
   CalendarDays, Hash, BarChart3, BookOpen, Flame, Trophy,
   Target, Code2, Brain, Zap, CheckCircle2, Activity, Sparkles,
-  ChevronRight, ChevronDown, Twitter, Youtube, Instagram, Figma, Codepen
+  ChevronLeft, ChevronRight, ChevronDown, Twitter, Youtube, Instagram, Figma, Codepen
 } from "lucide-react";
 import type {
   CandidateEducation, CandidateExperience, CandidateProject,
@@ -61,6 +61,12 @@ export interface LogicLabData {
   rank?: number | null;
   badges: any[];
   allBadges: any[];
+  recentSolved?: {
+    id: number;
+    title: string;
+    difficulty: string;
+    created_at: string;
+  }[];
 }
 
 interface EventCertificate {
@@ -505,9 +511,38 @@ function getMonthHeadersForWeeks(weeks: LogicLabCalendarCell[][]) {
   return headers;
 }
 
+function getRelativeTime(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return "Just now";
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+  
+  const diffInYears = Math.floor(diffInDays / 365);
+  return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+}
+
 function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
   const [hoveredCell, setHoveredCell] = useState<LogicLabCalendarCell | null>(null);
   const [isSectionExpanded, setIsSectionExpanded] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 5;
+  const recentSolved = data.recentSolved || [];
+  const totalPages = Math.ceil(recentSolved.length / itemsPerPage);
+  const paginatedSolved = recentSolved.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const { streakStats, activityCalendar, globalStats, topics } = data;
   const totalSolved = globalStats.solved || 0;
@@ -907,6 +942,67 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
               </Dialog>
             </div>
           </div>
+
+          {/* ── Recent Solved Problems (LeetCode Style) ── */}
+          {recentSolved.length > 0 && (
+            <div className={cn('pt-6', 'mt-6', 'border-t', 'border-border/30')}>
+              <div className={cn('flex', 'items-center', 'justify-between', 'mb-4')}>
+                <p className={cn('text-xs', 'font-semibold', 'uppercase', 'tracking-wider', 'text-muted-foreground')}>
+                  Recent Submissions
+                </p>
+              </div>
+              <div className={cn('rounded-lg', 'border', 'border-border/40', 'overflow-hidden')}>
+                <div className={cn('divide-y', 'divide-border/40')}>
+                  {paginatedSolved.map((problem, idx) => (
+                    <div key={`${problem.id}-${idx}`} className={cn('flex', 'items-center', 'justify-between', 'p-3', 'sm:px-4', 'hover:bg-muted/30', 'transition-colors', 'group')}>
+                      <div className={cn('flex', 'items-center', 'gap-3', 'min-w-0')}>
+                        <CheckCircle2 className={cn('h-4', 'w-4', 'text-emerald-500', 'shrink-0')} />
+                        <span className={cn('text-sm', 'font-medium', 'text-foreground/90', 'truncate', 'group-hover:text-primary', 'transition-colors')}>
+                          {problem.title}
+                        </span>
+                      </div>
+                      <div className={cn('flex', 'items-center', 'gap-3', 'sm:gap-6', 'shrink-0', 'ml-4')}>
+                        <Badge variant="outline" className={cn(
+                          'text-[10px]', 'h-5', 'px-1.5', 'font-medium', 'border-transparent',
+                          problem.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                          problem.difficulty === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                          "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                        )}>
+                          {problem.difficulty}
+                        </Badge>
+                        <span className={cn('text-xs', 'text-muted-foreground', 'w-[80px]', 'text-right')}>
+                          {getRelativeTime(problem.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className={cn('flex', 'items-center', 'justify-between', 'px-4', 'py-3', 'bg-muted/10', 'border-t', 'border-border/40')}>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'font-medium', 'text-muted-foreground', 'hover:text-foreground', 'disabled:opacity-50', 'disabled:hover:text-muted-foreground', 'transition-colors')}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Prev
+                    </button>
+                    <span className={cn('text-xs', 'text-muted-foreground')}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'font-medium', 'text-muted-foreground', 'hover:text-foreground', 'disabled:opacity-50', 'disabled:hover:text-muted-foreground', 'transition-colors')}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       )}
     </Card>
