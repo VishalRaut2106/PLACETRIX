@@ -26,25 +26,57 @@ export const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 export const CODE_TEMPLATES: Record<string, string> = {
-  python: `# Write Python 3 code here
-print("Think deeply. Code simply.")
+  python: `import sys
+
+# Read from Standard Input
+input_data = sys.stdin.read().strip()
+
+print("Hello from LogicLab!")
+if input_data:
+    print("Input:", input_data)
 `,
-  javascript: `// Write JavaScript code here
-console.log("Think deeply. Code simply.");
+  javascript: `const fs = require('fs');
+
+// Read from Standard Input
+const input_data = fs.readFileSync(0, 'utf-8').trim();
+
+console.log("Hello from LogicLab!");
+if (input_data) {
+    console.log("Input:", input_data);
+}
 `,
   cpp: `#include <iostream>
+#include <string>
+
+using namespace std;
 
 int main() {
-    // Write C++ code here
-    std::cout << "Think deeply. Code simply.";
-
+    cout << "Hello from LogicLab!\\n";
+    
+    // Read from Standard Input
+    string input_data;
+    if (getline(cin, input_data) && !input_data.empty()) {
+        cout << "Input: " << input_data << "\\n";
+    }
+    
     return 0;
 }
 `,
-  java: `class Main {
+  java: `import java.util.Scanner;
+
+class Main {
     public static void main(String[] args) {
-        // Write Java code here
-        System.out.println("Think deeply. Code simply.");
+        System.out.println("Hello from LogicLab!");
+        
+        // Read from Standard Input
+        Scanner scanner = new Scanner(System.in);
+        if (scanner.hasNextLine()) {
+            String input_data = scanner.nextLine();
+            if (!input_data.isEmpty()) {
+                System.out.println("Input: " + input_data);
+            }
+        }
+        scanner.close();
     }
 }
 `,

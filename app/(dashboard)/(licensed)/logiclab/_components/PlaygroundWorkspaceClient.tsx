@@ -269,7 +269,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   // ─── Navbar ──────────────────────────────────────────────────────────────────
 
   const navbar = (
-    <div className={cn("flex items-center justify-between px-4 py-2 bg-zinc-100 dark:bg-zinc-950 shrink-0 w-full select-none")}>
+    <div className={cn("flex items-center justify-between px-4 py-2 bg-background border-b border-border/40 shrink-0 w-full select-none")}>
       {/* Left */}
       <div className={cn("flex items-center gap-3")}>
         <div className={cn("flex items-center gap-1")}>
@@ -517,7 +517,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   const editorPanel = (
     <div className={cn("flex", "flex-col", "h-full", "bg-card", "overflow-hidden", "relative")}>
       {/* Toolbar */}
-      <div className={cn("flex", "items-center", "justify-between", "bg-card", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "px-1")}>
+      <div className={cn("flex", "items-center", "justify-between", "bg-muted/40", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "px-1")}>
         <div className={cn("flex", "items-center", "h-full", "gap-1.5", "px-2", "text-[11px]", "font-bold", "text-foreground")}>
           <IconCode className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
           <span>Code</span>
@@ -608,6 +608,9 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
               automaticLayout: true,
               padding: { top: 10, bottom: 10 },
               lineNumbersMinChars: 3,
+              scrollbar: { vertical: "hidden", horizontal: "hidden" },
+              smoothScrolling: true,
+              cursorSmoothCaretAnimation: "on",
             }}
             loading={
               <div className={cn("flex", "flex-col", "w-full", "h-full", "p-4", "space-y-3", "bg-card", "font-mono", "opacity-60")}>
@@ -636,10 +639,61 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   const stdinPanel = (
     <div className={cn("flex", "flex-col", "h-full", "bg-card", "overflow-hidden")}>
       {/* Header */}
-      <div className={cn("flex", "items-center", "justify-between", "bg-card", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "px-3")}>
+      <div className={cn("flex", "items-center", "justify-between", "bg-muted/40", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "px-3")}>
         <div className={cn("flex", "items-center", "gap-1.5", "text-[11px]", "font-bold", "text-foreground")}>
           <IconTerminal2 className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
           <span>Standard Input (stdin)</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn("text-zinc-500", "hover:text-foreground", "transition-colors", "ml-0.5")} title="How to read input?">
+                <IconInfoCircle className={cn("h-3.5", "w-3.5")} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className={cn("w-80", "p-4", "z-[9999]", "text-sm", "space-y-3", "border-border/60")}>
+              <div className="space-y-1.5">
+                <h4 className={cn('font-bold', 'text-foreground', 'flex', 'items-center', 'gap-1.5', 'tracking-tight')}>
+                  <IconInfoCircle className={cn('h-4', 'w-4', 'text-sky-500')} />
+                  How to read input?
+                </h4>
+                <p className={cn('text-xs', 'text-muted-foreground', 'leading-relaxed')}>
+                  The text you provide below is passed directly to your program. Here is how to read it in your selected language:
+                </p>
+              </div>
+              <div className={cn('bg-[#0a0a0a]', 'rounded-md', 'p-3', 'font-mono', 'text-[11px]', 'overflow-x-auto', 'border', 'border-zinc-800', 'shadow-inner', 'relative', 'group')}>
+                <button
+                  onClick={() => {
+                    const snippets: Record<string, string> = {
+                      python: 'import sys\ndata = sys.stdin.read()\nprint("Input:", data)',
+                      javascript: 'const fs = require(\'fs\');\nconst data = fs.readFileSync(0, \'utf-8\');\nconsole.log("Input:", data);',
+                      java: 'import java.util.Scanner;\nclass Main {\n  public static void main(String[] args) {\n    Scanner sc = new Scanner(System.in);\n    if (sc.hasNextLine()) {\n      System.out.println("Input: " + sc.nextLine());\n    }\n  }\n}',
+                      cpp: '#include <iostream>\n#include <string>\nusing namespace std;\nint main() {\n  string line;\n  if (getline(cin, line)) {\n    cout << "Input: " << line;\n  }\n}'
+                    };
+                    const snippet = snippets[selectedLang.value];
+                    if (snippet) {
+                      navigator.clipboard.writeText(snippet);
+                      toast.success("Snippet copied!");
+                    }
+                  }}
+                  className={cn("absolute", "top-2", "right-2", "p-1.5", "bg-zinc-800/80", "hover:bg-zinc-700", "rounded", "text-zinc-300", "opacity-0", "group-hover:opacity-100", "transition-all")}
+                  title="Copy snippet"
+                >
+                  <IconCopy className="h-3 w-3" />
+                </button>
+                {selectedLang.value === "python" && (
+                  <pre className="text-sky-400">import sys<br/>data = sys.stdin.read()<br/>print("Input:", data)</pre>
+                )}
+                {selectedLang.value === "javascript" && (
+                  <pre className="text-amber-300">const fs = require('fs');<br/>const data = fs.readFileSync(0, 'utf-8');<br/>console.log("Input:", data);</pre>
+                )}
+                {selectedLang.value === "java" && (
+                  <pre className="text-orange-400">import java.util.Scanner;<br/>class Main &#123;<br/>  public static void main(String[] args) &#123;<br/>    Scanner sc = new Scanner(System.in);<br/>    if (sc.hasNextLine()) &#123;<br/>      System.out.println("Input: " + sc.nextLine());<br/>    &#125;<br/>  &#125;<br/>&#125;</pre>
+                )}
+                {selectedLang.value === "cpp" && (
+                  <pre className="text-indigo-400">#include &lt;iostream&gt;<br/>#include &lt;string&gt;<br/>using namespace std;<br/>int main() &#123;<br/>  string line;<br/>  if (getline(cin, line)) &#123;<br/>    cout &lt;&lt; "Input: " &lt;&lt; line;<br/>  &#125;<br/>&#125;</pre>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <button
           onClick={() => setStdin("")}
@@ -655,7 +709,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
         onChange={(e) => setStdin(e.target.value)}
         placeholder="Provide input for your program here.\n\nE.g.\n3\n10 20 30"
         spellCheck={false}
-        className={cn("flex-1", "bg-background", "text-foreground/90", "font-mono", "text-xs", "p-3", "resize-none", "focus:outline-none", "placeholder:text-muted-foreground/40")}
+        className={cn("flex-1", "min-h-0", "h-full", "w-full", "bg-background", "text-foreground/90", "font-mono", "text-xs", "p-3", "resize-none", "focus:outline-none", "placeholder:text-muted-foreground/40")}
       />
     </div>
   );
@@ -665,7 +719,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
   const outputPanel = (
     <div className={cn("flex", "flex-col", "h-full", "bg-card", "overflow-hidden")}>
       {/* Header */}
-      <div className={cn("flex", "items-center", "justify-between", "bg-card", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "pl-0", "pr-3")}>
+      <div className={cn("flex", "items-center", "justify-between", "bg-muted/40", "shrink-0", "select-none", "h-[40px]", "border-b", "border-border/50", "pl-0", "pr-3")}>
         <div className={cn("flex", "items-center", "h-full", "px-4", "gap-1.5", "text-[11px]", "font-bold", "text-foreground")}>
           <IconTerminal2 className={cn("h-3.5", "w-3.5", "text-zinc-500 dark:text-muted-foreground/80")} />
           <span>Standard Output (stdout)</span>
@@ -813,14 +867,14 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col w-full min-h-0 bg-zinc-100 dark:bg-zinc-950 text-foreground overflow-hidden",
+        "flex flex-col w-full min-h-0 bg-background text-foreground overflow-hidden",
         isFullScreen
           ? "fixed inset-0 z-[9990] h-[100dvh]"
           : "h-[100dvh] relative",
       )}
     >
       {/* Mobile warning */}
-      <div className={cn('flex', 'md:hidden', 'flex-1', 'items-center', 'justify-center', 'p-6', 'bg-zinc-100', 'dark:bg-zinc-950')}>
+      <div className={cn('flex', 'md:hidden', 'flex-1', 'items-center', 'justify-center', 'p-6', 'bg-background')}>
         <Empty className={cn('border-0', 'max-w-sm')}>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -837,7 +891,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
       {/* Desktop IDE */}
       <div className={cn('hidden', 'md:flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')}>
         {navbar}
-        <div className={cn("flex-1", "pt-0", "px-2", "pb-2", "min-h-0", "overflow-hidden")}>
+        <div className={cn("flex-1", "min-h-0", "overflow-hidden")}>
           {!isMounted ? (
             <Skeleton className={cn('w-full', 'h-full', 'border', 'border-border/40')} />
           ) : (
@@ -849,7 +903,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                     id="editor-playground-standard"
                     defaultSize={58}
                     minSize={30}
-                    className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                    className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                   >
                     {editorPanel}
                   </Panel>
@@ -871,7 +925,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                         id="stdin-playground-standard"
                         defaultSize={30}
                         minSize={15}
-                        className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                        className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                       >
                         {stdinPanel}
                       </Panel>
@@ -883,7 +937,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                         id="output-playground-standard"
                         defaultSize={70}
                         minSize={20}
-                        className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                        className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                       >
                         {outputPanel}
                       </Panel>
@@ -899,7 +953,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                     id="editor-playground-split"
                     defaultSize={40}
                     minSize={20}
-                    className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                    className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                   >
                     {editorPanel}
                   </Panel>
@@ -914,7 +968,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                     id="stdin-playground-split"
                     defaultSize={30}
                     minSize={15}
-                    className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                    className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                   >
                     {stdinPanel}
                   </Panel>
@@ -929,7 +983,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                     id="output-playground-split"
                     defaultSize={30}
                     minSize={20}
-                    className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                    className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                   >
                     {outputPanel}
                   </Panel>
@@ -943,7 +997,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                     id="editor-playground-vertical"
                     defaultSize={45}
                     minSize={20}
-                    className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                    className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                   >
                     {editorPanel}
                   </Panel>
@@ -965,7 +1019,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                         id="stdin-playground-vertical"
                         defaultSize={50}
                         minSize={20}
-                        className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                        className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                       >
                         {stdinPanel}
                       </Panel>
@@ -977,7 +1031,7 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
                         id="output-playground-vertical"
                         defaultSize={50}
                         minSize={20}
-                        className={cn("flex", "flex-col", "min-h-0", "rounded-md", "border", "border-border/50", "overflow-hidden", "shadow-sm")}
+                        className={cn("flex", "flex-col", "min-h-0", "bg-card")}
                       >
                         {outputPanel}
                       </Panel>
