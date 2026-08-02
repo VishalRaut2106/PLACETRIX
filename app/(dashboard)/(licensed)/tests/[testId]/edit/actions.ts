@@ -661,9 +661,14 @@ It must follow this exact shape:
 
   const userPrompt = `[Request ID: ${nonce}]
 [Random Seed: ${randomSeed}]
-Generate exactly ${count} questions based STRICTLY on the following syllabus text.
+Generate exactly ${count} questions based STRICTLY on the concepts found in the following syllabus text.
 Difficulty: ${difficultyStr}. Each question carries 1 mark.
 ${typeInstruction}
+
+IMPORTANT HUMAN-LIKE QUESTION RULE:
+Do NOT reference "the text", "the syllabus", "the provided document", or similar phrases in your questions or options.
+Ask the questions directly about the concepts as if they were appearing on a real-world, standalone exam (e.g., "What is the primary purpose of a type constructor?" instead of "Based on the syllabus text, what is the primary purpose...").
+
 Ensure all questions are entirely distinct, unique, and cover different concepts from the syllabus text below. Do not include questions on topics not covered in the text.
 
 EXISTING TAGS (Use these exactly if they fit):

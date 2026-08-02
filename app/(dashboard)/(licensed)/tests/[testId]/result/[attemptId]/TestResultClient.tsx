@@ -4,10 +4,11 @@
 // app/tests/[testId]/result/[attemptId]/TestResultClient.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { type ReactNode, useMemo, useCallback, useEffect } from "react"
+import { type ReactNode, useMemo, useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
 import {
   Accordion,
   AccordionContent,
@@ -34,6 +35,13 @@ import {
   Lightbulb,
   ListChecks,
   Trophy,
+  Sparkles,
+  Brain,
+  GraduationCap,
+  Target,
+  AlertTriangle,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
@@ -44,6 +52,11 @@ import type {
   CandidateOption,
 } from "../../_types"
 import { formatDuration, formatDateTime, formatSeconds, resolvePct } from "../../_types"
+import {
+  generateConceptualFeedbackAction,
+  type DiagnosticResultPayload,
+  type QuestionDiagnosis,
+} from "./actions"
 
 
 
@@ -169,10 +182,12 @@ function QuestionReviewItem({
   answer,
   index,
   isInProgress = false,
+  qDiagnosis,
 }: {
   answer: CandidateAnswerDetail
   index: number
   isInProgress?: boolean
+  qDiagnosis?: QuestionDiagnosis
 }) {
   const isSkipped = (answer.selected_option_ids ?? []).length === 0
   const isOptionMatchCorrect = (() => {
@@ -253,6 +268,36 @@ function QuestionReviewItem({
           ))}
         </div>
 
+        {/* ── Gemma AI Conceptual Breakdown ─────────────────────────────── */}
+        {qDiagnosis && !isInProgress && (
+          <div className="mt-3.5 space-y-2 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3.5 dark:bg-purple-950/20">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                Gemma 4 Conceptual Analysis
+              </span>
+            </div>
+            
+            <p className="text-xs font-medium text-foreground">
+              <MathText>{qDiagnosis.conceptual_flaw_summary}</MathText>
+            </p>
+
+            {!isCorrect && qDiagnosis.why_choice_was_wrong && qDiagnosis.why_choice_was_wrong !== "N/A" && (
+              <div className="mt-2 text-xs space-y-1 text-muted-foreground">
+                <span className="font-semibold text-rose-600 dark:text-rose-400">Why your choice was flawed:</span>{" "}
+                <MathText>{qDiagnosis.why_choice_was_wrong}</MathText>
+              </div>
+            )}
+
+            {qDiagnosis.correct_concept_explanation && (
+              <div className="mt-1 text-xs space-y-1 text-muted-foreground">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Core Concept:</span>{" "}
+                <MathText>{qDiagnosis.correct_concept_explanation}</MathText>
+              </div>
+            )}
+          </div>
+        )}
+
         {((answer.tags ?? []).length > 0 || (answer.explanation && !isInProgress)) && (
           <div className="mt-4 space-y-3 rounded-xl border bg-muted/40 p-3">
             {answer.explanation && !isInProgress && (
@@ -326,6 +371,59 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
       : pct >= 50
         ? "text-amber-600 dark:text-amber-500"
         : "text-destructive"
+
+  // ── Gemma AI Conceptual Diagnostic State ─────────────────────────────────
+  const [diagnostic, setDiagnostic] = useState<DiagnosticResultPayload | null>(null)
+  const [isGeneratingDiagnostic, setIsGeneratingDiagnostic] = useState(false)
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
+
+  const handleGenerateDiagnostic = async () => {
+    setIsGeneratingDiagnostic(true)
+    setDiagnosticError(null)
+
+    try {
+      const res = await generateConceptualFeedbackAction({
+        testTitle: test.title,
+        score: attempt.score,
+        totalMarks: attempt.total_marks,
+        percentage: pct,
+        answers: displayAnswers.map((a) => ({
+          question_id: a.question_id,
+          question_text: a.question_text,
+          marks: a.marks,
+          is_correct: a.is_correct,
+          selected_option_ids: a.selected_option_ids ?? [],
+          explanation: a.explanation,
+          tags: a.tags,
+          options: (a.options ?? []).map((o) => ({
+            id: o.id,
+            option_text: o.option_text,
+            is_correct: o.is_correct,
+          })),
+        })),
+      })
+
+      if (res.error) {
+        setDiagnosticError(res.error)
+      } else {
+        setDiagnostic(res)
+      }
+    } catch (err) {
+      setDiagnosticError(err instanceof Error ? err.message : "Failed to generate AI diagnostic analysis.")
+    } finally {
+      setIsGeneratingDiagnostic(false)
+    }
+  }
+
+  const questionDiagnosisMap = useMemo(() => {
+    const map = new Map<string, QuestionDiagnosis>()
+    if (diagnostic?.question_diagnoses) {
+      for (const qd of diagnostic.question_diagnoses) {
+        map.set(qd.question_id, qd)
+      }
+    }
+    return map
+  }, [diagnostic])
 
   return (
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 pb-12 animate-in fade-in duration-500">
@@ -517,6 +615,135 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           </div>
 
+          {/* ── Gemma 4 AI Conceptual Diagnostic Assistant ─────────────────── */}
+          {!isInProgress && (
+            <Card className="overflow-hidden border-purple-500/30 bg-gradient-to-br from-purple-950/10 via-background to-blue-950/10 dark:from-purple-950/20 dark:to-blue-950/20">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                      <Sparkles className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm text-foreground">Gemma 4 AI Conceptual Diagnostic Assistant</h3>
+                        <Badge variant="secondary" className="h-4 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
+                          Next-Gen AI Education
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Deep AI evaluation analyzing conceptual gaps, cognitive misconceptions, and distractor traps.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateDiagnostic}
+                    disabled={isGeneratingDiagnostic}
+                    size="sm"
+                    className="gap-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs rounded-lg shadow-sm"
+                  >
+                    {isGeneratingDiagnostic ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Diagnosing Concepts...
+                      </>
+                    ) : diagnostic ? (
+                      <>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Re-run AI Diagnosis
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="h-3.5 w-3.5" />
+                        Generate AI Diagnostic Analysis
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {diagnosticError && (
+                  <Alert variant="destructive" className="py-2 text-xs">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertTitle className="text-xs">Diagnostic Failed</AlertTitle>
+                    <AlertDescription className="text-xs">{diagnosticError}</AlertDescription>
+                  </Alert>
+                )}
+
+                {diagnostic && (
+                  <div className="mt-4 space-y-4 animate-in fade-in duration-300">
+                    <Separator />
+                    
+                    {/* Overall Diagnosis */}
+                    {diagnostic.overall_diagnosis && (
+                      <div className="rounded-xl border bg-card/60 p-3.5 space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-purple-600 dark:text-purple-400">
+                          <GraduationCap className="h-4 w-4" />
+                          <span>Overall Mastery & Synthesis</span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-foreground">
+                          <MathText>{diagnostic.overall_diagnosis}</MathText>
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Strengths & Misconceptions grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {diagnostic.strengths && diagnostic.strengths.length > 0 && (
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Demonstrated Strengths</span>
+                          </div>
+                          <ul className="space-y-1 text-xs text-muted-foreground">
+                            {diagnostic.strengths.map((s, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="text-emerald-500">•</span>
+                                <span><MathText>{s}</MathText></span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {diagnostic.key_misconceptions && diagnostic.key_misconceptions.length > 0 && (
+                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-400">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            <span>Diagnosed Conceptual Misconceptions</span>
+                          </div>
+                          <ul className="space-y-1 text-xs text-muted-foreground">
+                            {diagnostic.key_misconceptions.map((m, idx) => (
+                              <li key={idx} className="flex items-start gap-1.5">
+                                <span className="text-rose-500">•</span>
+                                <span><MathText>{m}</MathText></span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recommended Review Topics */}
+                    {diagnostic.recommended_review_topics && diagnostic.recommended_review_topics.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                          <Target className="h-3.5 w-3.5" />
+                          Targeted Review Topics:
+                        </span>
+                        {diagnostic.recommended_review_topics.map((topic, idx) => (
+                          <Badge key={idx} variant="outline" className="text-[11px] bg-background border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+                            {topic}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* ── Question Review ──────────────────────────────────────────── */}
           {displayAnswers.length > 0 && (
             <div className="space-y-4">
@@ -532,7 +759,13 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
               </div>
               <Accordion type="multiple" className="space-y-2">
                 {displayAnswers.map((a, i) => (
-                  <QuestionReviewItem key={a.question_id} answer={a} index={i} isInProgress={isInProgress} />
+                  <QuestionReviewItem
+                    key={a.question_id}
+                    answer={a}
+                    index={i}
+                    isInProgress={isInProgress}
+                    qDiagnosis={questionDiagnosisMap.get(a.question_id)}
+                  />
                 ))}
               </Accordion>
             </div>
