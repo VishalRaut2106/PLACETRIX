@@ -1822,7 +1822,7 @@ function AiGenerateSyllabusSheet({
   generateQuestionsFromSyllabusAction,
   onImport,
 }: AiGenerateSyllabusSheetProps) {
-  const [form, setForm] = useState<Omit<AiGenerateForm, "topic">>({ count: "5", difficulty: "medium", question_type: "single_correct" })
+  const [form, setForm] = useState<AiGenerateForm>({ topic: "", count: "5", difficulty: "medium", question_type: "single_correct" })
   const [file, setFile] = useState<File | null>(null)
   const [generated, setGenerated] = useState<AiPreviewQuestion[]>([])
   const [generatedWith, setGeneratedWith] = useState<string | null>(null)
@@ -1835,7 +1835,7 @@ function AiGenerateSyllabusSheet({
       ? "Enter a number between 1 and 20."
       : null
 
-  const setField = <K extends keyof Omit<AiGenerateForm, "topic">>(k: K, v: Omit<AiGenerateForm, "topic">[K]) =>
+  const setField = <K extends keyof AiGenerateForm>(k: K, v: AiGenerateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
   const handleGenerate = () => {
@@ -1862,6 +1862,7 @@ function AiGenerateSyllabusSheet({
     formData.append("count", String(count))
     formData.append("difficulty", form.difficulty)
     formData.append("question_type", form.question_type)
+    if (form.topic.trim()) formData.append("topic", form.topic.trim())
 
     startTransition(async () => {
       try {
@@ -1893,7 +1894,7 @@ function AiGenerateSyllabusSheet({
   }
 
   const handleClose = () => {
-    setForm({ count: "5", difficulty: "medium", question_type: "single_correct" })
+    setForm({ topic: "", count: "5", difficulty: "medium", question_type: "single_correct" })
     setFile(null)
     setGenerated([])
     setGeneratedWith(null)
@@ -1962,6 +1963,18 @@ function AiGenerateSyllabusSheet({
                 }}
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Focus Topic (Optional)</Label>
+            <Input
+              type="text"
+              placeholder="e.g. Newtonian Mechanics"
+              value={form.topic}
+              onChange={(e) => setField("topic", e.target.value)}
+              disabled={isPending}
+              className="text-sm"
+            />
+            <p className="text-xs text-muted-foreground">If provided, AI will only generate questions about this specific topic.</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">

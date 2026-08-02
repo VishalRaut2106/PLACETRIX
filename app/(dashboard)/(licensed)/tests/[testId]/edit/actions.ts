@@ -608,7 +608,83 @@ export async function generateQuestionsFromSyllabusAction(
     return { error: "No readable text could be extracted from the uploaded PDF. It might be scanned or image-only." }
   }
 
-  const truncatedText = text.slice(0, 20000)
+  // --- RAG PIPELINE START ---
+  const topicStr = formData.get("topic") as string || ""
+  
+  // 1. Chunking
+  const chunkSize = 2000;
+  const overlap = 200;
+  const chunks: string[] = [];
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  for (let i = 0; i < cleanText.length; i += chunkSize - overlap) {
+    chunks.push(cleanText.slice(i, i + chunkSize));
+  }
+  // Limit to first 30 chunks (~60k chars) to avoid hitting API limits
+  const limitedChunks = chunks.slice(0, 30);
+  
+  let selectedChunks = limitedChunks;
+  const ai = new GoogleGenAI({ apiKey })
+
+  if (topicStr.trim() && limitedChunks.length > 1) {
+    try {
+      // 2. Embedding chunks
+      const chunkEmbeddings = await Promise.all(
+        limitedChunks.map(async (chunk) => {
+          const res = await ai.models.embedContent({
+            model: "text-embedding-004",
+            contents: chunk,
+          });
+          // Handle both possible response shapes for embeddings
+          return (res as any).embeddings?.[0]?.values || (res as any).embedding?.values || [];
+        })
+      );
+
+      // 3. Embedding topic
+      const topicRes = await ai.models.embedContent({
+        model: "text-embedding-004",
+        contents: topicStr.trim(),
+      });
+      const topicEmbedding = (topicRes as any).embeddings?.[0]?.values || (topicRes as any).embedding?.values || [];
+
+      // 4. Calculate similarities and retrieve top K
+      const similarities = chunkEmbeddings.map((emb, idx) => {
+        if (!emb.length || !topicEmbedding.length) return { idx, score: 0 };
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        for (let i = 0; i < emb.length; i++) {
+          dotProduct += emb[i] * topicEmbedding[i];
+          normA += emb[i] * emb[i];
+          normB += topicEmbedding[i] * topicEmbedding[i];
+        }
+        const score = dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        return { idx, score };
+      });
+
+      // Sort by score descending and take top 5 chunks
+      similarities.sort((a, b) => b.score - a.score);
+      const topIndices = similarities.slice(0, 5).map(s => s.idx);
+      // Re-sort chronologically for the LLM context
+      topIndices.sort((a, b) => a - b);
+      selectedChunks = topIndices.map(idx => limitedChunks[idx]);
+    } catch (embErr) {
+      console.error("[generateQuestionsFromSyllabusAction] RAG Embedding Failed:", embErr);
+      // Fallback to naive sampling if embedding fails
+      selectedChunks = limitedChunks.slice(0, 5);
+    }
+  } else {
+    // If no topic, uniformly sample up to 5 chunks to ensure diverse coverage
+    if (limitedChunks.length > 5) {
+      const step = Math.floor(limitedChunks.length / 5);
+      selectedChunks = [];
+      for (let i = 0; i < 5; i++) {
+        selectedChunks.push(limitedChunks[i * step]);
+      }
+    }
+  }
+
+  const retrievedText = selectedChunks.join("\n\n...[OMITTED]...\n\n");
+  // --- RAG PIPELINE END ---
 
   const supabase = await createClient()
   const { data: tagData } = await (supabase as any)
@@ -619,8 +695,6 @@ export async function generateQuestionsFromSyllabusAction(
   const existingTagsStr = tagData && tagData.length > 0 
     ? tagData.map((t: any) => t.name).join(", ")
     : "No existing tags yet."
-
-  const ai = new GoogleGenAI({ apiKey })
 
   const systemPrompt = `You are an expert exam question author for educational assessments.
 
@@ -675,7 +749,7 @@ EXISTING TAGS (Use these exactly if they fit):
 ${existingTagsStr}
 
 --- SYLLABUS TEXT ---
-${truncatedText}
+${retrievedText}
 ---------------------`
 
   const attemptWithModel = async (model: string): Promise<GenerateQuestionsResult> => {
