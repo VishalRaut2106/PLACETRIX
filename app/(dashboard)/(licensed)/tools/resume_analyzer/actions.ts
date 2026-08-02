@@ -370,6 +370,9 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
   }
 
   const MODEL_FALLBACK_CHAIN = [
+    "gemma-4-31b-it",
+    "gemma-4-26b-it",
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-1.5-flash",
