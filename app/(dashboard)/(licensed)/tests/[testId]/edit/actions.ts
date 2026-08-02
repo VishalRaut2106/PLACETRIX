@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { GoogleGenAI } from "@google/genai"
-import pdfParse from "pdf-parse"
 
 // --- Shared types ---
 export type SettingsForm = {
@@ -595,18 +594,32 @@ export async function generateQuestionsFromSyllabusAction(
   try {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+    // Dynamic require to prevent ESM/CJS build issues in Next.js Server Actions
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse")
     const pdfData = await pdfParse(buffer)
-    text = pdfData.text
+    text = (pdfData.text || "") as string
   } catch (err) {
     console.error("[generateQuestionsFromSyllabusAction] Failed to parse PDF:", err)
-    return { error: "Failed to parse PDF file." }
+    return { error: "Failed to parse PDF file. Ensure the file is a valid PDF document." }
   }
 
   if (!text || text.trim().length === 0) {
-    return { error: "No text could be extracted from the PDF." }
+    return { error: "No readable text could be extracted from the uploaded PDF. It might be scanned or image-only." }
   }
 
-  const truncatedText = text.slice(0, 50000)
+  const truncatedText = text.slice(0, 20000)
+
+  const supabase = await createClient()
+  const { data: tagData } = await (supabase as any)
+    .from("test_question_tags")
+    .select("name")
+    .order("name")
+    
+  const existingTagsStr = tagData && tagData.length > 0 
+    ? tagData.map((t: any) => t.name).join(", ")
+    : "No existing tags yet."
+
   const ai = new GoogleGenAI({ apiKey })
 
   const systemPrompt = `You are an expert exam question author for educational assessments.
@@ -617,7 +630,7 @@ STRICT RULES you must follow for every question:
 3. "multiple_correct" → exactly 2 or 3 options with is_correct=true; the rest must be is_correct=false.
 4. All distractors (incorrect options) must be plausible but unambiguously wrong to a knowledgeable person.
 5. The "explanation" field must (a) confirm why the correct answer(s) are right, and (b) briefly explain why the main distractor is wrong.
-6. "tag_names": provide 1–3 short topic tags (e.g. "photosynthesis", "linear algebra", "Ohm's law").
+6. "tag_names": provide 1–3 short topic tags. IMPORTANT: You MUST prioritize using the exact tags from the 'EXISTING TAGS' list provided in the user prompt. Only invent a new tag if absolutely none of the existing tags accurately describe the question.
 7. Every question must have marks = 1, regardless of difficulty.
 8. Vary cognitive levels across the batch: include recall, application, and analysis questions.
 9. Never repeat similar or near-identical questions within the same batch.
@@ -652,6 +665,9 @@ Generate exactly ${count} questions based STRICTLY on the following syllabus tex
 Difficulty: ${difficultyStr}. Each question carries 1 mark.
 ${typeInstruction}
 Ensure all questions are entirely distinct, unique, and cover different concepts from the syllabus text below. Do not include questions on topics not covered in the text.
+
+EXISTING TAGS (Use these exactly if they fit):
+${existingTagsStr}
 
 --- SYLLABUS TEXT ---
 ${truncatedText}

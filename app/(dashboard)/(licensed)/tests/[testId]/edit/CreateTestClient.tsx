@@ -1939,7 +1939,7 @@ function AiGenerateSyllabusSheet({
               <Upload className="h-6 w-6 text-muted-foreground/40" />
               <div className="text-center">
                 <p className="text-sm font-medium">{file ? file.name : "Click to upload"}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">PDF files only (max 50,000 characters extracted)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">PDF files only (max 20,000 characters extracted)</p>
               </div>
               <input
                 ref={fileInputRef}
@@ -1948,7 +1948,17 @@ function AiGenerateSyllabusSheet({
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
-                  if (f) setFile(f)
+                  if (!f) return
+                  if (!f.name.toLowerCase().endsWith(".pdf") && f.type !== "application/pdf") {
+                    setError("Please select a valid PDF file.")
+                    return
+                  }
+                  if (f.size > 15 * 1024 * 1024) {
+                    setError("File size exceeds 15MB limit.")
+                    return
+                  }
+                  setError(null)
+                  setFile(f)
                 }}
               />
             </div>
