@@ -47,10 +47,20 @@ export interface LocalAnalysis {
   hasGitHub: boolean
 }
 
+export interface InterviewPrep {
+  elevatorPitch: string
+  crossQuestions: {
+    question: string
+    reasoning: string
+    suggestedApproach: string
+  }[]
+}
+
 export interface AnalysisResult {
   overallScore: number
   atsScore: number
   detectedIndustry: string
+  candidateStatus: "Student" | "Intern" | "Fresher" | "Working Professional" | "Other"
   experienceLevel: "Entry" | "Mid" | "Senior"
   verdict: Verdict
   strengths: string[]
@@ -60,6 +70,7 @@ export interface AnalysisResult {
   suggestedKeywords: string[]
   detectedSkills: string[]
   localAnalysis: LocalAnalysis
+  interviewPrep?: InterviewPrep
   jdMatchScore?: number
   missingSkills?: string[]
   fileName: string
@@ -197,9 +208,10 @@ FORMAT AUDIT GUIDELINES (Greenhouse/Workday standard parser check):
 RULES:
 - Recommendations: Focus on the 3 to 5 most critical items. Include title, severity, feedback, suggestion, and concrete before/after rewrite examples.
 - Strengths: Highlight 2-3 genuine strengths (e.g., "Good balance of action verbs in current role", "Clear technical skills grouping").
-- Quick Wins: Provide 2-3 concrete fixes taking under 10 minutes (e.g., "Move LinkedIn link out of the header block", "Replace passive verbs in Project 1").
+- Quick Wins: Provide 2-3 concrete fixes taking under 10 minutes (e.g., "Move LinkedIn link out of the header block", "Replace passive verbs in Project 1"). Do not suggest adding profile hyperlinks if the text already contains LinkedIn or GitHub usernames/URLs (assume they are linked).
 - Format Checks: Evaluate Column Layout, Contact Headers, File Structure, and Symbol/Font scan.
 - Keywords: Detect technical skills and suggest high-value missing industry keywords.
+- Interview Prep: Generate exactly 5 highly specific, challenging cross-questions based *only* on the exact claims made in the resume. Do not output generic placeholder text. Determine the candidate's current status (Student, Intern, Fresher, Working Professional).
 
 Output ONLY a single raw JSON object matching the JSON schema. No markdown code blocks, no trailing comments, no extra text.`
 
@@ -209,6 +221,7 @@ Output ONLY a single raw JSON object matching the JSON schema. No markdown code 
   "overallScore": 0,
   "atsScore": 0,
   "detectedIndustry": "e.g. Software Engineering",
+  "candidateStatus": "Student or Intern or Fresher or Working Professional or Other",
   "experienceLevel": "Entry or Mid or Senior",
   "verdict": {
     "headline": "One-line summary of biggest strength vs biggest gap",
@@ -247,7 +260,37 @@ Output ONLY a single raw JSON object matching the JSON schema. No markdown code 
     }
   ],
   "suggestedKeywords": ["missing industry term 1", "missing industry term 2"],
-  "detectedSkills": ["skill 1", "skill 2"]${
+  "detectedSkills": ["skill 1", "skill 2"],
+  "interviewPrep": {
+    "elevatorPitch": "Write a highly personalized 2-3 sentence 'About Me' summary or elevator pitch.",
+    "crossQuestions": [
+      {
+        "question": "Generate actual specific question 1 based on resume.",
+        "reasoning": "Explain exactly what this question tests.",
+        "suggestedApproach": "How they should structure their answer."
+      },
+      {
+        "question": "Generate actual specific question 2 based on resume.",
+        "reasoning": "Explain exactly what this question tests.",
+        "suggestedApproach": "How they should structure their answer."
+      },
+      {
+        "question": "Generate actual specific question 3 based on resume.",
+        "reasoning": "Explain exactly what this question tests.",
+        "suggestedApproach": "How they should structure their answer."
+      },
+      {
+        "question": "Generate actual specific question 4 based on resume.",
+        "reasoning": "Explain exactly what this question tests.",
+        "suggestedApproach": "How they should structure their answer."
+      },
+      {
+        "question": "Generate actual specific question 5 based on resume.",
+        "reasoning": "Explain exactly what this question tests.",
+        "suggestedApproach": "How they should structure their answer."
+      }
+    ]
+  }${
     hasJD
       ? `,
   "jdMatchScore": 0,
@@ -279,6 +322,7 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
         overallScore: { type: "integer" },
         atsScore: { type: "integer" },
         detectedIndustry: { type: "string" },
+        candidateStatus: { type: "string", enum: ["Student", "Intern", "Fresher", "Working Professional", "Other"] },
         experienceLevel: { type: "string", enum: ["Entry", "Mid", "Senior"] },
         verdict: {
           type: "object",
@@ -347,6 +391,25 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
           type: "array",
           items: { type: "string" }
         },
+        interviewPrep: {
+          type: "object",
+          properties: {
+            elevatorPitch: { type: "string" },
+            crossQuestions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  question: { type: "string" },
+                  reasoning: { type: "string" },
+                  suggestedApproach: { type: "string" }
+                },
+                required: ["question", "reasoning", "suggestedApproach"]
+              }
+            }
+          },
+          required: ["elevatorPitch", "crossQuestions"]
+        },
         jdMatchScore: { type: "integer" },
         missingSkills: {
           type: "array",
@@ -357,6 +420,7 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
         "overallScore",
         "atsScore",
         "detectedIndustry",
+        "candidateStatus",
         "experienceLevel",
         "verdict",
         "strengths",
@@ -364,7 +428,8 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
         "quickWins",
         "formatChecks",
         "suggestedKeywords",
-        "detectedSkills"
+        "detectedSkills",
+        "interviewPrep"
       ]
     }
   }
@@ -468,5 +533,89 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
     localAnalysis,
     fileName: file.name,
     analyzedAt: new Date().toISOString(),
+  }
+}
+
+export async function generateExtraQuestionAction(formData: FormData) {
+  const file = formData.get("file") as File
+  const existingQuestionsStr = formData.get("existingQuestions") as string
+  if (!file || !existingQuestionsStr) throw new Error("Missing file or existing questions")
+
+  const existingQuestions = JSON.parse(existingQuestionsStr) as string[]
+
+  const profile = await getUserProfile()
+  if (!profile) throw new Error("Unauthorized")
+
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error("AI analysis is not configured.")
+
+  const ai = new GoogleGenAI({ apiKey })
+
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+  let resumeText = ""
+  if (file.type === "application/pdf") {
+    resumeText = await extractPdfText(buffer)
+  } else {
+    resumeText = await extractDocxText(buffer)
+  }
+  
+  if (!resumeText) throw new Error("Could not parse file")
+
+  const systemPrompt = `You are a FAANG technical interviewer. Generate EXACTLY ONE new, challenging cross-question based on the candidate's resume that has NOT been asked before.
+Return a valid JSON object with: { "question": string, "reasoning": string, "suggestedApproach": string }`
+
+  const userPrompt = `RESUME TEXT:
+${resumeText.slice(0, 8000)}
+
+ALREADY ASKED QUESTIONS:
+${existingQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}
+
+Return the new question in JSON.`
+
+  const config = {
+    systemInstruction: systemPrompt,
+    temperature: 0.7,
+    maxOutputTokens: 1024,
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: "object",
+      properties: {
+        question: { type: "string" },
+        reasoning: { type: "string" },
+        suggestedApproach: { type: "string" },
+      },
+      required: ["question", "reasoning", "suggestedApproach"]
+    }
+  }
+
+  const MODEL_FALLBACK_CHAIN = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemma-4-31b-it"]
+  let content = ""
+
+  for (const model of MODEL_FALLBACK_CHAIN) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: userPrompt,
+        config: config as any,
+      })
+      content = response.text ?? ""
+      if (content) break
+    } catch (err) {
+      console.warn(`[generateExtraQuestionAction] ${model} failed`, err)
+    }
+  }
+
+  if (!content) throw new Error("Failed to generate question.")
+
+  try {
+    let cleanContent = content.trim()
+    if (cleanContent.startsWith("```")) {
+      cleanContent = cleanContent.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim()
+    }
+    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/)
+    return JSON.parse(jsonMatch![0]) as { question: string, reasoning: string, suggestedApproach: string }
+  } catch (err) {
+    throw new Error("Failed to parse AI response.")
   }
 }

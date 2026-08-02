@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import {
   Attachment,
   AttachmentMedia,
@@ -40,7 +41,7 @@ import {
   AttachmentActions,
   AttachmentAction,
 } from "@/components/ui/attachment"
-import { analyzeResumeAction, type AnalysisResult } from "./actions"
+import { analyzeResumeAction, generateExtraQuestionAction, type AnalysisResult } from "./actions"
 import { GenerateButton } from "@/components/others/generate-button"
 
 // ─────────────────────────────────────────────
@@ -241,10 +242,53 @@ export function ResumeAnalyzerClient() {
   const [jobDescription, setJobDescription] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [result, setResult] = React.useState<AnalysisResult | null>(null)
-  const [activeTab, setActiveTab] = React.useState<"audit" | "history">("audit")
+  const [activeTab, setActiveTab] = React.useState<"audit" | "interview" | "history">("audit")
   const [historyList, setHistoryList] = React.useState<AnalysisResult[]>([])
+  
+  const [crossQuestions, setCrossQuestions] = React.useState<{ question: string, reasoning: string, suggestedApproach: string }[]>([])
+  const [generatingQuestion, setGeneratingQuestion] = React.useState(false)
 
   const resultsRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    if (result?.interviewPrep?.crossQuestions) {
+      setCrossQuestions(result.interviewPrep.crossQuestions)
+    } else {
+      setCrossQuestions([])
+    }
+  }, [result])
+
+  const handleGenerateExtraQuestion = async () => {
+    if (!file || !result) return
+    setGeneratingQuestion(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("existingQuestions", JSON.stringify(crossQuestions.map(q => q.question)))
+      const newQuestion = await generateExtraQuestionAction(fd)
+      
+      const newQArray = [...crossQuestions, newQuestion]
+      setCrossQuestions(newQArray)
+      
+      // Update result so it gets saved to history properly
+      const updatedResult = { 
+        ...result, 
+        interviewPrep: { 
+          ...result.interviewPrep!, 
+          crossQuestions: newQArray 
+        } 
+      }
+      setResult(updatedResult)
+      saveResult(updatedResult)
+      setHistoryList(getHistory())
+      
+      toast.success("Generated a new cross-question!")
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate question.")
+    } finally {
+      setGeneratingQuestion(false)
+    }
+  }
 
   React.useEffect(() => {
     setHistoryList(getHistory())
@@ -339,6 +383,20 @@ export function ResumeAnalyzerClient() {
           <IconFileText className="size-4" />
           {result ? "Dashboard & Audit" : "Analyze & Upload"}
         </button>
+        {result?.interviewPrep && (
+          <button
+            onClick={() => setActiveTab("interview")}
+            className={cn(
+              "flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all -mb-px outline-none whitespace-nowrap",
+              activeTab === "interview"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <IconBrain className="size-4" />
+            Interview Prep
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("history")}
           className={cn(
@@ -429,6 +487,11 @@ export function ResumeAnalyzerClient() {
                       {result.experienceLevel && (
                         <Badge variant="secondary" className="text-[10px] gap-1">
                           <IconUser className="size-3" />{result.experienceLevel} Level
+                        </Badge>
+                      )}
+                      {result.candidateStatus && (
+                        <Badge variant="secondary" className="text-[10px] gap-1">
+                          <IconBriefcase className="size-3" />{result.candidateStatus}
                         </Badge>
                       )}
                     </div>
@@ -566,39 +629,43 @@ export function ResumeAnalyzerClient() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
-                          {result.recommendations.map((rec, i) => (
-                            <div
-                              key={i}
-                              className={cn(
-                                "rounded-xl border p-4 flex flex-col gap-3 transition-all hover:bg-muted/10",
-                                severityBorder(rec.severity)
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Badge className={cn("text-[9px] font-bold uppercase tracking-wider", severityColor(rec.severity))}>
-                                  {rec.severity} Severity
-                                </Badge>
-                                <h4 className="text-sm font-semibold text-foreground">{rec.title}</h4>
-                              </div>
-
-                              <div className="flex flex-col gap-1.5 text-sm pl-0.5">
-                                <p className="text-muted-foreground leading-relaxed font-sans">
-                                  <span className="font-semibold text-foreground">Issue: </span>
-                                  {rec.feedback}
-                                </p>
-                                <p className="text-foreground leading-relaxed font-sans">
-                                  <span className="font-semibold text-violet-600 dark:text-violet-400">Fix: </span>
-                                  {rec.suggestion}
-                                </p>
-                              </div>
-
-                              {rec.rewrite && (
-                                <div className="mt-1">
-                                  <RewriteExample before={rec.rewrite.before} after={rec.rewrite.after} />
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                          <Accordion type="single" collapsible className="w-full">
+                            {result.recommendations.map((rec, i) => (
+                              <AccordionItem value={`item-${i}`} key={i} className="border-border rounded-xl border mb-3 overflow-hidden bg-muted/10 px-1">
+                                <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/30 transition-colors">
+                                  <div className="flex items-center gap-3 text-left">
+                                    <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold", severityColor(rec.severity))}>
+                                      {i + 1}
+                                    </span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-semibold text-foreground text-sm">{rec.title}</span>
+                                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold flex items-center gap-1">
+                                        <IconAlertCircle className="size-3 text-rose-500" />
+                                        Severity: {rec.severity}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-4 pt-1">
+                                  <div className="flex flex-col gap-4 ml-10">
+                                    <p className="text-sm text-foreground/80 leading-relaxed border-l-2 border-primary/20 pl-4 py-1">
+                                      <span className="font-semibold text-foreground block mb-1">Issue:</span>
+                                      {rec.feedback}
+                                    </p>
+                                    <div className="rounded-lg bg-primary/5 p-4 border border-primary/10">
+                                      <span className="font-semibold text-primary block mb-1 text-sm">Actionable Suggestion:</span>
+                                      <p className="text-sm text-foreground/80 leading-relaxed">{rec.suggestion}</p>
+                                    </div>
+                                    {rec.rewrite && (
+                                      <div className="mt-1">
+                                        <RewriteExample before={rec.rewrite.before} after={rec.rewrite.after} />
+                                      </div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
                         </CardContent>
                       </Card>
                     )}
@@ -800,7 +867,99 @@ export function ResumeAnalyzerClient() {
           </div>
         )}
 
-        {/* ── Tab 2: History & Progress ── */}
+        {/* ── Tab: Interview Prep ── */}
+        {activeTab === "interview" && result?.interviewPrep && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col gap-6">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <IconBrain className="size-5 text-foreground" />
+                  Interview Preparation
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Master your explanation and delivery based on your resume.
+                </p>
+              </div>
+            </div>
+
+            <Card className="border-border bg-card shadow-sm">
+              <CardContent className="flex flex-col gap-8 pt-6">
+                
+                {/* Elevator Pitch */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <IconSparkles className="size-3.5" />
+                    </span>
+                    <h3 className="text-base font-semibold text-foreground">Your Elevator Pitch</h3>
+                  </div>
+                  <div className="ml-8 rounded-xl border border-border bg-muted/20 p-5 shadow-sm">
+                    <p className="text-sm text-foreground/90 italic leading-relaxed font-sans">
+                      &quot;{result.interviewPrep.elevatorPitch}&quot;
+                    </p>
+                  </div>
+                </div>
+                
+                <Separator className="bg-border" />
+
+                {/* Cross Questions */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <IconUser className="size-3.5" />
+                    </span>
+                    <h3 className="text-base font-semibold text-foreground">Expected Cross-Questions</h3>
+                  </div>
+                  
+                  <div className="ml-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {crossQuestions.map((q, i) => (
+                      <div key={i} className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:bg-muted/10 hover:shadow-md">
+                        <p className="text-[15px] font-semibold text-foreground leading-snug">
+                          <span className="text-primary mr-2 font-bold">Q{i+1}.</span>
+                          {q.question}
+                        </p>
+                        
+                        <div className="flex flex-col gap-1.5 mt-auto bg-muted/30 p-3 rounded-lg border border-border/40">
+                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                            <IconBulb className="size-3" />
+                            Why they ask
+                          </span>
+                          <p className="text-xs text-muted-foreground leading-relaxed pl-4.5">{q.reasoning}</p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1.5 mt-1 border-t border-border pt-3">
+                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-primary uppercase tracking-wider">
+                            <IconCheck className="size-3" />
+                            Suggested Approach
+                          </span>
+                          <p className="text-xs text-foreground/80 leading-relaxed pl-4.5">{q.suggestedApproach}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="ml-8 mt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleGenerateExtraQuestion} 
+                      disabled={generatingQuestion || !file}
+                      className="gap-2"
+                    >
+                      {generatingQuestion ? (
+                        <><IconRefresh className="size-4 animate-spin" /> Generating...</>
+                      ) : (
+                        <><IconBolt className="size-4" /> Generate Another Question</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ── Tab: History & Progress ── */}
         {activeTab === "history" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col gap-6">
             {historyList.length === 0 ? (
