@@ -670,10 +670,10 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   )}
 
                   {/* Strengths & Misconceptions grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {diagnostic.strengths && diagnostic.strengths.length > 0 && (
-                      <div className="space-y-1.5">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1.5">
+                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                           Strengths
                         </span>
                         <ul className="space-y-1 text-xs text-muted-foreground">
@@ -687,8 +687,8 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                     )}
 
                     {diagnostic.key_misconceptions && diagnostic.key_misconceptions.length > 0 && (
-                      <div className="space-y-1.5">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-1.5">
+                        <span className="text-xs font-semibold text-destructive uppercase tracking-wider">
                           Misconceptions
                         </span>
                         <ul className="space-y-1 text-xs text-muted-foreground">
