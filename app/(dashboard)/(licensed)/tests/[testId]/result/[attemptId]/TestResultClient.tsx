@@ -8,6 +8,7 @@ import { type ReactNode, useMemo, useCallback, useEffect, useState } from "react
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import {
   Accordion,
@@ -34,6 +35,9 @@ import {
   Loader2,
   Lightbulb,
   BookOpen,
+  Target,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
@@ -662,112 +666,6 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           </div>
 
-          {/* ── Topic & Tag Performance Analytics Card ─────────────────── */}
-          {!isInProgress && tagPerformanceList.length > 0 && (
-            <Card className="overflow-hidden border-border bg-card">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                      <Target className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm text-foreground">Topic & Skill Mastery Breakdown</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Performance breakdown by question tags to highlight strengths and key focus areas.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs">
-                    <Badge variant="outline" className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3 w-3" />
-                      {tagPerformanceList.filter((t) => t.status === "Strong").length} Mastered
-                    </Badge>
-                    {weakTags.length > 0 && (
-                      <Badge variant="outline" className="gap-1 border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                        <AlertTriangle className="h-3 w-3" />
-                        {weakTags.length} Need Work
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {tagPerformanceList.map((tagItem) => {
-                    const isStrong = tagItem.status === "Strong"
-                    const isModerate = tagItem.status === "Moderate"
-                    
-                    const barColor = isStrong
-                      ? "bg-emerald-500"
-                      : isModerate
-                        ? "bg-amber-500"
-                        : "bg-rose-500"
-
-                    const statusBadge = isStrong ? (
-                      <Badge variant="secondary" className="h-4 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-medium border-0">
-                        Strong Mastery
-                      </Badge>
-                    ) : isModerate ? (
-                      <Badge variant="secondary" className="h-4 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-medium border-0">
-                        Moderate
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="h-4 bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px] font-medium border-0">
-                        Focus Needed
-                      </Badge>
-                    )
-
-                    return (
-                      <div
-                        key={tagItem.tagName}
-                        className="flex flex-col gap-2 rounded-xl border bg-muted/20 p-3.5 transition-colors hover:bg-muted/40"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-xs text-foreground truncate">
-                            {tagItem.tagName}
-                          </span>
-                          {statusBadge}
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>
-                              {tagItem.correctQuestions}/{tagItem.totalQuestions} Questions Correct
-                            </span>
-                            <span className="font-semibold tabular-nums text-foreground">
-                              {tagItem.percentage.toFixed(0)}% ({tagItem.earnedMarks}/{tagItem.totalMarks} pts)
-                            </span>
-                          </div>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                            <div
-                              className={cn("h-full transition-all duration-500", barColor)}
-                              style={{ width: `${Math.min(100, Math.max(0, tagItem.percentage))}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {weakTags.length > 0 && (
-                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 text-xs text-rose-700 dark:text-rose-300 space-y-1">
-                    <div className="flex items-center gap-1.5 font-semibold">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      <span>Targeted Study Advice</span>
-                    </div>
-                    <p className="leading-relaxed text-muted-foreground">
-                      You scored below 60% on: <span className="font-semibold text-foreground">{weakTags.map((t) => t.tagName).join(", ")}</span>. Consider reviewing concepts and solving practice questions under these tags.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* ── Gemma 4 AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
             <Card>
@@ -881,6 +779,93 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   )}
                 </CardContent>
               )}
+            </Card>
+          )}
+
+          {/* ── Topic & Tag Performance Analytics Card ─────────────────── */}
+          {!isInProgress && tagPerformanceList.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+                <div className="space-y-1">
+                  <CardTitle className="text-base font-semibold">
+                    Topic & Skill Mastery Breakdown
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Performance breakdown by question tags to highlight strengths and focus areas.
+                  </CardDescription>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs shrink-0">
+                  <Badge variant="outline" className="font-normal text-[11px]">
+                    {tagPerformanceList.filter((t) => t.status === "Strong").length} Mastered
+                  </Badge>
+                  {weakTags.length > 0 && (
+                    <Badge variant="secondary" className="font-normal text-[11px]">
+                      {weakTags.length} Need Work
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4 pt-0">
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {tagPerformanceList.map((tagItem) => {
+                    const isStrong = tagItem.status === "Strong"
+                    const isModerate = tagItem.status === "Moderate"
+                    
+                    const statusBadge = isStrong ? (
+                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                        Strong Mastery
+                      </Badge>
+                    ) : isModerate ? (
+                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                        Moderate
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-rose-500/10 text-rose-700 dark:text-rose-400">
+                        Focus Needed
+                      </Badge>
+                    )
+
+                    return (
+                      <div
+                        key={tagItem.tagName}
+                        className="flex flex-col gap-2 rounded-lg border bg-muted/20 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-xs text-foreground truncate">
+                            {tagItem.tagName}
+                          </span>
+                          {statusBadge}
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>
+                              {tagItem.correctQuestions}/{tagItem.totalQuestions} Questions Correct
+                            </span>
+                            <span className="font-semibold tabular-nums text-foreground">
+                              {tagItem.percentage.toFixed(0)}% ({tagItem.earnedMarks}/{tagItem.totalMarks} pts)
+                            </span>
+                          </div>
+                          <Progress value={Math.min(100, Math.max(0, tagItem.percentage))} className="h-1.5" />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {weakTags.length > 0 && (
+                  <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
+                    <span className="font-semibold text-foreground">Targeted Study Advice</span>
+                    <p className="leading-relaxed text-muted-foreground">
+                      You scored below 60% on: <span className="font-medium text-foreground">{weakTags.map((t) => t.tagName).join(", ")}</span>. Consider reviewing concepts and solving practice questions under these tags.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           )}
 
