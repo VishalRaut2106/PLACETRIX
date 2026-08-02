@@ -408,7 +408,7 @@ STRICT RULES you must follow for every question:
 3. "multiple_correct" → exactly 2 or 3 options with is_correct=true; the rest must be is_correct=false.
 4. All distractors (incorrect options) must be plausible but unambiguously wrong to a knowledgeable person.
 5. The "explanation" field must (a) confirm why the correct answer(s) are right, and (b) briefly explain why the main distractor is wrong.
-6. "tag_names": provide 1–3 short topic tags (e.g. "photosynthesis", "linear algebra", "Ohm's law").
+6. "tag_names": provide 1–3 short topic tags. IMPORTANT: You MUST prioritize using the exact tags from the 'EXISTING TAGS' list provided in the user prompt. Only invent a new tag if absolutely none of the existing tags accurately describe the question.
 7. Every question must have marks = 1, regardless of difficulty.
 8. Vary cognitive levels across the batch: include recall, application, and analysis questions.
 9. Never repeat similar or near-identical questions within the same batch.
@@ -435,6 +435,16 @@ It must follow this exact shape:
   ]
 }`
 
+  const supabase = await createClient()
+  const { data: tagData } = await (supabase as any)
+    .from("test_question_tags")
+    .select("name")
+    .order("name")
+    
+  const existingTagsStr = tagData && tagData.length > 0 
+    ? tagData.map((t: any) => t.name).join(", ")
+    : "No existing tags yet."
+
   const nonce = crypto.randomUUID()
   const randomSeed = Math.floor(Math.random() * 1000000)
 
@@ -443,7 +453,10 @@ It must follow this exact shape:
 Generate exactly ${count} questions on the topic: "${input.topic}".
 Difficulty: ${input.difficulty}. Each question carries 1 mark.
 ${typeInstruction}
-Ensure all questions are entirely distinct, unique, use creative scenarios, and are not reused from any prior generation.`
+Ensure all questions are entirely distinct, unique, use creative scenarios, and are not reused from any prior generation.
+
+EXISTING TAGS (Use these exactly if they fit):
+${existingTagsStr}`
 
   const attemptWithModel = async (
     model: string

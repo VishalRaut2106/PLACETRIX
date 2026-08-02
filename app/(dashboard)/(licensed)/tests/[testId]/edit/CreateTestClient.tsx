@@ -541,6 +541,29 @@ function OptionsBuilder({
   )
 }
 
+// ─── Tag Normalizer Helpers ───────────────────────────────────────────────────
+
+export function toTitleCase(str: string): string {
+  return str
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase())
+}
+
+export function normalizeTag(rawTag: string, availableTags: { name: string }[] = []): string {
+  const clean = rawTag.trim().replace(/\s+/g, " ")
+  if (!clean) return ""
+  
+  // Look for exact case-insensitive match in available tags
+  const existing = availableTags.find((t) => t.name.toLowerCase() === clean.toLowerCase())
+  if (existing) {
+    return existing.name
+  }
+  
+  // Otherwise format as Title Case
+  return toTitleCase(clean)
+}
+
 // ─── Sub-Component: TagInput ──────────────────────────────────────────────────
 
 function TagInput({
@@ -553,36 +576,56 @@ function TagInput({
   onChange: (v: string[]) => void
 }) {
   const [input, setInput] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const suggestions = input.trim()
-    ? available
-      .filter(
-        (t) =>
-          t.name.toLowerCase().includes(input.toLowerCase()) && !selected.includes(t.name)
-      )
-      .slice(0, 6)
-    : []
+  const cleanInput = input.trim().toLowerCase()
 
-  const add = (name: string) => {
-    const t = name.trim()
-    if (t && !selected.includes(t)) onChange([...selected, t])
+  // Filter available tags that match input & are not already selected
+  const matchingSuggestions = available.filter(
+    (t) =>
+      (!cleanInput || t.name.toLowerCase().includes(cleanInput)) &&
+      !selected.some((s) => s.toLowerCase() === t.name.toLowerCase())
+  ).slice(0, 8)
+
+  const exactMatchExists = available.some(
+    (t) => t.name.toLowerCase() === cleanInput
+  ) || selected.some((s) => s.toLowerCase() === cleanInput)
+
+  const handleAdd = (rawName: string) => {
+    const normalized = normalizeTag(rawName, available)
+    if (normalized && !selected.some((s) => s.toLowerCase() === normalized.toLowerCase())) {
+      onChange([...selected, normalized])
+    }
     setInput("")
+    setIsOpen(false)
   }
 
+  // Handle outside clicks to close dropdown
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" ref={containerRef}>
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selected.map((t) => (
-            <Badge key={t} variant="secondary" className="gap-1 pr-1 text-xs">
-              <Tag className="h-3 w-3" />
+            <Badge key={t} variant="secondary" className="gap-1 pr-1 text-xs font-medium">
+              <Tag className="h-3 w-3 text-muted-foreground" />
               {t}
               <button
                 type="button"
                 onClick={() => onChange(selected.filter((s) => s !== t))}
-                className="ml-0.5 rounded-full hover:bg-background/60"
+                className="ml-0.5 rounded-full p-0.5 hover:bg-background/60"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </button>
             </Badge>
           ))}
@@ -590,27 +633,47 @@ function TagInput({
       )}
       <div className="relative">
         <Input
-          placeholder="Type a tag and press Enter…"
+          placeholder="Search existing tags or type a new tag…"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onChange={(e) => {
+            setInput(e.target.value)
+            setIsOpen(true)
+          }}
           onKeyDown={(e) => {
-            if (e.key === "Enter") { e.preventDefault(); add(input) }
+            if (e.key === "Enter") {
+              e.preventDefault()
+              if (input.trim()) handleAdd(input)
+            }
           }}
           className="text-sm"
         />
-        {suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border bg-popover py-1 shadow-md">
-            {suggestions.map((s) => (
+        {isOpen && (matchingSuggestions.length > 0 || (cleanInput && !exactMatchExists)) && (
+          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-md border bg-popover py-1 shadow-lg ring-1 ring-black/5">
+            {matchingSuggestions.map((s) => (
               <button
                 key={s.id}
                 type="button"
-                onClick={() => add(s.name)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted"
+                onClick={() => handleAdd(s.name)}
+                className="flex w-full items-center justify-between px-3 py-1.5 text-xs text-left transition-colors hover:bg-accent hover:text-accent-foreground"
               >
-                <Tag className="h-3 w-3 text-muted-foreground" />
-                {s.name}
+                <span className="flex items-center gap-2 font-medium">
+                  <Tag className="h-3 w-3 text-muted-foreground" />
+                  {s.name}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Existing Tag</span>
               </button>
             ))}
+            {cleanInput && !exactMatchExists && (
+              <button
+                type="button"
+                onClick={() => handleAdd(input)}
+                className="flex w-full items-center gap-2 border-t border-border/50 px-3 py-2 text-xs font-semibold text-primary text-left transition-colors hover:bg-primary/5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create tag: &quot;{normalizeTag(input, available)}&quot;
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1687,6 +1750,62 @@ function ImportSheet({ open, onOpenChange, onImport }: ImportSheetProps) {
   )
 }
 
+// ─── Sub-Component: QuestionListItem ──────────────────────────────────────────
+
+function QuestionListItem({
+  question,
+  availableTags,
+  onEdit,
+  onDelete,
+}: {
+  question: LocalQuestion
+  availableTags: { id: string; name: string }[]
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <li className="flex items-start gap-3 rounded-lg border bg-card p-3">
+      <span className="mt-0.5 w-5 shrink-0 text-center text-xs font-medium text-muted-foreground">
+        {question.order_index}.
+      </span>
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="truncate text-sm"><MathText>{question.question_text}</MathText></p>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="outline" className="text-xs">
+            {question.question_type === "single_correct" ? "Single" : "Multiple"}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            {question.marks} {question.marks === 1 ? "mark" : "marks"}
+          </Badge>
+          {question.tag_names.map((t) => (
+            <Badge key={t} variant="secondary" className="text-xs">
+              {normalizeTag(t, availableTags)}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-7"
+          onClick={onEdit}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-7 text-destructive hover:text-destructive"
+          onClick={onDelete}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </li>
+  )
+}
+
 // ─── Sub-Component: QuestionsPanel ────────────────────────────────────────────
 
 interface QuestionsPanelProps {
@@ -1707,7 +1826,30 @@ function QuestionsPanel({
   const [importSheetOpen, setImportSheetOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<LocalQuestion | null>(null)
 
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("all")
+  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat")
+
   const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0)
+
+  // Compute all unique tags present in the current test's questions
+  const presentTags = Array.from(
+    new Set(questions.flatMap((q) => q.tag_names.map((t) => normalizeTag(t, availableTags))))
+  ).filter(Boolean).sort()
+
+  const tagCounts: Record<string, number> = {}
+  questions.forEach((q) => {
+    q.tag_names.forEach((t) => {
+      const norm = normalizeTag(t, availableTags)
+      if (norm) tagCounts[norm] = (tagCounts[norm] || 0) + 1
+    })
+  })
+
+  // Filtered questions based on selectedTagFilter
+  const filteredQuestions = selectedTagFilter === "all"
+    ? questions
+    : questions.filter((q) =>
+        q.tag_names.some((t) => normalizeTag(t, availableTags).toLowerCase() === selectedTagFilter.toLowerCase())
+      )
 
   function openAdd() {
     setEditingQuestion(null)
@@ -1727,7 +1869,7 @@ function QuestionsPanel({
       marks: form.marks || 1,
       order_index: editingQuestion?.order_index ?? questions.length + 1,
       explanation: form.explanation,
-      tag_names: form.tag_names,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
       options: form.options,
     }
 
@@ -1747,7 +1889,7 @@ function QuestionsPanel({
       marks: form.marks || 1,
       order_index: questions.length + i + 1,
       explanation: form.explanation,
-      tag_names: form.tag_names,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
       options: form.options,
     }))
     setQuestions((prev) => [...prev, ...newLocals])
@@ -1762,7 +1904,7 @@ function QuestionsPanel({
       marks: form.marks || 1,
       order_index: questions.length + i + 1,
       explanation: form.explanation,
-      tag_names: form.tag_names,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
       options: form.options,
     }))
     setQuestions((prev) => [...prev, ...newLocals])
@@ -1806,6 +1948,63 @@ function QuestionsPanel({
               </Button>
             </div>
           </div>
+
+          {/* ── Tag Filter Bar & View Mode Toggle ── */}
+          {questions.length > 0 && (
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mr-1">
+                  <Tag className="h-3 w-3" /> Filter by Tag:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagFilter("all")}
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+                    selectedTagFilter === "all"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground border hover:bg-muted"
+                  )}
+                >
+                  All ({questions.length})
+                </button>
+                {presentTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setSelectedTagFilter(tag)}
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+                      selectedTagFilter.toLowerCase() === tag.toLowerCase()
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground border hover:bg-muted"
+                    )}
+                  >
+                    {tag} ({tagCounts[tag] || 0})
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                <Button
+                  variant={viewMode === "flat" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setViewMode("flat")}
+                >
+                  Flat List
+                </Button>
+                <Button
+                  variant={viewMode === "grouped" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setViewMode("grouped")}
+                >
+                  Group by Tag
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
 
         <CardContent>
@@ -1819,51 +2018,64 @@ function QuestionsPanel({
                 </p>
               </div>
             </div>
-          ) : (
-            <ol className="space-y-2">
-              {questions.map((q, idx) => (
-                <li
-                  key={q.id}
-                  className="flex items-start gap-3 rounded-lg border bg-card p-3"
-                >
-                  <span className="mt-0.5 w-5 shrink-0 text-center text-xs font-medium text-muted-foreground">
-                    {idx + 1}.
-                  </span>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="truncate text-sm"><MathText>{q.question_text}</MathText></p>
-                    <div className="flex flex-wrap gap-1">
-                      <Badge variant="outline" className="text-xs">
-                        {q.question_type === "single_correct" ? "Single" : "Multiple"}
+          ) : filteredQuestions.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <AlertCircle className="size-6 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">
+                No questions found with tag &quot;{selectedTagFilter}&quot;.
+              </p>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedTagFilter("all")}>
+                Reset Filter
+              </Button>
+            </div>
+          ) : viewMode === "grouped" ? (
+            /* ── Grouped by Tag View ── */
+            <div className="space-y-6">
+              {(selectedTagFilter === "all" ? [...presentTags, "Untagged"] : [selectedTagFilter]).map((groupTag) => {
+                const groupQuestions = questions.filter((q) => {
+                  if (groupTag === "Untagged") return q.tag_names.length === 0
+                  return q.tag_names.some((t) => normalizeTag(t, availableTags).toLowerCase() === groupTag.toLowerCase())
+                })
+
+                if (groupQuestions.length === 0) return null
+
+                return (
+                  <div key={groupTag} className="space-y-3">
+                    <div className="flex items-center gap-2 border-b pb-1.5">
+                      <Tag className="h-3.5 w-3.5 text-primary" />
+                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                        {groupTag}
+                      </h4>
+                      <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
+                        {groupQuestions.length}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {q.marks} {q.marks === 1 ? "mark" : "marks"}
-                      </Badge>
-                      {q.tag_names.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-xs">
-                          {t}
-                        </Badge>
-                      ))}
                     </div>
+                    <ol className="space-y-2">
+                      {groupQuestions.map((q) => (
+                        <QuestionListItem
+                          key={q.id}
+                          question={q}
+                          availableTags={availableTags}
+                          onEdit={() => openEdit(q)}
+                          onDelete={() => handleDelete(q.id)}
+                        />
+                      ))}
+                    </ol>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7"
-                      onClick={() => openEdit(q)}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="size-7 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(q.id)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </li>
+                )
+              })}
+            </div>
+          ) : (
+            /* ── Flat List View ── */
+            <ol className="space-y-2">
+              {filteredQuestions.map((q) => (
+                <QuestionListItem
+                  key={q.id}
+                  question={q}
+                  availableTags={availableTags}
+                  onEdit={() => openEdit(q)}
+                  onDelete={() => handleDelete(q.id)}
+                />
               ))}
             </ol>
           )}
