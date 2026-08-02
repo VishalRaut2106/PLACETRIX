@@ -585,7 +585,7 @@ export function ResumeAnalyzerClient() {
                   </Card>
 
                   {/* Mode-specific Third Card */}
-                  {result.jdMatchScore !== undefined ? (
+                  {result.jdMatchScore !== undefined && result.jdMatchScore > 0 ? (
                     <Card className={cn("border flex flex-col gap-4 p-6 justify-center items-center", scoreBgClass(result.jdMatchScore))}>
                       <div className="flex items-center gap-2 text-foreground font-semibold">
                         <span className="text-sm font-semibold">Job Match Score</span>

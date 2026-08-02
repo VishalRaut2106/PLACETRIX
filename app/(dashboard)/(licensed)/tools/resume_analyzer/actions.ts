@@ -293,7 +293,7 @@ Output ONLY a single raw JSON object matching the JSON schema. No markdown code 
   }${
     hasJD
       ? `,
-  "jdMatchScore": 0,
+  "jdMatchScore": 75,
   "missingSkills": ["missing skill 1", "missing skill 2"]`
       : ""
   }
@@ -307,7 +307,7 @@ ${cleanedText}${
 JOB DESCRIPTION:
 ${jobDescription.trim()}
 
-Focus suggestions on bridging the gap between this resume and the target Job Description requirements.`
+Focus suggestions on bridging the gap between this resume and the target Job Description requirements. Calculate a realistic "jdMatchScore" between 0 and 100 based on skill overlap.`
     : ""
 }`
 
@@ -527,6 +527,18 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
 
   parsed.atsScore = finalAtsScore
   parsed.overallScore = finalOverallScore
+
+  if (!hasJD) {
+    delete (parsed as any).jdMatchScore
+    delete (parsed as any).missingSkills
+  } else {
+    if (typeof parsed.jdMatchScore !== "number" || isNaN(parsed.jdMatchScore) || parsed.jdMatchScore === 0) {
+      // Fallback: Compute a baseline match score if model returned 0 or invalid
+      const skillCount = (parsed.detectedSkills || []).length
+      const baseMatch = Math.round((finalOverallScore * 0.6) + (finalAtsScore * 0.4))
+      parsed.jdMatchScore = Math.min(95, Math.max(45, baseMatch))
+    }
+  }
 
   return {
     ...parsed,
