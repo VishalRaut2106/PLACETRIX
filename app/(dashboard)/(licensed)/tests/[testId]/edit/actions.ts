@@ -297,6 +297,8 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 })
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
+  "gemma-4-31b-it",
+  "gemma-4-26b-it",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
@@ -540,18 +542,7 @@ ${existingTagsStr}`
       return await attemptWithModel(model)
     } catch (err) {
       lastError = err
-
-      if (isRetryableOnNextModel(err)) {
-        console.warn(`[generateQuestionsAction] ${model} rate-limited, trying fallback…`)
-        continue
-      }
-
-      try {
-        return await attemptWithModel(model)
-      } catch (retryErr) {
-        lastError = retryErr
-        console.warn(`[generateQuestionsAction] ${model} retry failed, trying fallback…`)
-      }
+      console.warn(`[generateQuestionsAction] Model ${model} failed, advancing fallback chain…`)
     }
   }
 
@@ -812,12 +803,7 @@ ${retrievedText}
       return await attemptWithModel(model)
     } catch (err) {
       lastError = err
-      if (isRetryableOnNextModel(err)) continue
-      try {
-        return await attemptWithModel(model)
-      } catch (retryErr) {
-        lastError = retryErr
-      }
+      console.warn(`[generateQuestionsFromSyllabusAction] Model ${model} failed, advancing fallback chain…`)
     }
   }
 

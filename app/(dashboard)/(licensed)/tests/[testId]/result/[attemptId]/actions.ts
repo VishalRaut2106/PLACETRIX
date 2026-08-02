@@ -48,6 +48,8 @@ export type DiagnosticResultPayload = {
 }
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
+  "gemma-4-31b-it",
+  "gemma-4-26b-it",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
@@ -244,12 +246,7 @@ Perform a rapid conceptual diagnostic evaluation.`
       return await attemptWithModel(model)
     } catch (err) {
       lastError = err
-      if (isRetryableOnNextModel(err)) continue
-      try {
-        return await attemptWithModel(model)
-      } catch (retryErr) {
-        lastError = retryErr
-      }
+      console.warn(`[generateConceptualFeedbackAction] Model ${model} failed, advancing fallback chain...`)
     }
   }
 
