@@ -1891,7 +1891,7 @@ export function ProblemWorkspaceClient({
                                         )?.value || "javascript"
                                       }
                                       value={
-                                        viewingCode || "// Code not available"
+                                        (viewingCode ? viewingCode.replace(/^[\r\n]+/, '') : "") || "// Code not available"
                                       }
                                       theme={monacoTheme}
                                       options={{
@@ -1899,39 +1899,47 @@ export function ProblemWorkspaceClient({
                                         fontSize: 11.5,
                                         minimap: { enabled: false },
                                         scrollBeyondLastLine: false,
+                                        smoothScrolling: true,
                                         wordWrap: "on",
                                         padding: { top: 12, bottom: 12 },
                                         scrollbar: {
                                           vertical: "hidden",
-                                          verticalScrollbarSize: 0,
                                           horizontal: "hidden",
-                                          horizontalScrollbarSize: 0,
                                         },
                                       }}
                                     />
                                     <div className={cn('absolute', 'top-3', 'right-4', 'flex', 'gap-2', 'opacity-0', 'group-hover/editor:opacity-100', 'transition-opacity')}>
                                       <button
                                         onClick={() => {
-                                          setCode(viewingCode);
                                           const lang = LANGUAGES.find(
                                             (l) =>
                                               l.id ===
                                               viewingSubmission?.language_id,
                                           );
                                           if (lang) {
+                                            const key = isDailyChallenge
+                                              ? `logiclab_daily_challenge_${dailyChallengeId}_code_${lang.value}`
+                                              : `logiclab_problem_${problem.id}_code_${lang.value}`;
+                                            localStorage.setItem(key, JSON.stringify({
+                                              code: viewingCode,
+                                              timestamp: Date.now()
+                                            }));
                                             setSelectedLang(lang);
                                           }
+                                          setCode(viewingCode);
                                           toast.success("Restored to workspace!");
                                         }}
-                                        className={cn('bg-emerald-500/10', 'hover:bg-emerald-500/20', 'text-emerald-500', 'border', 'border-emerald-500/20', 'px-2.5', 'py-1', 'rounded-md', 'text-[10px]', 'font-bold', 'transition-all', 'shadow-sm')}
+                                        className={cn('bg-emerald-500/10', 'hover:bg-emerald-500/20', 'text-emerald-500', 'border', 'border-emerald-500/20', 'p-1.5', 'rounded-md', 'transition-all', 'shadow-sm')}
+                                        title="Restore"
                                       >
-                                        Restore
+                                        <IconRefresh className="h-4 w-4" />
                                       </button>
                                       <button
                                         onClick={() => handleCopyToClipboard(viewingCode)}
-                                        className={cn('bg-muted', 'hover:bg-accent', 'text-foreground', 'border', 'border-border', 'px-2.5', 'py-1', 'rounded-md', 'text-[10px]', 'font-bold', 'transition-all', 'shadow-sm')}
+                                        className={cn('bg-muted', 'hover:bg-accent', 'text-foreground', 'border', 'border-border', 'p-1.5', 'rounded-md', 'transition-all', 'shadow-sm')}
+                                        title="Copy"
                                       >
-                                        Copy
+                                        <IconCopy className="h-4 w-4" />
                                       </button>
                                     </div>
                                   </div>
@@ -1958,8 +1966,8 @@ export function ProblemWorkspaceClient({
             value="submission_result"
             className={cn('mt-0', 'outline-none', 'flex-1', 'w-full', 'min-h-0', 'flex', 'flex-col')}
           >
-            <ScrollArea className="flex-1 w-full [&_[data-slot=scroll-area-scrollbar]]:hidden">
-              <div className="p-5">
+            <div className="flex-1 w-full overflow-y-auto">
+              <div className="p-5 flex flex-col min-h-full">
                 {submitting ? (
                   <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'py-20', 'gap-4', 'animate-pulse', 'select-none')}>
                     <div className="relative">
@@ -2145,7 +2153,7 @@ export function ProblemWorkspaceClient({
                       : (calibratedPoints.length > 0 ? calibratedPoints[calibratedPoints.length - 1] : null);
 
                     return (
-                      <div className={cn('container-pane-accepted', 'space-y-4', 'select-none', 'animate-in', 'fade-in-50', 'duration-300', 'pr-1', 'select-text')}>
+                      <div className={cn('container-pane-accepted', 'space-y-4', 'select-none', 'animate-in', 'fade-in-50', 'duration-300', 'pr-1', 'select-text', 'flex', 'flex-col', 'flex-1', 'min-h-0')}>
                         {/* Header row */}
                         <div className={cn('flex', 'flex-col', 'sm:flex-row', 'sm:items-center', 'justify-between', 'gap-3', 'border-b', 'border-border/40', 'pb-3', 'select-none')}>
                           <div className="space-y-1">
@@ -2409,8 +2417,8 @@ export function ProblemWorkspaceClient({
                         </div>
 
                         {/* Submitted Code Editor */}
-                        <div className={cn('mt-5', 'pt-4', 'border-t', 'border-border/60')}>
-                          <div className={cn('rounded-xl', 'border', 'border-border/60', 'overflow-hidden', 'shadow-sm', 'bg-card')}>
+                        <div className={cn('mt-5', 'pt-4', 'border-t', 'border-border/60', 'flex-1', 'flex', 'flex-col')}>
+                          <div className={cn('rounded-xl', 'border', 'border-border/60', 'overflow-hidden', 'shadow-sm', 'bg-card', 'flex-1', 'flex', 'flex-col')}>
                             {/* Card Header */}
                             <div className={cn('flex', 'items-center', 'justify-between', 'px-3', 'py-2', 'bg-muted/40', 'border-b', 'border-border/50', 'select-none')}>
                               <div className={cn('flex', 'items-center', 'gap-2')}>
@@ -2422,33 +2430,37 @@ export function ProblemWorkspaceClient({
                               </div>
                               <button
                                 onClick={() => { navigator.clipboard.writeText(submitResult?.submitted_code || code); toast.success('Copied!'); }}
-                                className={cn('flex', 'items-center', 'gap-1', 'px-2', 'py-1', 'rounded-md', 'text-[10px]', 'font-bold', 'text-zinc-500 dark:text-muted-foreground/70', 'hover:text-foreground', 'hover:bg-muted', 'transition-colors')}
+                                className={cn('p-1.5', 'rounded-md', 'text-zinc-500 dark:text-muted-foreground/70', 'hover:text-foreground', 'hover:bg-muted', 'transition-colors')}
+                                title="Copy"
                               >
-                                <IconCopy className={cn('h-3', 'w-3')} />
-                                Copy
+                                <IconCopy className={cn('h-4', 'w-4')} />
                               </button>
                             </div>
                             {/* Editor */}
-                            <div className={cn('h-[240px]', 'overflow-hidden', 'bg-background')}>
-                              <Editor
-                                height="100%"
-                                language={
-                                  submitResult?.submitted_language?.value ||
-                                  selectedLang.value
-                                }
-                                value={submitResult?.submitted_code || code}
-                                theme={monacoTheme}
-                                options={{
-                                  readOnly: true,
-                                  fontSize: 12,
-                                  minimap: { enabled: false },
-                                  scrollBeyondLastLine: false,
-                                  wordWrap: "on",
-                                  automaticLayout: true,
-                                  padding: { top: 10, bottom: 10 },
-                                  lineNumbersMinChars: 3,
-                                }}
-                              />
+                            <div className={cn('flex-1', 'relative', 'min-h-[300px]', 'overflow-hidden', 'bg-background')}>
+                              <div className="absolute inset-0">
+                                <Editor
+                                  height="100%"
+                                  language={
+                                    submitResult?.submitted_language?.value ||
+                                    selectedLang.value
+                                  }
+                                  value={submitResult?.submitted_code ? submitResult.submitted_code.replace(/^[\r\n]+/, '') : code}
+                                  theme={monacoTheme}
+                                  options={{
+                                    readOnly: true,
+                                    fontSize: 12,
+                                    minimap: { enabled: false },
+                                    scrollBeyondLastLine: false,
+                                    smoothScrolling: true,
+                                    wordWrap: "on",
+                                    automaticLayout: true,
+                                    padding: { top: 10, bottom: 10 },
+                                    lineNumbersMinChars: 3,
+                                    scrollbar: { vertical: "hidden", horizontal: "hidden" },
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2456,7 +2468,7 @@ export function ProblemWorkspaceClient({
                     );
                   })()
                 ) : submitResult ? (
-                  <div className={cn('space-y-5', 'animate-in', 'fade-in', 'duration-300', 'pr-1', 'pb-4')}>
+                  <div className={cn('space-y-5', 'animate-in', 'fade-in', 'duration-300', 'pr-1', 'pb-4', 'flex', 'flex-col', 'flex-1', 'min-h-0')}>
                     <div className={cn('border-b', 'border-border/40', 'pb-4')}>
                       <h2 className={cn('text-rose-500', 'font-extrabold', 'text-2xl', 'tracking-tight', 'mb-1')}>
                         {submitResult.status}
@@ -2557,8 +2569,8 @@ export function ProblemWorkspaceClient({
 
 
                     {/* Submitted Code Editor for reference */}
-                    <div className={cn('mt-5', 'pt-4', 'border-t', 'border-border/60')}>
-                      <div className={cn('rounded-xl', 'border', 'border-border/60', 'overflow-hidden', 'shadow-sm', 'bg-card')}>
+                    <div className={cn('mt-5', 'pt-4', 'border-t', 'border-border/60', 'flex-1', 'flex', 'flex-col')}>
+                      <div className={cn('rounded-xl', 'border', 'border-border/60', 'overflow-hidden', 'shadow-sm', 'bg-card', 'flex-1', 'flex', 'flex-col')}>
                         {/* Card Header */}
                         <div className={cn('flex', 'items-center', 'justify-between', 'px-3', 'py-2', 'bg-muted/40', 'border-b', 'border-border/50', 'select-none')}>
                           <div className={cn('flex', 'items-center', 'gap-2')}>
@@ -2570,40 +2582,44 @@ export function ProblemWorkspaceClient({
                           </div>
                           <button
                             onClick={() => { navigator.clipboard.writeText(submitResult?.submitted_code || code); toast.success('Copied!'); }}
-                            className={cn('flex', 'items-center', 'gap-1', 'px-2', 'py-1', 'rounded-md', 'text-[10px]', 'font-bold', 'text-zinc-500 dark:text-muted-foreground/70', 'hover:text-foreground', 'hover:bg-muted', 'transition-colors')}
+                            className={cn('p-1.5', 'rounded-md', 'text-zinc-500 dark:text-muted-foreground/70', 'hover:text-foreground', 'hover:bg-muted', 'transition-colors')}
+                            title="Copy"
                           >
-                            <IconCopy className={cn('h-3', 'w-3')} />
-                            Copy
+                            <IconCopy className={cn('h-4', 'w-4')} />
                           </button>
                         </div>
                         {/* Editor */}
-                        <div className={cn('h-[240px]', 'overflow-hidden', 'bg-background')}>
-                          <Editor
-                            height="100%"
-                            language={
-                              submitResult?.submitted_language?.value ||
-                              selectedLang.value
-                            }
-                            value={submitResult?.submitted_code || code}
-                            theme={monacoTheme}
-                            options={{
-                              readOnly: true,
-                              fontSize: 12,
-                              minimap: { enabled: false },
-                              scrollBeyondLastLine: false,
-                              wordWrap: "on",
-                              automaticLayout: true,
-                              padding: { top: 10, bottom: 10 },
-                              lineNumbersMinChars: 3,
-                            }}
-                          />
+                        <div className={cn('flex-1', 'relative', 'min-h-[300px]', 'overflow-hidden', 'bg-background')}>
+                          <div className="absolute inset-0">
+                            <Editor
+                              height="100%"
+                              language={
+                                submitResult?.submitted_language?.value ||
+                                selectedLang.value
+                              }
+                              value={submitResult?.submitted_code ? submitResult.submitted_code.replace(/^[\r\n]+/, '') : code}
+                              theme={monacoTheme}
+                              options={{
+                                readOnly: true,
+                                fontSize: 12,
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                smoothScrolling: true,
+                                wordWrap: "on",
+                                automaticLayout: true,
+                                padding: { top: 10, bottom: 10 },
+                                lineNumbersMinChars: 3,
+                                scrollbar: { vertical: "hidden", horizontal: "hidden" },
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : null}
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
           <TabsContent value="notes" className={cn('mt-0', 'outline-none', 'flex-1', 'w-full', 'overflow-hidden', 'relative', 'flex', 'flex-col')}>
             <ProblemNotes
@@ -2798,10 +2814,13 @@ export function ProblemWorkspaceClient({
             fontSize: ideSettings.fontSize,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
+            smoothScrolling: true,
+            cursorSmoothCaretAnimation: "on",
             wordWrap: ideSettings.wordWrap,
             automaticLayout: true,
             padding: { top: 10, bottom: 10 },
             lineNumbersMinChars: 3,
+            scrollbar: { vertical: "hidden", horizontal: "hidden" },
           }}
           onMount={(editor, monaco) => {
             editorRef.current = editor;
@@ -3592,16 +3611,35 @@ export function ProblemWorkspaceClient({
                                     className={`language-${LANGUAGES.find((l) => l.id === sub.language_id)?.value || "javascript"
                                       }`}
                                     dangerouslySetInnerHTML={{
-                                      __html: getHighlightedCode(viewingCode || "// Code not available", sub.language_id)
+                                      __html: getHighlightedCode((viewingCode ? viewingCode.replace(/^[\r\n]+/, '') : "") || "// Code not available", sub.language_id)
                                     }}
                                   />
                                 </pre>
                                 <div className="absolute top-2 right-2 flex gap-1.5 opacity-85 hover:opacity-100 transition-opacity">
                                   <button
-                                    onClick={() => handleCopyToClipboard(viewingCode)}
-                                    className="bg-muted hover:bg-accent text-foreground border border-border px-2 py-0.5 rounded text-[9px] font-bold transition-all shadow-sm"
+                                    onClick={() => {
+                                      const lang = LANGUAGES.find((l) => l.id === viewingSubmission?.language_id);
+                                      if (lang) {
+                                        const key = isDailyChallenge
+                                          ? `logiclab_daily_challenge_${dailyChallengeId}_code_${lang.value}`
+                                          : `logiclab_problem_${problem.id}_code_${lang.value}`;
+                                        localStorage.setItem(key, JSON.stringify({ code: viewingCode, timestamp: Date.now() }));
+                                        setSelectedLang(lang);
+                                      }
+                                      setCode(viewingCode);
+                                      toast.success("Restored to workspace!");
+                                    }}
+                                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 p-1.5 rounded transition-all shadow-sm"
+                                    title="Restore"
                                   >
-                                    Copy
+                                    <IconRefresh className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleCopyToClipboard(viewingCode)}
+                                    className="bg-muted hover:bg-accent text-foreground border border-border p-1.5 rounded transition-all shadow-sm"
+                                    title="Copy"
+                                  >
+                                    <IconCopy className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -3845,6 +3883,7 @@ export function ProblemWorkspaceClient({
               <SelectContent
                 position="popper"
                 sideOffset={4}
+                className="z-[10000]"
               >
                 <SelectGroup>
                   <SelectItem value="all">All Status</SelectItem>
@@ -3863,6 +3902,7 @@ export function ProblemWorkspaceClient({
               <SelectContent
                 position="popper"
                 sideOffset={4}
+                className="z-[10000]"
               >
                 <SelectGroup>
                   <SelectItem value="all">All Levels</SelectItem>
