@@ -47,6 +47,7 @@ interface Props {
   initialData?: InitialTestData
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
+  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
   onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
   onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
   cohortOptions?: CohortOption[]
@@ -118,6 +119,7 @@ export function CreateTestClient({
   initialData,
   availableTags,
   generateQuestionsAction,
+  generateQuestionsFromSyllabusAction,
   onSaveDraft,
   onPublish,
   cohortOptions,
@@ -242,6 +244,7 @@ export function CreateTestClient({
           setQuestions={setQuestions}
           availableTags={availableTags}
           generateQuestionsAction={generateQuestionsAction}
+          generateQuestionsFromSyllabusAction={generateQuestionsFromSyllabusAction}
         />
 
       </div>
@@ -1687,6 +1690,282 @@ function ImportSheet({ open, onOpenChange, onImport }: ImportSheetProps) {
   )
 }
 
+// ─── Sub-Component: AiGenerateSyllabusSheet ───────────────────────────────────────────
+
+interface AiGenerateSyllabusSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
+  onImport: (questions: QuestionForm[]) => void
+}
+
+function AiGenerateSyllabusSheet({
+  open,
+  onOpenChange,
+  generateQuestionsFromSyllabusAction,
+  onImport,
+}: AiGenerateSyllabusSheetProps) {
+  const [form, setForm] = useState<Omit<AiGenerateForm, "topic">>({ count: "5", difficulty: "medium", question_type: "single_correct" })
+  const [file, setFile] = useState<File | null>(null)
+  const [generated, setGenerated] = useState<AiPreviewQuestion[]>([])
+  const [generatedWith, setGeneratedWith] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const countFieldError =
+    form.count !== "" && (Number(form.count) < 1 || Number(form.count) > 20)
+      ? "Enter a number between 1 and 20."
+      : null
+
+  const setField = <K extends keyof Omit<AiGenerateForm, "topic">>(k: K, v: Omit<AiGenerateForm, "topic">[K]) =>
+    setForm((f) => ({ ...f, [k]: v }))
+
+  const handleGenerate = () => {
+    const count = Number(form.count)
+    if (!file) {
+      setError("Please upload a PDF syllabus.")
+      return
+    }
+    if (!generateQuestionsFromSyllabusAction) {
+      setError("AI generation is not configured.")
+      return
+    }
+    if (isNaN(count) || count < 1 || count > 20) {
+      setError("Count must be between 1 and 20.")
+      return
+    }
+
+    setError(null)
+    setGenerated([])
+    setGeneratedWith(null)
+
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("count", String(count))
+    formData.append("difficulty", form.difficulty)
+    formData.append("question_type", form.question_type)
+
+    startTransition(async () => {
+      try {
+        const result = await generateQuestionsFromSyllabusAction(formData)
+        if (result.error) {
+          setGeneratedWith(null)
+          setError(result.error)
+          return
+        }
+        setGeneratedWith(result.generatedWith || null)
+        setGenerated((result.questions || []).map((q) => ({
+          ...q, _selected: true, _previewId: crypto.randomUUID(), _warnings: [], _showExplanation: false
+        })))
+      } catch (err: any) {
+        setGeneratedWith(null)
+        setError(err?.message ?? "Failed to generate questions. Please try again.")
+      }
+    })
+  }
+
+  const handleImport = () => {
+    const selected = generated.filter((q) => q._selected)
+    if (!selected.length) {
+      setError("Select at least one question.")
+      return
+    }
+    onImport(selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => q))
+    handleClose()
+  }
+
+  const handleClose = () => {
+    setForm({ count: "5", difficulty: "medium", question_type: "single_correct" })
+    setFile(null)
+    setGenerated([])
+    setGeneratedWith(null)
+    setError(null)
+    onOpenChange(false)
+  }
+
+  const toggleSelected = (previewId: string) =>
+    setGenerated((p) => p.map((x) => x._previewId === previewId ? { ...x, _selected: !x._selected } : x))
+
+  const toggleExplanation = (previewId: string) =>
+    setGenerated((p) => p.map((x) => x._previewId === previewId ? { ...x, _showExplanation: !x._showExplanation } : x))
+
+  const selectedCount = generated.filter((q) => q._selected).length
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetHeader className="shrink-0 border-b px-6 py-4">
+          <SheetTitle className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-purple-500" />
+            Generate from Syllabus
+          </SheetTitle>
+          <SheetDescription>
+            Upload a PDF syllabus to automatically extract topics and generate questions.
+          </SheetDescription>
+          {generatedWith && (
+            <div className="pt-2"><Badge variant="secondary" className="font-normal">Generated with: {generatedWith}</Badge></div>
+          )}
+        </SheetHeader>
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {error && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label>Syllabus Document (PDF) <span className="text-destructive">*</span></Label>
+            <div
+              className="flex cursor-pointer flex-col items-center gap-3 rounded-md border-2 border-dashed p-6 transition-colors hover:bg-muted/40"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-6 w-6 text-muted-foreground/40" />
+              <div className="text-center">
+                <p className="text-sm font-medium">{file ? file.name : "Click to upload"}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">PDF files only (max 50,000 characters extracted)</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) setFile(f)
+                }}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label>Count</Label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={form.count}
+                onChange={(e) => setField("count", e.target.value)}
+                onBlur={() => { if (!form.count.trim()) setField("count", "5") }}
+                className={cn("text-sm", countFieldError && "border-destructive focus-visible:ring-destructive")}
+                disabled={isPending}
+              />
+              {countFieldError && (
+                <p className="flex items-center gap-1 text-xs text-destructive"><AlertCircle className="h-3 w-3 shrink-0" />{countFieldError}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Difficulty</Label>
+              <Select value={form.difficulty} onValueChange={(v: "easy" | "medium" | "hard") => setField("difficulty", v)} disabled={isPending}>
+                <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={form.question_type} onValueChange={(v: "single_correct" | "multiple_correct" | "mixed") => setField("question_type", v)} disabled={isPending}>
+                <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single_correct">Single</SelectItem>
+                  <SelectItem value="multiple_correct">Multiple</SelectItem>
+                  <SelectItem value="mixed">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <GenerateButton
+            onClick={handleGenerate}
+            isGenerating={isPending}
+            disabled={isPending || !file || !generateQuestionsFromSyllabusAction || !!countFieldError}
+            text="Extract & Generate"
+            generatingText="Extracting & Generating"
+            hue={275}
+            className="w-full"
+          />
+          {isPending && (
+            <div className="space-y-3">
+              {Array.from({ length: Number(form.count) || 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 border border-border/40" />
+              ))}
+            </div>
+          )}
+          {!isPending && generated.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{generated.length} question{generated.length !== 1 ? "s" : ""} generated</p>
+                </div>
+                <div className="flex gap-2 text-xs text-muted-foreground">
+                  <button type="button" className="hover:text-foreground" onClick={() => setGenerated((p) => p.map((q) => ({ ...q, _selected: true })))}>Select all</button>
+                  <span>·</span>
+                  <button type="button" className="hover:text-foreground" onClick={() => setGenerated((p) => p.map((q) => ({ ...q, _selected: false })))}>Deselect all</button>
+                </div>
+              </div>
+              {generated.map((q, idx) => (
+                <button
+                  key={q._previewId}
+                  type="button"
+                  onClick={() => toggleSelected(q._previewId)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSelected(q._previewId) } }}
+                  className={cn("w-full text-left space-y-2 rounded-md border p-3 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1", q._selected ? "border-primary/40 bg-primary/5" : "opacity-50 hover:opacity-80")}
+                >
+                  <div className="flex items-start gap-2">
+                    <Checkbox checked={q._selected} onCheckedChange={() => toggleSelected(q._previewId)} className="mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()} />
+                    <p className="flex-1 text-sm font-medium leading-snug">{idx + 1}. <MathText>{q.question_text}</MathText></p>
+                    {q._warnings.length > 0 && <Badge className="shrink-0 border-amber-300 bg-amber-100 text-xs text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400">Auto-fixed</Badge>}
+                  </div>
+                  <div className="space-y-1 pl-6">
+                    {q.options.map((opt, oi) => (
+                      <div key={opt._key} className={cn("flex items-center gap-1.5 text-xs", opt.is_correct ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                        {opt.is_correct ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <Circle className="h-3 w-3 shrink-0" />}
+                        {String.fromCharCode(65 + oi)}. <MathText>{opt.option_text}</MathText>
+                      </div>
+                    ))}
+                  </div>
+                  {q._warnings.length > 0 && (
+                    <div className="space-y-1 pl-6">
+                      {q._warnings.map((w) => (
+                        <p key={w} className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"><AlertTriangle className="h-3 w-3 shrink-0" />{w}</p>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 pl-6">
+                    <Badge variant="outline" className="h-4 px-1.5 py-0 text-xs">{q.question_type === "single_correct" ? "Single" : "Multiple"}</Badge>
+                    <span className="text-xs text-muted-foreground">{q.marks} mark{q.marks !== 1 ? "s" : ""}</span>
+                    {q.tag_names.map((tag) => <Badge key={tag} variant="secondary" className="h-4 px-1.5 py-0 text-xs font-normal">{tag}</Badge>)}
+                  </div>
+                  {q.explanation && (
+                    <div className="pl-6">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleExplanation(q._previewId) }} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                        {q._showExplanation ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        {q._showExplanation ? "Hide" : "Show"} explanation
+                      </button>
+                      {q._showExplanation && (
+                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground"><MathText>{q.explanation}</MathText></p>
+                      )}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <SheetFooter className="shrink-0 flex-row justify-end gap-2 border-t px-6 py-4">
+          <Button variant="outline" onClick={handleClose} disabled={isPending}>Cancel</Button>
+          {generated.length > 0 && (
+            <Button onClick={handleImport} disabled={selectedCount === 0 || isPending}>
+              Add {selectedCount} Question{selectedCount !== 1 ? "s" : ""}
+            </Button>
+          )}
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 // ─── Sub-Component: QuestionsPanel ────────────────────────────────────────────
 
 interface QuestionsPanelProps {
@@ -1694,6 +1973,7 @@ interface QuestionsPanelProps {
   setQuestions: React.Dispatch<React.SetStateAction<LocalQuestion[]>>
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
+  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
 }
 
 function QuestionsPanel({
@@ -1701,9 +1981,11 @@ function QuestionsPanel({
   setQuestions,
   availableTags,
   generateQuestionsAction,
+  generateQuestionsFromSyllabusAction,
 }: QuestionsPanelProps) {
   const [questionSheetOpen, setQuestionSheetOpen] = useState(false)
   const [aiSheetOpen, setAiSheetOpen] = useState(false)
+  const [aiSyllabusSheetOpen, setAiSyllabusSheetOpen] = useState(false)
   const [importSheetOpen, setImportSheetOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<LocalQuestion | null>(null)
 
@@ -1797,6 +2079,9 @@ function QuestionsPanel({
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setAiSheetOpen(true)}>
                 <Sparkles className="mr-1.5 size-4" /> AI Generate
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setAiSyllabusSheetOpen(true)}>
+                <BookOpen className="mr-1.5 size-4" /> Syllabus PDF
               </Button>
               <Button size="sm" variant="outline" onClick={() => setImportSheetOpen(true)}>
                 <Upload className="mr-1.5 size-4" /> Import
@@ -1894,6 +2179,13 @@ function QuestionsPanel({
         open={aiSheetOpen}
         onOpenChange={setAiSheetOpen}
         generateQuestionsAction={generateQuestionsAction}
+        onImport={handleAiImport}
+      />
+
+      <AiGenerateSyllabusSheet
+        open={aiSyllabusSheetOpen}
+        onOpenChange={setAiSyllabusSheetOpen}
+        generateQuestionsFromSyllabusAction={generateQuestionsFromSyllabusAction}
         onImport={handleAiImport}
       />
 
