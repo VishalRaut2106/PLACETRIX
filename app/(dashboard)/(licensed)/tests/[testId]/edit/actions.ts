@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { GoogleGenAI } from "@google/genai"
+import pdfParse from "pdf-parse"
 
 // --- Shared types ---
 export type SettingsForm = {
@@ -565,3 +566,171 @@ ${existingTagsStr}`
       : "Failed to generate questions. Please try again."
   }
 }
+
+export async function generateQuestionsFromSyllabusAction(
+  formData: FormData
+): Promise<GenerateQuestionsResult> {
+  await requireAuth()
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return { error: "AI generation is not configured. Missing GEMINI_API_KEY in environment." }
+
+  const file = formData.get("file") as File
+  if (!file) return { error: "No file uploaded." }
+
+  const countStr = formData.get("count") as string || "5"
+  const count = Math.min(20, Math.max(1, parseInt(countStr, 10) || 5))
+  
+  const difficultyStr = formData.get("difficulty") as "easy" | "medium" | "hard" || "medium"
+  const marksDefault = DIFFICULTY_MARKS[difficultyStr]
+  
+  const questionTypeStr = formData.get("question_type") as "single_correct" | "multiple_correct" | "mixed" || "mixed"
+  const typeInstruction =
+    questionTypeStr === "mixed"
+      ? `Distribute types evenly: roughly half "single_correct" (exactly 1 correct option) and half "multiple_correct" (2–3 correct options).`
+      : questionTypeStr === "multiple_correct"
+        ? `All questions must be "multiple_correct" with exactly 2–3 correct options out of 4.`
+        : `All questions must be "single_correct" with exactly 1 correct option out of 4.`
+
+  let text = ""
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const pdfData = await pdfParse(buffer)
+    text = pdfData.text
+  } catch (err) {
+    console.error("[generateQuestionsFromSyllabusAction] Failed to parse PDF:", err)
+    return { error: "Failed to parse PDF file." }
+  }
+
+  if (!text || text.trim().length === 0) {
+    return { error: "No text could be extracted from the PDF." }
+  }
+
+  const truncatedText = text.slice(0, 50000)
+  const ai = new GoogleGenAI({ apiKey })
+
+  const systemPrompt = `You are an expert exam question author for educational assessments.
+
+STRICT RULES you must follow for every question:
+1. Every question has EXACTLY 4 options — no more, no less.
+2. "single_correct" → exactly 1 option with is_correct=true; the other 3 must be is_correct=false.
+3. "multiple_correct" → exactly 2 or 3 options with is_correct=true; the rest must be is_correct=false.
+4. All distractors (incorrect options) must be plausible but unambiguously wrong to a knowledgeable person.
+5. The "explanation" field must (a) confirm why the correct answer(s) are right, and (b) briefly explain why the main distractor is wrong.
+6. "tag_names": provide 1–3 short topic tags (e.g. "photosynthesis", "linear algebra", "Ohm's law").
+7. Every question must have marks = 1, regardless of difficulty.
+8. Vary cognitive levels across the batch: include recall, application, and analysis questions.
+9. Never repeat similar or near-identical questions within the same batch.
+10. Your response must be a raw JSON object — no markdown, no code fences, no extra text.
+11. LATEX & MATH FORMATTING:
+    - For ANY mathematical content, equations, standalone variables, chemical equations, scientific notations, fractions, matrices, or exponents, you MUST use standard LaTeX.
+    - Use single dollar signs ($...$) for inline math and double dollar signs ($$...$$) for centered block math equations.
+    - Backslash Escaping in JSON: Because your response is JSON, you MUST double-escape all LaTeX backslashes so they parse correctly. For example, write "\\\\frac{a}{b}" instead of "\\frac{a}{b}".
+
+It must follow this exact shape:
+{
+  "questions": [
+    {
+      "question_text": "string",
+      "question_type": "single_correct" | "multiple_correct",
+      "marks": 1,
+      "explanation": "string",
+      "tag_names": ["string"],
+      "options": [
+        { "option_text": "string", "is_correct": true | false }
+      ]
+    }
+  ]
+}`
+
+  const nonce = crypto.randomUUID()
+  const randomSeed = Math.floor(Math.random() * 1000000)
+
+  const userPrompt = `[Request ID: ${nonce}]
+[Random Seed: ${randomSeed}]
+Generate exactly ${count} questions based STRICTLY on the following syllabus text.
+Difficulty: ${difficultyStr}. Each question carries 1 mark.
+${typeInstruction}
+Ensure all questions are entirely distinct, unique, and cover different concepts from the syllabus text below. Do not include questions on topics not covered in the text.
+
+--- SYLLABUS TEXT ---
+${truncatedText}
+---------------------`
+
+  const attemptWithModel = async (model: string): Promise<GenerateQuestionsResult> => {
+    const response = await ai.models.generateContent({
+      model,
+      contents: userPrompt,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.25,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  question_text: { type: "string" },
+                  question_type: { type: "string", enum: ["single_correct", "multiple_correct"] },
+                  marks: { type: "integer" },
+                  explanation: { type: "string" },
+                  tag_names: { type: "array", items: { type: "string" } },
+                  options: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: { option_text: { type: "string" }, is_correct: { type: "boolean" } },
+                      required: ["option_text", "is_correct"]
+                    }
+                  }
+                },
+                required: ["question_text", "question_type", "marks", "explanation", "tag_names", "options"]
+              }
+            }
+          },
+          required: ["questions"]
+        }
+      }
+    })
+
+    const raw = response.text
+    if (!raw) throw new Error("Empty response from AI.")
+    const textResp = stripCodeFences(raw)
+    let parsed: any
+    try {
+      parsed = JSON.parse(textResp)
+    } catch (parseErr) {
+      throw new Error("The AI returned an invalid format. Retrying with another model...")
+    }
+
+    const rawList: any[] = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.questions) ? parsed.questions : []
+    const questions = sanitizeQuestions(rawList, marksDefault)
+    if (questions.length === 0) throw new Error("No valid questions returned by the AI. Please try again.")
+
+    return { questions, generatedWith: model }
+  }
+
+  let lastError: unknown
+  for (const model of MODEL_FALLBACK_CHAIN) {
+    try {
+      return await attemptWithModel(model)
+    } catch (err) {
+      lastError = err
+      if (isRetryableOnNextModel(err)) continue
+      try {
+        return await attemptWithModel(model)
+      } catch (retryErr) {
+        lastError = retryErr
+      }
+    }
+  }
+
+  console.error("[generateQuestionsFromSyllabusAction] All models exhausted.", lastError)
+  return {
+    error: lastError instanceof Error ? `AI generation failed: ${lastError.message}` : "Failed to generate questions. Please try again."
+  }
+}
+
