@@ -48,12 +48,10 @@ export type DiagnosticResultPayload = {
 }
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemma-4-31b-it",
-  "gemma-4-26b-it",
-  "gemini-3.5-flash",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
+  "gemma-2-27b-it",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
@@ -89,8 +87,23 @@ export async function generateConceptualFeedbackAction(
     return { error: "No test questions provided for evaluation." }
   }
 
-  // Build readable summary for AI
-  const formattedQuestions = input.answers.map((a, idx) => {
+  // Filter incorrect questions for deep LLM evaluation to save latency and token overhead
+  const incorrectAnswers = input.answers.filter((a) => !a.is_correct)
+  
+  // Create instant default diagnosis entries for correct answers
+  const correctDiagnoses: QuestionDiagnosis[] = input.answers
+    .filter((a) => a.is_correct)
+    .map((a) => ({
+      question_id: a.question_id,
+      is_correct: true,
+      conceptual_flaw_summary: "Concept mastered.",
+      why_choice_was_wrong: "N/A (Correctly answered).",
+      correct_concept_explanation: a.explanation || "Correct reasoning demonstrated.",
+      distractor_analysis: "N/A",
+    }))
+
+  // Build readable summary for AI focusing on incorrect questions & high-level performance
+  const formattedIncorrect = (incorrectAnswers.length > 0 ? incorrectAnswers : input.answers).map((a, idx) => {
     const selectedTexts = a.options
       .filter((o) => a.selected_option_ids.includes(o.id))
       .map((o) => o.option_text)
@@ -107,10 +120,10 @@ export async function generateConceptualFeedbackAction(
 
     const tagNames = (a.tags ?? []).map((t) => t.name).join(", ")
 
-    return `Question #${idx + 1} (ID: ${a.question_id}):
+    return `Question (ID: ${a.question_id}):
 Text: ${a.question_text}
 Tags: ${tagNames || "None"}
-Status: ${a.is_correct ? "CORRECT" : "INCORRECT"}
+Status: INCORRECT
 Student Selected: ${selectedTexts || "(Unanswered / None selected)"}
 Correct Option(s): ${correctTexts}
 Explanation: ${a.explanation || "N/A"}
@@ -122,40 +135,35 @@ ${allOptionsStr}`
 
   const systemInstruction = `You are Gemma 4 — an advanced educational AI diagnostician for student assessment.
 
-Your mission is to perform a deep conceptual evaluation of a student's test performance.
-Rather than just reporting numerical marks, your job is to explain WHY the student made errors, identify cognitive distractor traps they fell into, and provide constructive, personalized study guidance.
+Your mission is to perform a rapid, deep conceptual evaluation of a student's test performance.
+Identify cognitive distractor traps they fell into and provide concise, actionable study guidance.
 
-STRICT INSTRUCTIONS FOR THE DIAGNOSIS:
-1. "overall_diagnosis": High-level synthesis of candidate's mastery level and conceptual understanding.
-2. "strengths": 2–4 bullet points celebrating concepts the student mastered well.
-3. "key_misconceptions": 2–4 bullet points identifying core conceptual flaws or misconceptions behind wrong answers.
-4. "recommended_review_topics": 2–5 specific topics or subfields the student must review.
-5. "question_diagnoses": An array with an entry for EVERY question evaluated.
-   - For INCORRECT questions:
-     * "conceptual_flaw_summary": One-sentence summary of the flaw.
-     * "why_choice_was_wrong": Explain specifically why their selected option is wrong and what flaw in reasoning led to choosing it.
-     * "correct_concept_explanation": Explain the correct underlying concept clearly.
-     * "distractor_analysis": Explain why the wrong option was tempting (the distractor trap).
-   - For CORRECT questions:
-     * "conceptual_flaw_summary": "Concept mastered."
-     * "why_choice_was_wrong": "N/A (Correctly answered)."
-     * "correct_concept_explanation": Brief reinforcement of why the reasoning is sound.
-     * "distractor_analysis": "N/A"
+STRICT INSTRUCTIONS:
+1. "overall_diagnosis": Concise 2-3 sentence synthesis of candidate's mastery level and conceptual understanding.
+2. "strengths": 2–3 short bullet points celebrating concepts the student mastered well.
+3. "key_misconceptions": 2–3 short bullet points identifying core conceptual flaws behind wrong answers.
+4. "recommended_review_topics": 2–4 specific topics or subfields the student must review.
+5. "question_diagnoses": An array with an entry for EVERY incorrect question evaluated in the prompt.
+   - "conceptual_flaw_summary": One clear sentence summarizing the flaw.
+   - "why_choice_was_wrong": Explain why their selected option is wrong and what reasoning flaw led to it.
+   - "correct_concept_explanation": Explain the correct concept clearly and concisely.
+   - "distractor_analysis": Explain why the wrong option was a tempting distractor trap.
 6. LATEX FORMATTING:
    - Use standard single dollar signs ($...$) for inline math and double dollar signs ($$...$$) for centered block math.
-   - Double-escape backslashes in JSON output (e.g., "\\\\frac{a}{b}", "\\\\rightarrow").
+   - Double-escape backslashes in JSON output (e.g., "\\\\frac{a}{b}").
 
 Output MUST be a single raw JSON object matching the requested schema.`
 
   const userPrompt = `Test Title: ${input.testTitle}
 Score: ${input.score ?? 0} / ${input.totalMarks ?? 0} (${input.percentage ?? 0}%)
+Total Questions: ${input.answers.length} (Correct: ${input.answers.length - incorrectAnswers.length}, Incorrect: ${incorrectAnswers.length})
 
-Detailed Test Attempt Questions and Student Answers:
+Student Errors to Diagnose:
 ---
-${formattedQuestions}
+${formattedIncorrect}
 ---
 
-Perform a deep conceptual diagnostic evaluation for this student attempt.`
+Perform a rapid conceptual diagnostic evaluation.`
 
   const attemptWithModel = async (model: string): Promise<DiagnosticResultPayload> => {
     const response = await ai.models.generateContent({
@@ -163,7 +171,7 @@ Perform a deep conceptual diagnostic evaluation for this student attempt.`
       contents: userPrompt,
       config: {
         systemInstruction,
-        temperature: 0.2,
+        temperature: 0.1,
         responseMimeType: "application/json",
         responseSchema: {
           type: "object",
@@ -212,13 +220,20 @@ Perform a deep conceptual diagnostic evaluation for this student attempt.`
     const cleanJson = stripCodeFences(raw)
     const parsed = JSON.parse(cleanJson)
 
+    const llmDiagnoses: QuestionDiagnosis[] = Array.isArray(parsed.question_diagnoses) 
+      ? parsed.question_diagnoses.map((d: any) => ({ ...d, is_correct: false }))
+      : []
+
+    // Combine instant correct diagnoses with LLM incorrect diagnoses
+    const allDiagnoses = [...correctDiagnoses, ...llmDiagnoses]
+
     return {
       model_used: model,
       overall_diagnosis: String(parsed.overall_diagnosis || ""),
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
       key_misconceptions: Array.isArray(parsed.key_misconceptions) ? parsed.key_misconceptions.map(String) : [],
       recommended_review_topics: Array.isArray(parsed.recommended_review_topics) ? parsed.recommended_review_topics.map(String) : [],
-      question_diagnoses: Array.isArray(parsed.question_diagnoses) ? parsed.question_diagnoses : [],
+      question_diagnoses: allDiagnoses,
       generated_at: new Date().toISOString(),
     }
   }
