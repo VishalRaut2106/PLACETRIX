@@ -6,7 +6,7 @@
 
 import { type ReactNode, useMemo, useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,21 +27,13 @@ import {
   X,
   CalendarClock,
   AlertCircle,
-  RotateCcw,
   Lock,
-  BookOpen,
   Timer,
   CalendarX,
-  Lightbulb,
-  ListChecks,
-  Trophy,
   Sparkles,
-  Brain,
-  GraduationCap,
-  Target,
-  AlertTriangle,
   Loader2,
-  CheckCircle2,
+  Lightbulb,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
@@ -270,12 +262,9 @@ function QuestionReviewItem({
 
         {/* ── Gemma AI Conceptual Breakdown ─────────────────────────────── */}
         {qDiagnosis && !isInProgress && (
-          <div className="mt-3.5 space-y-2 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3.5 dark:bg-purple-950/20">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                Gemma 4 Conceptual Analysis
-              </span>
+          <div className="mt-3 rounded-lg border bg-muted/30 p-3 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <span>AI Conceptual Analysis</span>
             </div>
             
             <p className="text-xs font-medium text-foreground">
@@ -283,17 +272,17 @@ function QuestionReviewItem({
             </p>
 
             {!isCorrect && qDiagnosis.why_choice_was_wrong && qDiagnosis.why_choice_was_wrong !== "N/A" && (
-              <div className="mt-2 text-xs space-y-1 text-muted-foreground">
-                <span className="font-semibold text-rose-600 dark:text-rose-400">Why your choice was flawed:</span>{" "}
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Reasoning Flaw: </span>
                 <MathText>{qDiagnosis.why_choice_was_wrong}</MathText>
-              </div>
+              </p>
             )}
 
             {qDiagnosis.correct_concept_explanation && (
-              <div className="mt-1 text-xs space-y-1 text-muted-foreground">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Core Concept:</span>{" "}
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Core Concept: </span>
                 <MathText>{qDiagnosis.correct_concept_explanation}</MathText>
-              </div>
+              </p>
             )}
           </div>
         )}
@@ -617,130 +606,117 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           {/* ── Gemma 4 AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
-            <Card className="overflow-hidden border-purple-500/30 bg-gradient-to-br from-purple-950/10 via-background to-blue-950/10 dark:from-purple-950/20 dark:to-blue-950/20">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                      <Sparkles className="h-5 w-5 animate-pulse" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm text-foreground">Gemma 4 AI Conceptual Diagnostic Assistant</h3>
-                        <Badge variant="secondary" className="h-4 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] font-bold">
-                          Next-Gen AI Education
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Deep AI evaluation analyzing conceptual gaps, cognitive misconceptions, and distractor traps.
-                      </p>
-                    </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-semibold">
+                      AI Conceptual Diagnostic Assistant
+                    </CardTitle>
+                    <Badge variant="secondary" className="font-normal text-[11px]">
+                      Gemma 4
+                    </Badge>
                   </div>
-
-                  <Button
-                    onClick={handleGenerateDiagnostic}
-                    disabled={isGeneratingDiagnostic}
-                    size="sm"
-                    className="gap-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs rounded-lg shadow-sm"
-                  >
-                    {isGeneratingDiagnostic ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        Diagnosing Concepts...
-                      </>
-                    ) : diagnostic ? (
-                      <>
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Re-run AI Diagnosis
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="h-3.5 w-3.5" />
-                        Generate AI Diagnostic Analysis
-                      </>
-                    )}
-                  </Button>
+                  <CardDescription className="text-xs">
+                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps.
+                  </CardDescription>
                 </div>
 
-                {diagnosticError && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleGenerateDiagnostic}
+                  disabled={isGeneratingDiagnostic}
+                  className="shrink-0"
+                >
+                  {isGeneratingDiagnostic ? (
+                    <>
+                      <Loader2 className="mr-1.5 size-4 animate-spin" />
+                      Diagnosing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-1.5 size-4" />
+                      {diagnostic ? "Re-run AI Diagnosis" : "AI Diagnostic Analysis"}
+                    </>
+                  )}
+                </Button>
+              </CardHeader>
+
+              {diagnosticError && (
+                <CardContent className="pt-0">
                   <Alert variant="destructive" className="py-2 text-xs">
                     <AlertCircle className="h-3.5 w-3.5" />
                     <AlertTitle className="text-xs">Diagnostic Failed</AlertTitle>
                     <AlertDescription className="text-xs">{diagnosticError}</AlertDescription>
                   </Alert>
-                )}
+                </CardContent>
+              )}
 
-                {diagnostic && (
-                  <div className="mt-4 space-y-4 animate-in fade-in duration-300">
-                    <Separator />
-                    
-                    {/* Overall Diagnosis */}
-                    {diagnostic.overall_diagnosis && (
-                      <div className="rounded-xl border bg-card/60 p-3.5 space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-purple-600 dark:text-purple-400">
-                          <GraduationCap className="h-4 w-4" />
-                          <span>Overall Mastery & Synthesis</span>
-                        </div>
-                        <p className="text-xs leading-relaxed text-foreground">
-                          <MathText>{diagnostic.overall_diagnosis}</MathText>
-                        </p>
+              {diagnostic && (
+                <CardContent className="space-y-4 pt-0">
+                  <Separator />
+
+                  {/* Overall Diagnosis */}
+                  {diagnostic.overall_diagnosis && (
+                    <div className="space-y-1">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Overall Summary
+                      </span>
+                      <p className="text-xs text-foreground leading-relaxed">
+                        <MathText>{diagnostic.overall_diagnosis}</MathText>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Strengths & Misconceptions grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {diagnostic.strengths && diagnostic.strengths.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Strengths
+                        </span>
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                          {diagnostic.strengths.map((s, idx) => (
+                            <li key={idx} className="list-disc list-inside">
+                              <MathText>{s}</MathText>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
 
-                    {/* Strengths & Misconceptions grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {diagnostic.strengths && diagnostic.strengths.length > 0 && (
-                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>Demonstrated Strengths</span>
-                          </div>
-                          <ul className="space-y-1 text-xs text-muted-foreground">
-                            {diagnostic.strengths.map((s, idx) => (
-                              <li key={idx} className="flex items-start gap-1.5">
-                                <span className="text-emerald-500">•</span>
-                                <span><MathText>{s}</MathText></span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {diagnostic.key_misconceptions && diagnostic.key_misconceptions.length > 0 && (
-                        <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 space-y-2">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-400">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            <span>Diagnosed Conceptual Misconceptions</span>
-                          </div>
-                          <ul className="space-y-1 text-xs text-muted-foreground">
-                            {diagnostic.key_misconceptions.map((m, idx) => (
-                              <li key={idx} className="flex items-start gap-1.5">
-                                <span className="text-rose-500">•</span>
-                                <span><MathText>{m}</MathText></span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Recommended Review Topics */}
-                    {diagnostic.recommended_review_topics && diagnostic.recommended_review_topics.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                          <Target className="h-3.5 w-3.5" />
-                          Targeted Review Topics:
+                    {diagnostic.key_misconceptions && diagnostic.key_misconceptions.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Misconceptions
                         </span>
-                        {diagnostic.recommended_review_topics.map((topic, idx) => (
-                          <Badge key={idx} variant="outline" className="text-[11px] bg-background border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300">
-                            {topic}
-                          </Badge>
-                        ))}
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                          {diagnostic.key_misconceptions.map((m, idx) => (
+                            <li key={idx} className="list-disc list-inside">
+                              <MathText>{m}</MathText>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
-                )}
-              </CardContent>
+
+                  {/* Recommended Review Topics */}
+                  {diagnostic.recommended_review_topics && diagnostic.recommended_review_topics.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-xs font-semibold text-muted-foreground mr-1">
+                        Targeted Review Topics:
+                      </span>
+                      {diagnostic.recommended_review_topics.map((topic, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-[11px] font-normal">
+                          {topic}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              )}
             </Card>
           )}
 
