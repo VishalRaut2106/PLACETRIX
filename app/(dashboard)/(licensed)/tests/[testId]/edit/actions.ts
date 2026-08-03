@@ -297,13 +297,12 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 })
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemma-4-31b-it",
-  "gemma-4-26b-it",
+  "gemini-3.5-flash",
+  "gemini-2.5-pro",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
+  "gemini-1.5-pro",
   "gemini-1.5-flash",
-  "gemma-2-27b-it",
-  "gemini-2.5-pro",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {

@@ -48,12 +48,12 @@ export type DiagnosticResultPayload = {
 }
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemma-4-31b-it",
-  "gemma-4-26b-it",
+  "gemini-3.5-flash",
+  "gemini-2.5-pro",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
+  "gemini-1.5-pro",
   "gemini-1.5-flash",
-  "gemma-2-27b-it",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
@@ -135,7 +135,7 @@ ${allOptionsStr}`
 
   const ai = new GoogleGenAI({ apiKey })
 
-  const systemInstruction = `You are Gemma 4 — an advanced educational AI diagnostician for student assessment.
+  const systemInstruction = `You are Gemini — an advanced educational AI diagnostician for student assessment.
 
 Your mission is to perform a rapid, deep conceptual evaluation of a student's test performance.
 Identify cognitive distractor traps they fell into and provide concise, actionable study guidance.

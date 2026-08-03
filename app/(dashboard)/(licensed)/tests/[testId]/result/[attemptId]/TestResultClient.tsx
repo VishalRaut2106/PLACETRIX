@@ -246,6 +246,12 @@ function QuestionReviewItem({
                   {formatSeconds(answer.time_spent_seconds)}
                 </Badge>
               )}
+              {qDiagnosis && !isInProgress && (
+                <Badge variant="outline" className="h-4 gap-1 border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 text-[10px] font-normal">
+                  <Sparkles className="h-2.5 w-2.5 shrink-0 text-purple-500" />
+                  AI Analysis
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -264,29 +270,57 @@ function QuestionReviewItem({
           ))}
         </div>
 
-        {/* ── Gemma AI Conceptual Breakdown ─────────────────────────────── */}
+        {/* ── Gemini AI Conceptual Breakdown ─────────────────────────────── */}
         {qDiagnosis && !isInProgress && (
-          <div className="mt-3 rounded-lg border bg-muted/30 p-3 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              <span>AI Conceptual Analysis</span>
+          <div className="mt-3.5 rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 via-muted/30 to-blue-500/5 p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+                <span>AI Conceptual Analysis</span>
+              </div>
+              <Badge variant="outline" className="h-4 border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10 text-[10px]">
+                Gemini AI
+              </Badge>
             </div>
-            
-            <p className="text-xs font-medium text-foreground">
+
+            <p className="text-xs font-medium text-foreground leading-relaxed">
               <MathText>{qDiagnosis.conceptual_flaw_summary}</MathText>
             </p>
 
             {!isCorrect && qDiagnosis.why_choice_was_wrong && qDiagnosis.why_choice_was_wrong !== "N/A" && (
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Reasoning Flaw: </span>
-                <MathText>{qDiagnosis.why_choice_was_wrong}</MathText>
-              </p>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400 text-[11px]">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span>Reasoning Flaw</span>
+                </div>
+                <div className="text-foreground/90 pl-5 leading-relaxed">
+                  <MathText>{qDiagnosis.why_choice_was_wrong}</MathText>
+                </div>
+              </div>
+            )}
+
+            {!isCorrect && qDiagnosis.distractor_analysis && qDiagnosis.distractor_analysis !== "N/A" && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-red-700 dark:text-red-400 text-[11px]">
+                  <Target className="h-3.5 w-3.5 shrink-0" />
+                  <span>Distractor Trap Analysis</span>
+                </div>
+                <div className="text-foreground/90 pl-5 leading-relaxed">
+                  <MathText>{qDiagnosis.distractor_analysis}</MathText>
+                </div>
+              </div>
             )}
 
             {qDiagnosis.correct_concept_explanation && (
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Core Concept: </span>
-                <MathText>{qDiagnosis.correct_concept_explanation}</MathText>
-              </p>
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
+                <div className="flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400 text-[11px]">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  <span>Core Concept</span>
+                </div>
+                <div className="text-foreground/90 pl-5 leading-relaxed">
+                  <MathText>{qDiagnosis.correct_concept_explanation}</MathText>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -365,12 +399,12 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
         ? "text-amber-600 dark:text-amber-500"
         : "text-destructive"
 
-  // ── Gemma AI Conceptual Diagnostic State ─────────────────────────────────
+  // ── Gemini AI Conceptual Diagnostic State ─────────────────────────────────
   const [diagnostic, setDiagnostic] = useState<DiagnosticResultPayload | null>(null)
   const [isGeneratingDiagnostic, setIsGeneratingDiagnostic] = useState(false)
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
 
-  const handleGenerateDiagnostic = async () => {
+  const handleGenerateDiagnostic = useCallback(async () => {
     setIsGeneratingDiagnostic(true)
     setDiagnosticError(null)
 
@@ -406,7 +440,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
     } finally {
       setIsGeneratingDiagnostic(false)
     }
-  }
+  }, [test.title, attempt.score, attempt.total_marks, pct, displayAnswers])
 
   const questionDiagnosisMap = useMemo(() => {
     const map = new Map<string, QuestionDiagnosis>()
@@ -666,7 +700,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           </div>
 
-          {/* ── Gemma 4 AI Conceptual Diagnostic Assistant ─────────────────── */}
+          {/* ── Gemini AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
@@ -676,7 +710,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                       AI Conceptual Diagnostic Assistant
                     </CardTitle>
                     <Badge variant="secondary" className="font-normal text-[11px]">
-                      Gemma 4
+                      Gemini AI
                     </Badge>
                   </div>
                   <CardDescription className="text-xs">
