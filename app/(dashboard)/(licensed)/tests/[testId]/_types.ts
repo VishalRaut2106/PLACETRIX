@@ -66,6 +66,7 @@ export interface CandidateTestDetail
     | "available_from"
     | "available_until"
     | "results_available"
+    | "marks_available"
     | "shuffle_questions"
     | "shuffle_options"
   > {
@@ -150,6 +151,7 @@ export interface InstituteTestDetail
     | "available_from"
     | "available_until"
     | "results_available"
+    | "marks_available"
   > {
   status: "draft" | "published" | "archived"  // narrow the DB string
   institute_name: string | null

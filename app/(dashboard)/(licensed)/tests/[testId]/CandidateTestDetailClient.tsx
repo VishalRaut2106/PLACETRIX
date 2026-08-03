@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { type ReactNode, useMemo, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,7 @@ import {
   CalendarX,
   Lightbulb,
   ListChecks,
+  RotateCw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
@@ -306,6 +308,9 @@ interface Props {
 }
 
 export function CandidateTestDetailClient({ test, attempt, serverNow }: Props) {
+  const router = useRouter()
+  const canSeeMarks = test.marks_available || test.results_available
+  const canSeeResults = test.results_available
   const isInProgress = attempt?.status === "in_progress"
   const showIntro = !attempt || attempt.status === "in_progress" || ((test.completed_count ?? 0) < (test.max_attempts ?? 1))
 
@@ -420,10 +425,14 @@ export function CandidateTestDetailClient({ test, attempt, serverNow }: Props) {
                     <div className="flex items-center gap-3">
                       {att.status === "in_progress" ? (
                         <Badge variant="secondary" className="h-5 text-[10px]">In Progress</Badge>
+                      ) : !canSeeMarks ? (
+                        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                          <Lock className="h-3 w-3" /> Hidden
+                        </span>
                       ) : (
                         <span className="font-bold tabular-nums text-foreground">{attemptPct.toFixed(2)}%</span>
                       )}
-                      {test.results_available && att.status !== "in_progress" && (
+                      {canSeeResults && att.status !== "in_progress" && (
                         <Button asChild variant="outline" size="sm" className="h-7 text-xs font-medium">
                           <Link href={`/tests/${test.id}/result/${att.id}`}>
                             View Details
@@ -529,33 +538,61 @@ export function CandidateTestDetailClient({ test, attempt, serverNow }: Props) {
                 </span>
               </div>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => router.refresh()}
+              >
+                <RotateCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
           </div>
 
-          {!test.results_available ? (
+          {!canSeeMarks ? (
             <div className="rounded-lg border bg-muted/30 p-3 flex items-start gap-2.5">
               <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Detailed results and scores are currently hidden by the instructor. They will be visible once released.
+                Scores and detailed result analysis are currently hidden by the instructor. They will be visible once released.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Score</p>
-                <p className={cn("mt-1 text-2xl font-bold tabular-nums", pctColorClass)}>
-                  {pct.toFixed(2)}%
-                </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Marks</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+                    {attempt?.score != null && attempt?.total_marks != null ? `${attempt.score} / ${attempt.total_marks}` : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Score</p>
+                  <p className={cn("mt-1 text-2xl font-bold tabular-nums", pctColorClass)}>
+                    {pct.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3 col-span-2 sm:col-span-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Time Taken</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+                    {attempt?.time_spent_seconds ? formatSeconds(attempt.time_spent_seconds) : "—"}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Time Taken</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
-                  {attempt?.time_spent_seconds ? formatSeconds(attempt.time_spent_seconds) : "—"}
-                </p>
-              </div>
+
+              {!canSeeResults && (
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 flex items-start gap-2.5">
+                  <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                    Detailed answer review & analysis is currently locked by your instructor. It will be unlocked when results are released.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {test.results_available && (
+          {canSeeResults && (
             <div className="pt-2">
               <Button asChild variant="default" className="w-full sm:w-auto">
                 <Link href={`/tests/${test.id}/result/${attempt?.id}`}>

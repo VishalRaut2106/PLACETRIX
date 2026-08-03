@@ -204,7 +204,7 @@ async function fetchCandidateTests(
     .from("tests")
     .select(
       `
-      id, title, description, time_limit_seconds, available_from, available_until, results_available,
+      id, title, description, time_limit_seconds, available_from, available_until, results_available, marks_available,
       test_attempts!left (status, submitted_at, score, total_marks, percentage)
     `,
       { count: "exact" }
@@ -257,7 +257,68 @@ async function fetchCandidateTests(
   const from = (page - 1) * size
   const to = page * size - 1
 
-  const { data: rawTests, count, error } = await query.range(from, to)
+  let { data: rawTests, count, error } = await query.range(from, to)
+
+  if (error) {
+    // Retry without marks_available if column is not yet in DB
+    let fallbackQuery = (supabase as any)
+      .from("tests")
+      .select(
+        `
+        id, title, description, time_limit_seconds, available_from, available_until, results_available,
+        test_attempts!left (status, submitted_at, score, total_marks, percentage)
+      `,
+        { count: "exact" }
+      )
+      .eq("status", "published")
+      .eq("institute_id", profile.institute_id)
+      .eq("test_attempts.candidate_id", userId)
+      .in("id", eligibleTestIds)
+
+    if (activeTab === "live") {
+      fallbackQuery = fallbackQuery
+        .lte("available_from", now)
+        .or(`available_until.gt.${now},available_until.is.null`)
+      if (submittedTestIds.length > 0) {
+        fallbackQuery = fallbackQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
+      }
+    } else if (activeTab === "upcoming") {
+      fallbackQuery = fallbackQuery.gt("available_from", now)
+      if (submittedTestIds.length > 0) {
+        fallbackQuery = fallbackQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
+      }
+    } else if (activeTab === "past") {
+      if (submittedTestIds.length > 0) {
+        fallbackQuery = fallbackQuery.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
+      } else {
+        fallbackQuery = fallbackQuery.lt("available_until", now)
+      }
+    }
+
+    fallbackQuery = searchFilter(fallbackQuery)
+    if (activeTab === "live") {
+      fallbackQuery = fallbackQuery
+        .order("available_until", { ascending: true, nullsFirst: false })
+        .order("available_from", { ascending: false })
+    } else if (activeTab === "upcoming") {
+      fallbackQuery = fallbackQuery
+        .order("available_from", { ascending: true })
+        .order("available_until", { ascending: true, nullsFirst: false })
+    } else if (activeTab === "past") {
+      fallbackQuery = fallbackQuery
+        .order("available_until", { ascending: false, nullsFirst: false })
+        .order("available_from", { ascending: false })
+    } else {
+      fallbackQuery = fallbackQuery
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .order("title", { ascending: true })
+    }
+
+    const res = await fallbackQuery.range(from, to)
+    rawTests = res.data
+    count = res.count
+    error = res.error
+  }
 
   if (error) {
     console.error("Error fetching candidate tests:", error)
@@ -291,6 +352,7 @@ async function fetchCandidateTests(
         new Date(now)
       ) as CandidateTest["derived_status"],
       results_available: t.results_available,
+      marks_available: t.marks_available ?? false,
       attempt,
     }
   })
@@ -408,6 +470,7 @@ async function fetchInstituteTests(
     ),
     status: (t.status as "draft" | "published") ?? "draft",
     results_available: t.results_available ?? false,
+    marks_available: t.marks_available ?? false,
     question_count: t.question_count ?? 0,
     attempt_count: t.total_attempts ?? 0,
   }))

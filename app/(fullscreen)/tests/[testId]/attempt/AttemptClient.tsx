@@ -58,6 +58,8 @@ import {
     Keyboard,
     ShieldCheck,
     HelpCircle,
+    RotateCw,
+    ArrowRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
@@ -792,6 +794,7 @@ function SubmittedScreen({
         }
     ) => Promise<void>
 }) {
+    const router = useRouter()
     const [feedbackPhase, setFeedbackPhase] = useState<"prompt" | "form" | "thanks">("prompt")
     const [rating, setRating] = useState(0)
     const [hoveredStar, setHoveredStar] = useState(0)
@@ -985,7 +988,7 @@ function SubmittedScreen({
                                 onClick={onViewResults}
                                 disabled={isSendingFeedback}
                             >
-                                Skip & View Results
+                                Skip Feedback
                             </Button>
                             <Button
                                 className="flex-1"
@@ -1001,6 +1004,21 @@ function SubmittedScreen({
                         </div>
                     </div>
                 )}
+
+                {/* ── Centered Navigation Button ──────────────────────────── */}
+                <div className="flex flex-col items-center justify-center gap-2 pt-3">
+                    <Button
+                        size="lg"
+                        className="gap-2 px-8 font-semibold shadow-md sm:w-auto w-full"
+                        onClick={onViewResults}
+                    >
+                        Go to Test Details
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                        View released marks and test analysis for this test.
+                    </p>
+                </div>
             </div>
         </div>
     )

@@ -20,11 +20,11 @@ async function fetchResultData(
   const supabase = await createClient()
 
   // 1. Fetch the test and the specific attempt with its answers
-  const { data: raw, error } = await (supabase as any)
+  let { data: raw, error } = await (supabase as any)
     .from("tests")
     .select(`
       id, title, description, instructions, time_limit_seconds, 
-      available_from, available_until, results_available, status, institute_id,
+      available_from, available_until, results_available, marks_available, status, institute_id,
       shuffle_questions, shuffle_options,
       institute:institutes(institute_name, logo_path),
       test_questions (
@@ -44,6 +44,36 @@ async function fetchResultData(
     .eq("id", testId)
     .eq("test_attempts.id", attemptId)
     .maybeSingle()
+
+  if (!raw && error) {
+    // Retry without marks_available if column doesn't exist in DB
+    const fallbackRes = await (supabase as any)
+      .from("tests")
+      .select(`
+        id, title, description, instructions, time_limit_seconds, 
+        available_from, available_until, results_available, status, institute_id,
+        shuffle_questions, shuffle_options,
+        institute:institutes(institute_name, logo_path),
+        test_questions (
+          id, question_text, marks, explanation, order_index,
+          test_question_options (id, option_text, is_correct, order_index),
+          question_tags (test_question_tags (id, name))
+        ),
+        test_attempts!inner (
+          id, candidate_id, status, submitted_at, score, total_marks, percentage, 
+          time_spent_seconds, tab_switch_count,
+          student:profiles(full_name),
+          test_attempt_answers (
+            question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
+          )
+        )
+      `)
+      .eq("id", testId)
+      .eq("test_attempts.id", attemptId)
+      .maybeSingle()
+    raw = fallbackRes.data
+    error = fallbackRes.error
+  }
 
   if (error || !raw) notFound()
 
@@ -83,6 +113,7 @@ async function fetchResultData(
     available_until: raw.available_until ?? null,
     status: raw.status as any,
     results_available: raw.results_available,
+    marks_available: raw.marks_available ?? false,
     shuffle_questions: raw.shuffle_questions,
     shuffle_options: raw.shuffle_options,
     institute_name: (raw.institute as any)?.institute_name ?? null,

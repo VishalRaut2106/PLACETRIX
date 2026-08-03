@@ -73,7 +73,7 @@ export default async function AttemptPage({
 
   if (initResult.error) {
     if (initResult.error === "Profile incomplete") redirect("/settings")
-    redirect("/tests")
+    redirect(`/tests/${testId}`)
   }
 
   const serverNow = new Date()

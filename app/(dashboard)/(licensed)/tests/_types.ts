@@ -23,6 +23,7 @@ export interface CandidateTest {
   derived_status: DerivedCandidateStatus
   current_derived_status?: DerivedCandidateStatus
   results_available: boolean
+  marks_available: boolean
   attempt?: CandidateTestAttempt
 }
 
@@ -37,6 +38,7 @@ export interface InstituteTest {
   current_derived_status?: DerivedInstituteStatus
   status: "draft" | "published"
   results_available: boolean
+  marks_available: boolean
   question_count: number
   attempt_count: number
 }

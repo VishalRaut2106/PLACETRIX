@@ -42,8 +42,41 @@ async function assertOwner(testId: string): Promise<string> {
 }
 
 
+// ─── Toggle Marks ─────────────────────────────────────────────────────────────
+// Flips marks_available. Students can/cannot see scores and percentages after this.
+
+export async function toggleMarksAction(testId: string): Promise<void> {
+  await requireAuth()
+  await assertOwner(testId)
+  const supabase = await createClient()
+
+  const { data: current, error: selError } = await (supabase as any)
+    .from("tests")
+    .select("marks_available")
+    .eq("id", testId)
+    .maybeSingle()
+
+  if (selError && selError.message?.includes("marks_available")) {
+    throw new Error("Column 'marks_available' does not exist in DB tests table yet. Please run the SQL migration script.")
+  }
+
+  const { error } = await (supabase as any)
+    .from("tests")
+    .update({ marks_available: !current?.marks_available })
+    .eq("id", testId)
+
+  if (error) {
+    if (error.message?.includes("marks_available")) {
+      throw new Error("Column 'marks_available' does not exist in DB tests table yet. Please run the SQL migration script.")
+    }
+    throw new Error("Failed to toggle marks: " + error.message)
+  }
+  revalidatePath(`/tests/${testId}`)
+}
+
+
 // ─── Toggle Results ────────────────────────────────────────────────────────────
-// Flips results_available. Students can/cannot see scores after this.
+// Flips results_available. Students can/cannot see detailed answer key & report after this.
 
 export async function toggleResultsAction(testId: string): Promise<void> {
   await requireAuth()
@@ -52,14 +85,29 @@ export async function toggleResultsAction(testId: string): Promise<void> {
 
   const { data: current } = await (supabase as any)
     .from("tests")
-    .select("results_available")
+    .select("results_available, marks_available")
     .eq("id", testId)
     .maybeSingle()
 
-  const { error } = await (supabase as any)
+  const nextResults = !current?.results_available
+  const updateData: Record<string, any> = { results_available: nextResults }
+  if (nextResults) {
+    updateData.marks_available = true
+  }
+
+  let { error } = await (supabase as any)
     .from("tests")
-    .update({ results_available: !current?.results_available })
+    .update(updateData)
     .eq("id", testId)
+
+  if (error && error.message?.includes("marks_available")) {
+    // If marks_available is missing in DB, update only results_available
+    const res = await (supabase as any)
+      .from("tests")
+      .update({ results_available: nextResults })
+      .eq("id", testId)
+    error = res.error
+  }
 
   if (error) throw new Error("Failed to toggle results: " + error.message)
   revalidatePath(`/tests/${testId}`)

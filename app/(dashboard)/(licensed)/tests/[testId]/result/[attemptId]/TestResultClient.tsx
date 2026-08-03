@@ -567,19 +567,36 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
       {/* ── Results hidden ──────────────────────────────────────────────── */}
       {!test.results_available && accountType === "institute_candidate" ? (
         <Card className="rounded-xl p-0">
-          <CardContent className="space-y-2.5 p-5">
+          <CardContent className="space-y-3 p-5">
             <div className="flex items-start gap-2">
-              <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <p className="text-sm font-medium text-foreground">Submitted Successfully</p>
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Detailed Analysis Locked</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recorded on {attempt.submitted_at ? formatDateTime(attempt.submitted_at) : "just now"}.
+                </p>
+              </div>
             </div>
-            <div className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                Recorded on{" "}
-                {attempt.submitted_at ? formatDateTime(attempt.submitted_at) : "just now"}.
-                Results are currently hidden by the instructor.
-              </p>
-            </div>
+
+            {test.marks_available ? (
+              <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+                <p className="text-xs font-semibold text-foreground">Your Released Score:</p>
+                <div className="flex items-center gap-4 text-sm">
+                  <span>Marks: <strong className="tabular-nums">{attempt.score ?? 0} / {attempt.total_marks ?? 0}</strong></span>
+                  <span>Percentage: <strong className="tabular-nums">{attempt.percentage != null ? `${attempt.percentage.toFixed(2)}%` : "—"}</strong></span>
+                </div>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Detailed question analysis and answer keys are currently locked by the instructor. They will be visible once full results are released.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 pt-1">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">
+                  Scores and detailed answer analysis are currently hidden by the instructor. They will be visible once released.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (

@@ -89,7 +89,7 @@ function TestStatusBadge({ test }: { test: CandidateTest }) {
   const isInProgress = test.attempt?.status === "in_progress"
 
   if (isSubmitted && test.attempt) {
-    const hasScore = test.results_available && test.attempt.percentage != null
+    const hasScore = (test.marks_available || test.results_available) && test.attempt.percentage != null
     const label = hasScore
       ? `Submitted: ${test.attempt.score}/${test.attempt.total_marks} (${(test.attempt.percentage ?? 0).toFixed(1)}%)`
       : "Submitted"

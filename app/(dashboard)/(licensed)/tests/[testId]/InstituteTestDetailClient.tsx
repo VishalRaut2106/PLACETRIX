@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import {
   Table,
   TableBody,
@@ -114,7 +115,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 // ─── Action State Hook ────────────────────────────────────────────────────────
 
-type ActionKey = "toggleResults" | "togglePublish" | "deleteTest" | "deleteAttempt" | "clearAttempts" | null
+type ActionKey = "toggleResults" | "toggleMarks" | "togglePublish" | "deleteTest" | "deleteAttempt" | "clearAttempts" | null
 
 function useActionState() {
   const [activeAction, setActiveAction] = useState<ActionKey>(null)
@@ -1178,45 +1179,23 @@ function AttemptsTab({
 
 function OverviewTab({
   test,
+  onToggleMarks,
   onToggleResults,
   onTogglePublish,
+  isToggleMarksLoading,
   isToggleResultsLoading,
   isTogglePublishLoading,
   anyLoading,
 }: {
   test: InstituteTestDetail
+  onToggleMarks: () => void
   onToggleResults: () => void
   onTogglePublish: () => void
+  isToggleMarksLoading: boolean
   isToggleResultsLoading: boolean
   isTogglePublishLoading: boolean
   anyLoading: boolean
 }) {
-  const controls = [
-    {
-      title: "Visibility",
-      description:
-        test.status === "published"
-          ? "Visible to students within the availability window."
-          : "Draft mode — students cannot see this test.",
-      active: test.status === "published",
-      onAction: onTogglePublish,
-      activeLabel: "Unpublish",
-      inactiveLabel: "Publish",
-      isLoading: isTogglePublishLoading,
-    },
-    {
-      title: "Results",
-      description: test.results_available
-        ? "Students can see scores and question review."
-        : "Scores remain hidden until you release results.",
-      active: test.results_available,
-      onAction: onToggleResults,
-      activeLabel: "Hide Results",
-      inactiveLabel: "Release Results",
-      isLoading: isToggleResultsLoading,
-    },
-  ]
-
   return (
     <div className="space-y-4">
       <Card className="rounded-xl">
@@ -1270,39 +1249,125 @@ function OverviewTab({
 
       <Card className="rounded-xl">
         <CardHeader>
-          <CardTitle className="text-sm">Controls</CardTitle>
-          <CardDescription className="text-xs">Manage visibility and result release.</CardDescription>
+          <CardTitle className="text-sm">Test Controls</CardTitle>
+          <CardDescription className="text-xs">Manage availability, candidate marks, and answer key releases.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {controls.map(
-            ({ title, description, active, onAction, activeLabel, inactiveLabel, isLoading }, i) => (
-              <div key={title}>
-                {i > 0 && <Separator className="mb-4" />}
-                <div className={cn('flex', 'flex-col', 'gap-3', 'sm:flex-row', 'sm:items-center', 'sm:justify-between')}>
-                  <div className="min-w-0">
-                    <p className={cn('text-sm', 'font-semibold', 'text-foreground')}>{title}</p>
-                    <p className={cn('mt-0.5', 'text-xs', 'text-muted-foreground')}>{description}</p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onAction}
-                    disabled={anyLoading}
-                    className={cn('w-full', 'shrink-0', 'sm:w-auto')}
-                  >
-                    {isLoading ? (
-                      <Loader2 className={cn('mr-1.5', 'h-3.5', 'w-3.5', 'animate-spin')} />
-                    ) : active ? (
-                      <EyeOff className={cn('mr-1.5', 'h-3.5', 'w-3.5')} />
-                    ) : (
-                      <Eye className={cn('mr-1.5', 'h-3.5', 'w-3.5')} />
-                    )}
-                    {isLoading ? "Saving…" : active ? activeLabel : inactiveLabel}
-                  </Button>
-                </div>
+
+          {/* 1. Test Visibility */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">Test Visibility</p>
+                {test.status === "published" ? (
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Published
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                    Draft
+                  </Badge>
+                )}
               </div>
-            )
-          )}
+              <p className="text-xs text-muted-foreground">
+                {test.status === "published"
+                  ? "Visible to eligible candidates within the availability window."
+                  : "Draft mode — hidden from candidates."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {isTogglePublishLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <Switch
+                checked={test.status === "published"}
+                onCheckedChange={onTogglePublish}
+                disabled={anyLoading}
+                aria-label="Toggle Test Visibility"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* 2. Release Marks */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">Release Marks</p>
+                {test.results_available ? (
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Auto-Released (Answer Key Live)
+                  </Badge>
+                ) : test.marks_available ? (
+                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5 font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Marks Live
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">Hidden</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {test.marks_available || test.results_available
+                  ? "Candidates can see their total score, percentage, and time taken."
+                  : "Scores and marks remain hidden from candidates."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {isToggleMarksLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              <Switch
+                checked={test.marks_available || test.results_available}
+                onCheckedChange={onToggleMarks}
+                disabled={anyLoading || test.results_available}
+                aria-label="Toggle Release Marks"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* 3. Release Answer Key */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground">Release Answer Key</p>
+                  {test.results_available ? (
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5 font-medium">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Answer Key Live
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Locked</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {test.results_available
+                    ? "Candidates can access the full answer key, attempted questions, and detailed report analysis."
+                    : "Detailed answer key & question analysis remain locked."}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {isToggleResultsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  checked={test.results_available}
+                  onCheckedChange={onToggleResults}
+                  disabled={anyLoading}
+                  aria-label="Toggle Release Answer Key"
+                />
+              </div>
+            </div>
+
+            {/* Indication Note */}
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5 flex items-center gap-2.5 text-xs dark:bg-emerald-950/20 dark:border-emerald-900/40">
+              <Info className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-emerald-900 dark:text-emerald-200">
+                <strong>Note:</strong> Releasing the answer key will automatically release candidate scores and marks simultaneously.
+              </span>
+            </div>
+          </div>
+
         </CardContent>
       </Card>
     </div>
@@ -1412,6 +1477,7 @@ interface Props {
   testId: string
   test: InstituteTestDetail
   serverNow: string
+  onToggleMarks?: () => Promise<void>
   onToggleResults?: () => Promise<void>
   onTogglePublish?: () => Promise<void>
   onDeleteTest?: () => Promise<void>
@@ -1423,6 +1489,7 @@ export function InstituteTestDetailClient({
   testId,
   test,
   serverNow,
+  onToggleMarks,
   onToggleResults,
   onTogglePublish,
   onDeleteTest,
@@ -1522,9 +1589,14 @@ export function InstituteTestDetailClient({
             >
               {test.status === "published" ? "Published" : "Draft"}
             </Badge>
+            {test.marks_available && !test.results_available && (
+              <Badge variant="secondary" className="text-xs">
+                Marks Released
+              </Badge>
+            )}
             {test.results_available && (
               <Badge variant="secondary" className="text-xs">
-                Results Live
+                Answer Key Live
               </Badge>
             )}
           </div>
@@ -1756,14 +1828,19 @@ export function InstituteTestDetailClient({
         <TabsContent value="overview" className="m-0">
           <OverviewTab
             test={test}
+            onToggleMarks={() => run("toggleMarks", async () => {
+              await onToggleMarks?.()
+              toast.success(`Marks are now ${!test.marks_available ? "visible" : "hidden"} to candidates`)
+            })}
             onToggleResults={() => run("toggleResults", async () => {
               await onToggleResults?.()
-              toast.success(`Results are now ${!test.results_available ? "visible" : "hidden"} to candidates`)
+              toast.success(`Answer key is now ${!test.results_available ? "visible" : "hidden"} to candidates`)
             })}
             onTogglePublish={() => run("togglePublish", async () => {
               await onTogglePublish?.()
               toast.success(`Test is now ${test.status === "draft" ? "published" : "drafted"}`)
             })}
+            isToggleMarksLoading={isLoading("toggleMarks")}
             isToggleResultsLoading={isLoading("toggleResults")}
             isTogglePublishLoading={isLoading("togglePublish")}
             anyLoading={anyLoading}

@@ -6,6 +6,7 @@ import { getUserProfile } from "@/lib/supabase/profile"
 import { CandidateTestDetailClient } from "./CandidateTestDetailClient"
 import { InstituteTestDetailClient } from "./InstituteTestDetailClient"
 import {
+  toggleMarksAction,
   toggleResultsAction,
   togglePublishAction,
   deleteTestAction,
@@ -45,7 +46,7 @@ async function fetchCandidateView(
       .from("tests")
       .select(`
         id, title, description, instructions, time_limit_seconds, 
-        available_from, available_until, results_available, status, institute_id,
+        available_from, available_until, results_available, marks_available, status, institute_id,
         shuffle_questions, shuffle_options, max_attempts,
         institute:institutes(institute_name, logo_path),
         test_questions (
@@ -69,7 +70,36 @@ async function fetchCandidateView(
   ])
 
   const candidateProfile = profileRes.data
-  const raw = testRes.data
+  let raw = testRes.data
+
+  if (!raw && testRes.error) {
+    // If marks_available column is not created in DB yet, retry without it
+    const fallbackRes = await (supabase as any)
+      .from("tests")
+      .select(`
+        id, title, description, instructions, time_limit_seconds, 
+        available_from, available_until, results_available, status, institute_id,
+        shuffle_questions, shuffle_options, max_attempts,
+        institute:institutes(institute_name, logo_path),
+        test_questions (
+          id, question_text, marks, explanation, order_index,
+          test_question_options (id, option_text, is_correct, order_index),
+          question_tags (test_question_tags (id, name))
+        ),
+        test_attempts (
+          id, status, submitted_at, score, total_marks, percentage, 
+          time_spent_seconds, tab_switch_count,
+          test_attempt_answers (
+            question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
+          )
+        )
+      `)
+      .eq("id", testId)
+      .eq("test_attempts.candidate_id", userId)
+      .order("created_at", { foreignTable: "test_attempts", ascending: false })
+      .maybeSingle()
+    raw = fallbackRes.data
+  }
 
   if (!candidateProfile?.institute_id || !raw || raw.status !== "published" || raw.institute_id !== candidateProfile.institute_id) {
     notFound()
@@ -116,6 +146,7 @@ async function fetchCandidateView(
     available_from: raw.available_from ?? null,
     available_until: raw.available_until ?? null,
     results_available: raw.results_available,
+    marks_available: raw.marks_available ?? false,
     shuffle_questions: raw.shuffle_questions,
     shuffle_options: raw.shuffle_options,
     max_attempts: raw.max_attempts,
@@ -234,11 +265,11 @@ async function fetchInstituteView(
   const supabase = await createClient()
 
   // 1. Core test data + questions — no attempts in this query
-  const { data: raw, error } = await (supabase as any)
+  let { data: raw, error } = await (supabase as any)
     .from("tests")
     .select(`
       id, title, description, instructions, time_limit_seconds, 
-      available_from, available_until, status, results_available, institute_id,
+      available_from, available_until, status, results_available, marks_available, institute_id,
       institute:institutes(institute_name),
       test_questions (
         id, question_text, question_type, marks, order_index, explanation,
@@ -249,6 +280,27 @@ async function fetchInstituteView(
     .eq("id", testId)
     .eq("institute_id", userId)
     .maybeSingle()
+
+  if (!raw && error) {
+    // Fallback if marks_available column is not yet present in database
+    const fallbackRes = await (supabase as any)
+      .from("tests")
+      .select(`
+        id, title, description, instructions, time_limit_seconds, 
+        available_from, available_until, status, results_available, institute_id,
+        institute:institutes(institute_name),
+        test_questions (
+          id, question_text, question_type, marks, order_index, explanation,
+          test_question_options (id, option_text, is_correct, order_index),
+          question_tags (test_question_tags (id, name))
+        )
+      `)
+      .eq("id", testId)
+      .eq("institute_id", userId)
+      .maybeSingle()
+    raw = fallbackRes.data
+    error = fallbackRes.error
+  }
 
   if (error || !raw) notFound()
 
@@ -349,6 +401,7 @@ async function fetchInstituteView(
     available_until: raw.available_until ?? null,
     status: raw.status as "draft" | "published" | "archived",
     results_available: raw.results_available,
+    marks_available: raw.marks_available ?? false,
     institute_name: (raw.institute as any)?.institute_name ?? null,
     questions,
     attempts: firstPageAttempts,
@@ -391,6 +444,7 @@ export default async function TestDetailPage({
         testId={testId}
         test={test}
         serverNow={serverNow}
+        onToggleMarks={toggleMarksAction.bind(null, testId)}
         onToggleResults={toggleResultsAction.bind(null, testId)}
         onTogglePublish={togglePublishAction.bind(null, testId)}
         onDeleteTest={deleteTestAction.bind(null, testId)}

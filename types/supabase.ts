@@ -1816,6 +1816,7 @@ export type Database = {
           id: string
           institute_id: string
           instructions: string | null
+          marks_available: boolean
           max_attempts: number
           pass_percentage: number | null
           results_available: boolean
@@ -1835,6 +1836,7 @@ export type Database = {
           id?: string
           institute_id: string
           instructions?: string | null
+          marks_available?: boolean
           max_attempts?: number
           pass_percentage?: number | null
           results_available?: boolean
@@ -1854,6 +1856,7 @@ export type Database = {
           id?: string
           institute_id?: string
           instructions?: string | null
+          marks_available?: boolean
           max_attempts?: number
           pass_percentage?: number | null
           results_available?: boolean
