@@ -4,6 +4,7 @@ import * as React from "react"
 import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { usePathname } from "next/navigation"
+import { WhatsNewModal } from "@/components/changelog/whats-new-modal"
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -176,6 +177,7 @@ export function DashboardShell({
         </SidebarInset>
 
         <MobileHoverGuard suspendHoverRef={suspendHoverRef} />
+        <WhatsNewModal />
       </SidebarProvider>
     </SidebarHoverContext.Provider>
   )
