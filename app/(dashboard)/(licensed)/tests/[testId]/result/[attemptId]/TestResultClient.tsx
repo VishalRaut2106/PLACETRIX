@@ -270,7 +270,7 @@ function QuestionReviewItem({
           ))}
         </div>
 
-        {/* ── Gemini AI Conceptual Breakdown ─────────────────────────────── */}
+        {/* ── AI Conceptual Breakdown ─────────────────────────────── */}
         {qDiagnosis && !isInProgress && (
           <div className="mt-3.5 rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 via-muted/30 to-blue-500/5 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
@@ -278,9 +278,6 @@ function QuestionReviewItem({
                 <Sparkles className="h-3.5 w-3.5 text-purple-500" />
                 <span>AI Conceptual Analysis</span>
               </div>
-              <Badge variant="outline" className="h-4 border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/10 text-[10px]">
-                Gemini AI
-              </Badge>
             </div>
 
             <p className="text-xs font-medium text-foreground leading-relaxed">
@@ -700,21 +697,16 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           </div>
 
-          {/* ── Gemini AI Conceptual Diagnostic Assistant ─────────────────── */}
+          {/* ── AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-semibold">
-                      AI Conceptual Diagnostic Assistant
-                    </CardTitle>
-                    <Badge variant="secondary" className="font-normal text-[11px]">
-                      Gemini AI
-                    </Badge>
-                  </div>
+                  <CardTitle className="text-base font-semibold">
+                    AI Conceptual Diagnostic Assistant
+                  </CardTitle>
                   <CardDescription className="text-xs">
-                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps.
+                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps. (May take up to 2 minutes)
                   </CardDescription>
                 </div>
 
@@ -738,6 +730,15 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   )}
                 </Button>
               </CardHeader>
+
+              {isGeneratingDiagnostic && (
+                <CardContent className="pt-0 pb-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse rounded-lg border bg-muted/20 p-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-purple-500 shrink-0" />
+                    <span>AI diagnostic evaluation is in progress. This process may take up to 2 minutes...</span>
+                  </div>
+                </CardContent>
+              )}
 
               {diagnosticError && (
                 <CardContent className="pt-0">
