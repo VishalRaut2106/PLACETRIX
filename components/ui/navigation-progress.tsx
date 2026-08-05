@@ -9,7 +9,7 @@ import { usePathname, useSearchParams } from "next/navigation"
  * Provides instant 0ms visual feedback on any link click across the app.
  * Renders a sleek 2px primary progress bar at the very top of the window.
  */
-export function NavigationProgress() {
+function NavigationProgressContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -104,5 +104,13 @@ export function NavigationProgress() {
         }}
       />
     </div>
+  )
+}
+
+export function NavigationProgress() {
+  return (
+    <React.Suspense fallback={null}>
+      <NavigationProgressContent />
+    </React.Suspense>
   )
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { toast } from "sonner";
 
-export function IncompleteProfileToast() {
+function IncompleteProfileToastContent() {
   const searchParams = useSearchParams();
   const shown = useRef(false);
   
@@ -21,4 +21,12 @@ export function IncompleteProfileToast() {
   }, [searchParams]);
 
   return null;
+}
+
+export function IncompleteProfileToast() {
+  return (
+    <Suspense fallback={null}>
+      <IncompleteProfileToastContent />
+    </Suspense>
+  );
 }
