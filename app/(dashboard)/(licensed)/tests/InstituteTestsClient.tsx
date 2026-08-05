@@ -83,10 +83,8 @@ export function formatDuration(seconds: number): string {
   return `${m}m`
 }
 
-export function formatDateTime(dt?: string): string {
-  if (!dt) return "—"
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
-}
+import { formatDateTime } from "@/lib/utils"
+export { formatDateTime }
 
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────

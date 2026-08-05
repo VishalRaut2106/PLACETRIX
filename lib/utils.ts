@@ -5,6 +5,80 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// ─── Timezone-aware Date Formatters ──────────────────────────────────────────
+//
+// The Supabase client returns UTC ISO 8601 strings (ending in "+00" or "Z").
+// `new Date(isoString)` correctly parses these to the UTC moment.
+// `Intl.DateTimeFormat(undefined, ...)` auto-detects the browser's locale
+// and timezone, so the displayed time is always in the user's local timezone.
+//
+// For server-side formatting (e.g. emails, PDFs), pass an explicit `timeZone`
+// option (e.g. `{ timeZone: "Asia/Kolkata" }`).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Formats a UTC ISO timestamp as date + time in the user's local timezone.
+ * Example output (in IST): "5 Aug 2026, 3:10 pm"
+ * Example output (in UTC): "5 Aug 2026, 9:40 am"
+ */
+export function formatDateTime(
+  isoString: string | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!isoString) return "—"
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      ...options,
+    }).format(new Date(isoString))
+  } catch {
+    return "—"
+  }
+}
+
+/**
+ * Formats a UTC ISO timestamp as date-only in the user's local timezone.
+ * Example output (in IST): "5 Aug 2026"
+ */
+export function formatDate(
+  isoString: string | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!isoString) return "—"
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      ...options,
+    }).format(new Date(isoString))
+  } catch {
+    return "—"
+  }
+}
+
+/**
+ * Formats a DATE-only string (YYYY-MM-DD, no time component) for display.
+ * Parses as noon UTC to avoid off-by-one day issues from timezone shifts.
+ * Example output: "5 Aug 2026"
+ */
+export function formatDateOnly(
+  dateStr: string | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!dateStr) return "—"
+  try {
+    // Append T12:00:00Z so the date is noon UTC — stays the same calendar
+    // date across all UTC-12 to UTC+14 timezones.
+    const iso = dateStr.includes("T") ? dateStr : `${dateStr}T12:00:00Z`
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      ...options,
+    }).format(new Date(iso))
+  } catch {
+    return "—"
+  }
+}
+
 /**
  * Parses a duration string (like "14h 30m", "2 hours", "45 min") into minutes.
  * If the string is already a pure number (or numeric string), it returns it as a number.

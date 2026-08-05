@@ -50,17 +50,17 @@ function formatTimeAgo(dateStr: string | null): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(date);
 }
 
 function formatExpiry(dateStr: string | null): string | null {
   if (!dateStr) return null;
   const date = new Date(dateStr);
   if (date < new Date()) return null;
-  return date.toLocaleDateString("en-IN", {
+  return new Intl.DateTimeFormat(undefined, {
     day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
-  });
+  }).format(date);
 }
 
 function isExpired(not_after: string | null): boolean {

@@ -403,10 +403,10 @@ export function InstituteOpportunityDetailClient({
                 <MetaItem
                   icon={<Calendar className="h-4 w-4" />}
                   label="Apply Before"
-                  value={new Date(opportunity.deadline).toLocaleString("en-IN", {
+                  value={new Intl.DateTimeFormat(undefined, {
                     dateStyle: "medium",
                     timeStyle: "short"
-                  })}
+                  }).format(new Date(opportunity.deadline))}
                 />
               </div>
             </CardContent>

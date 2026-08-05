@@ -124,14 +124,12 @@ export default async function HomePage() {
   // ── Candidate ──────────────────────────────────────────────────────────────
   if (profile.account_type === "institute_candidate") {
     const today = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(today.getTime() + istOffset);
-    const todayStr = istDate.toISOString().split("T")[0];
+    const todayStr = today.toISOString().split("T")[0];
 
-    const yesterdayDate = new Date(istDate.getTime() - (24 * 60 * 60 * 1000));
+    const yesterdayDate = new Date(today.getTime() - (24 * 60 * 60 * 1000));
     const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
 
-    const cutOffDate14Days = new Date(istDate.getTime() - (14 * 24 * 60 * 60 * 1000));
+    const cutOffDate14Days = new Date(today.getTime() - (14 * 24 * 60 * 60 * 1000));
     const cutOffStr14Days = cutOffDate14Days.toISOString().split("T")[0];
 
     // Fetch stats, attempts, global stats, and daily challenge activity in parallel
@@ -232,7 +230,7 @@ export default async function HomePage() {
       if (tempStreak > maxStreak) maxStreak = tempStreak;
 
       if (hasActiveStreak) {
-        const checkDate = allActiveDates.has(todayStr) ? new Date(istDate) : new Date(yesterdayDate);
+        const checkDate = allActiveDates.has(todayStr) ? new Date(today) : new Date(yesterdayDate);
         let checkStr = checkDate.toISOString().split("T")[0];
         
         while (allActiveDates.has(checkStr)) {
@@ -263,7 +261,7 @@ export default async function HomePage() {
 
     const activityCalendar: any[] = [];
     for (let i = 14 - 1; i >= 0; i--) {
-      const d = new Date(istDate.getTime() - (i * 24 * 60 * 60 * 1000));
+      const d = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
       const dateStr = d.toISOString().split("T")[0];
       const activity = uniqueDatesWithStatus.get(dateStr);
       activityCalendar.push({

@@ -100,12 +100,12 @@ function formatDateTime(dt: string): string {
 
 function formatTimeOnly(dtStr: string): string {
   try {
-    return new Date(dtStr).toLocaleTimeString("en-IN", {
+    return new Intl.DateTimeFormat(undefined, {
       timeZone: "Asia/Kolkata",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-    })
+    }).format(new Date(dtStr))
   } catch {
     return ""
   }

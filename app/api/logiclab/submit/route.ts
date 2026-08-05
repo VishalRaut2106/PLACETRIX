@@ -385,8 +385,9 @@ export async function POST(req: NextRequest) {
 
     if (daily_challenge_id) {
       submission.daily_challenge_id = daily_challenge_id
-      const fallbackIst = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000)
-      submission.date = dailyChallengeDate || fallbackIst.toISOString().split("T")[0]
+      // Use UTC date as the canonical calendar key — consistent with POTD date column
+      const utcDateFallback = new Date().toISOString().split("T")[0]
+      submission.date = dailyChallengeDate || utcDateFallback
 
       const { data: saved, error: sErr } = await (supabase as any)
         .from("logiclab_daily_challenge_submissions")
@@ -412,11 +413,11 @@ export async function POST(req: NextRequest) {
     if (saveError) {
       console.error("[LogicLab Submit] Failed to save submission:", saveError.message)
     } else {
-      // Update the user's daily activity
-      const fallbackIst = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000)
-      const activityDate = daily_challenge_id 
-        ? (dailyChallengeDate || fallbackIst.toISOString().split("T")[0])
-        : fallbackIst.toISOString().split("T")[0]
+      // Use UTC date as activity key — consistent with DB timezone
+      const utcDateFallback = new Date().toISOString().split("T")[0]
+      const activityDate = daily_challenge_id
+        ? (dailyChallengeDate || utcDateFallback)
+        : utcDateFallback
 
       const difficulty = problem.difficulty || "Medium"
       const isSolved = overallStatus === "Accepted"

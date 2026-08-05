@@ -43,10 +43,8 @@ interface GetHelpClientProps {
   tabCounts: { all: number; open: number; in_progress: number; resolved: number; closed: number };
 }
 
-export function formatDateTime(dt?: string): string {
-  if (!dt) return "—";
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
-}
+import { formatDateTime } from "@/lib/utils"
+export { formatDateTime }
 
 function StatusBadge({ status }: { status: string }) {
   switch (status) {

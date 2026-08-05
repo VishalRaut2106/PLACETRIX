@@ -176,9 +176,9 @@ export async function GET(_request: NextRequest, props: RouteParams) {
   const courseTitle    = courseData?.title ?? "Training Track"
   const instructorName = courseData?.instructor?.full_name || "Course Instructor"
   const signaturePath  = courseData?.instructor?.signature_path || null
-  const issueDateStr   = new Date(certificate.issued_at).toLocaleDateString("en-IN", {
+  const issueDateStr   = new Intl.DateTimeFormat("en-GB", {
     year: "numeric", month: "long", day: "numeric",
-  })
+  }).format(new Date(certificate.issued_at))
 
   const siteUrl    = process.env.NEXT_PUBLIC_SITE_URL ?? "https://placetrix.app"
   const verifyLink = `${siteUrl}/verify/${certificateId}`

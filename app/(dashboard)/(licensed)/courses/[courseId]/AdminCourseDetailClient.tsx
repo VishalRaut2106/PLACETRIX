@@ -206,7 +206,7 @@ export function AdminCourseDetailClient({ course, students }: Props) {
 
   const formatDate = (iso: string) => {
     try {
-      return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso))
+      return new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso))
     } catch {
       return "—"
     }

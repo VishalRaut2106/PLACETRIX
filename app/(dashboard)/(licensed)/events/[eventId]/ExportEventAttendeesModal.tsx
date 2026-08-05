@@ -63,7 +63,7 @@ export function ExportEventAttendeesModal({ tickets, eventName, trigger }: Expor
         if (selectedFields.includes("passoutYear")) row["Passout Year"] = t.candidate_passout_year || "N/A"
         if (selectedFields.includes("status")) row["RSVP Status"] = t.status || "N/A"
         if (selectedFields.includes("attendance")) row["Attendance Status"] = t.attendance_status === "Present" ? "Present" : "Pending"
-        if (selectedFields.includes("date")) row["Registration Date"] = new Date(t.created_at).toLocaleDateString("en-IN")
+        if (selectedFields.includes("date")) row["Registration Date"] = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(t.created_at))
         return row
       })
 

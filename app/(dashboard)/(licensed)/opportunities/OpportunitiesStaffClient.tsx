@@ -167,7 +167,7 @@ function OpportunityCard({
               </StatChip>
 
               <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone={isExpired ? "rose" : "neutral"}>
-                {isExpired ? "Expired" : `Deadline: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
+                {isExpired ? "Expired" : `Deadline: ${new Intl.DateTimeFormat(undefined, { dateStyle: "short" }).format(deadlineDate)}`}
               </StatChip>
             </div>
           </div>

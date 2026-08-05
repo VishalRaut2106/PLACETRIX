@@ -61,7 +61,7 @@ function fmtDate(iso?: string | null): string {
   if (!iso) return "";
   try {
     const d = new Date(`${iso}T00:00:00`);
-    return d.toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+    return new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(d);
   } catch { return iso; }
 }
 

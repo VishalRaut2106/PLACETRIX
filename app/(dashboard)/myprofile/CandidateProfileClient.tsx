@@ -1618,9 +1618,9 @@ export function CandidateProfileClient({
       doc.text(`"${cert.eventTitle}"`, width / 2, 110, { align: "center" });
 
       // Event Date details
-      const eventDateStr = new Date(cert.eventDate).toLocaleDateString("en-IN", {
+      const eventDateStr = new Intl.DateTimeFormat(undefined, {
         dateStyle: "long",
-      });
+      }).format(new Date(cert.eventDate));
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
       doc.setTextColor(100, 100, 100);

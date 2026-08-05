@@ -9,10 +9,8 @@ const supabase = createAdminClient()
 export async function GET() {
   noStore();
   try {
-    const now = new Date()
-    const istOffset = 5.5 * 60 * 60 * 1000
-    const istDate = new Date(now.getTime() + istOffset)
-    const today = istDate.toISOString().split("T")[0]
+    // POTD date is a global UTC calendar key — same for all users worldwide.
+    const today = new Date().toISOString().split("T")[0]
 
     // 1. Try to fetch today's POTD directly (O(1) lookup)
     const { data: existingPotd } = await (supabase as any)

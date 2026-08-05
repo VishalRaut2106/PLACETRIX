@@ -169,13 +169,10 @@ export function LogicLabDashboardClient({
 
   const calculateTimeLeft = () => {
     const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istTime = new Date(now.getTime() + istOffset);
+    const nextMidnightUTC = new Date(now);
+    nextMidnightUTC.setUTCHours(24, 0, 0, 0);
 
-    const nextMidnightIST = new Date(istTime);
-    nextMidnightIST.setUTCHours(24, 0, 0, 0);
-
-    const diff = nextMidnightIST.getTime() - istTime.getTime();
+    const diff = nextMidnightUTC.getTime() - now.getTime();
 
     if (diff <= 0) return "00h 00m 00s";
 

@@ -194,10 +194,7 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${m} min`
 }
 
-export function formatDateTime(dt?: string | null): string {
-  if (!dt) return "—"
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
-}
+export { formatDateTime } from "@/lib/utils"
 
 export function formatSeconds(seconds: number | null | undefined): string {
   if (!seconds || seconds <= 0) return "—"

@@ -130,7 +130,7 @@ export function CohortSelector({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDateTime(dt?: string): string {
   if (!dt) return "—"
-  return new Date(dt).toLocaleDateString("en-IN", { dateStyle: "medium" })
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(dt))
 }
 
 // ─── Stat Chip ───────────────────────────────────────────────────────────────

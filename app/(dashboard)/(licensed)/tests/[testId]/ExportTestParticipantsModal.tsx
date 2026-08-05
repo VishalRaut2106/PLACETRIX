@@ -89,7 +89,7 @@ export function ExportTestParticipantsModal({ testId, testName, totalAttempts, t
         if (selectedFields.includes("percentage")) row["Percentage (%)"] = a.percentage != null ? a.percentage : "N/A"
         if (selectedFields.includes("timeSpent")) row["Time Spent"] = formatSeconds(a.time_spent_seconds)
         if (selectedFields.includes("tabSwitches")) row["Tab Switches"] = a.tab_switch_count ?? "0"
-        if (selectedFields.includes("submittedAt")) row["Submission Date"] = a.submitted_at ? new Date(a.submitted_at).toLocaleString("en-IN") : "N/A"
+        if (selectedFields.includes("submittedAt")) row["Submission Date"] = a.submitted_at ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(a.submitted_at)) : "N/A"
         return row
       })
 

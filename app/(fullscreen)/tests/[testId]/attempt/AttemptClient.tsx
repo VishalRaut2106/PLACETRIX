@@ -668,12 +668,12 @@ function IntroScreen({
                             <AlertCircle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
                             <span className="truncate">
                                 Closes{" "}
-                                {new Date(test.available_until).toLocaleString("en-IN", {
+                                {new Intl.DateTimeFormat(undefined, {
                                     day: "2-digit",
                                     month: "short",
                                     hour: "2-digit",
                                     minute: "2-digit",
-                                })}
+                                }).format(new Date(test.available_until))}
                             </span>
                         </div>
                     )}
@@ -844,13 +844,13 @@ function SubmittedScreen({
                 <div className="rounded-xl border bg-muted/40 p-5 text-sm">
                     <p className="font-semibold text-xl">{test.title}</p>
                     <p className="mt-1 text-xs text-muted-foreground" suppressHydrationWarning>
-                        Submitted on {new Date().toLocaleString("en-IN", {
+                        Submitted on {new Intl.DateTimeFormat(undefined, {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
-                        })}
+                        }).format(new Date())}
                     </p>
                 </div>
 

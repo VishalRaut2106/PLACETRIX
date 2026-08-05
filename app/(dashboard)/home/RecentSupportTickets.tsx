@@ -18,10 +18,8 @@ import { updateTicketStatusAction } from "@/app/(dashboard)/gethelp/actions"
 
 type TicketStatus = "open" | "in_progress" | "resolved" | "closed"
 
-export function formatDateTime(dt?: string): string {
-  if (!dt) return "—"
-  return new Date(dt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
-}
+import { formatDateTime } from "@/lib/utils"
+export { formatDateTime }
 
 const getStatusColor = (status: string) => {
   switch (status) {

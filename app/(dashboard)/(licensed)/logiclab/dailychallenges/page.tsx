@@ -19,16 +19,14 @@ export default async function DailyChallengesPage() {
 
   const supabase = (await createServerClient()) as any
 
-  // IST date computation
-  const istOffset = 5.5 * 60 * 60 * 1000
-  const today = new Date()
-  const istDate = new Date(today.getTime() + istOffset)
-  const todayStr = istDate.toISOString().split("T")[0]
-  const yesterdayDate = new Date(istDate.getTime() - 24 * 60 * 60 * 1000)
+  // UTC calendar dates — consistent with POTD date column (global UTC key)
+  const utcNow = new Date()
+  const todayStr = utcNow.toISOString().split("T")[0]
+  const yesterdayDate = new Date(utcNow.getTime() - 24 * 60 * 60 * 1000)
   const yesterdayStr = yesterdayDate.toISOString().split("T")[0]
 
   // Heatmap cut-off date (last 20 weeks = 140 days)
-  const cutOffDate20Weeks = new Date(istDate.getTime() - 140 * 24 * 60 * 60 * 1000)
+  const cutOffDate20Weeks = new Date(utcNow.getTime() - 140 * 24 * 60 * 60 * 1000)
   const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0]
 
   // ── Fetch today's POTD ──
@@ -170,7 +168,7 @@ export default async function DailyChallengesPage() {
     if (tempStreak > maxStreak) maxStreak = tempStreak
 
     if (hasActiveStreak) {
-      const checkDate = allActiveDates.has(todayStr) ? new Date(istDate) : new Date(yesterdayDate)
+      const checkDate = allActiveDates.has(todayStr) ? new Date(utcNow) : new Date(yesterdayDate)
       let checkStr = checkDate.toISOString().split("T")[0]
 
       while (allActiveDates.has(checkStr)) {
@@ -188,7 +186,7 @@ export default async function DailyChallengesPage() {
   const activityCalendar: any[] = []
   const daysToGenerate = 140
   for (let i = daysToGenerate - 1; i >= 0; i--) {
-    const d = new Date(istDate.getTime() - i * 24 * 60 * 60 * 1000)
+    const d = new Date(utcNow.getTime() - i * 24 * 60 * 60 * 1000)
     const dateStr = d.toISOString().split("T")[0]
     const activity = uniqueDatesWithStatus.get(dateStr)
     activityCalendar.push({

@@ -204,7 +204,7 @@ export function CandidateOpportunityDetailClient({
               <div>
                 <p className="text-sm font-semibold">Application Closed</p>
                 <p className="text-xs mt-0.5 opacity-90">
-                  Closed on {new Date(opp.deadline).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.
+                  Closed on {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(opp.deadline))}.
                 </p>
               </div>
             </div>
@@ -391,10 +391,10 @@ export function CandidateOpportunityDetailClient({
                 <MetaItem
                   icon={<Calendar className="h-4 w-4" />}
                   label="Apply Before"
-                  value={new Date(opp.deadline).toLocaleString("en-IN", {
+                  value={new Intl.DateTimeFormat(undefined, {
                     dateStyle: "medium",
                     timeStyle: "short"
-                  })}
+                  }).format(new Date(opp.deadline))}
                 />
               </div>
             </CardContent>

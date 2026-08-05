@@ -130,14 +130,14 @@ function getInitials(firstName: string | null, lastName: string | null, fullName
 
 function formatDateRange(start: string | null, end: string | null, isCurrent: boolean): string {
   const fmt = (d: string) =>
-    new Date(d).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+    new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(new Date(d));
   if (!start) return "";
   return `${fmt(start)} – ${isCurrent ? "Present" : end ? fmt(end) : ""}`;
 }
 
 function formatIssueDate(date: string | null): string {
   if (!date) return "";
-  return new Date(date).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  return new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" }).format(new Date(date));
 }
 
 function SkillIcon({ name, className }: { name: string; className?: string }) {
@@ -492,7 +492,7 @@ function getMonthHeadersForWeeks(weeks: LogicLabCalendarCell[][]) {
   weeks.forEach((week) => {
     if (week.length > 0) {
       const firstDayDate = new Date(week[0].date);
-      const monthName = firstDayDate.toLocaleDateString("en-IN", { month: "short" });
+      const monthName = new Intl.DateTimeFormat(undefined, { month: "short" }).format(firstDayDate);
       if (monthName !== currentMonth) {
         if (currentMonth !== "") {
           headers.push({ label: currentMonth, span: currentSpan });
@@ -1479,9 +1479,9 @@ export function CandidatePublicProfileView({
                       <p className={cn('text-sm', 'font-medium')}>{cert.eventTitle}</p>
                       <div className={cn('flex', 'items-center', 'gap-1', 'text-xs', 'text-muted-foreground', 'mt-0.5')}>
                         <CalendarDays className={cn('h-3', 'w-3')} />
-                        {new Date(cert.eventDate).toLocaleDateString("en-IN", {
+                        {new Intl.DateTimeFormat(undefined, {
                           dateStyle: "medium",
-                        })}
+                        }).format(new Date(cert.eventDate))}
                       </div>
                     </div>
                     <Badge variant="secondary" className={cn('shrink-0', 'gap-1', 'text-xs')}>

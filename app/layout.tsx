@@ -7,6 +7,7 @@ import { cirka } from "@/app/fonts";
 import { Toaster } from "@/components/ui/sonner";
 import { Outfit, EB_Garamond, Source_Code_Pro } from "next/font/google";
 import { AuthSync } from "@/components/auth/auth-sync";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
 
 const fontSans = Outfit({
   subsets: ["latin"],
@@ -92,6 +93,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
+            <NavigationProgress />
             <AuthSync />
             {children}
             <Toaster position="top-right" richColors />

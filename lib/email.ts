@@ -69,7 +69,9 @@ export async function sendTicketEmail(ticketId: string): Promise<{ success: bool
       }
     }
 
-    const formattedDate = new Date(event.date).toLocaleDateString("en-IN", {
+    // Emails are server-rendered; use a fixed, explicit timezone so the
+    // displayed time is unambiguous for all recipients.
+    const formattedDate = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Kolkata",
       weekday: "long",
       year: "numeric",
@@ -78,7 +80,7 @@ export async function sendTicketEmail(ticketId: string): Promise<{ success: bool
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-    })
+    }).format(new Date(event.date))
 
     const subject = isConfirmed 
       ? `🎫 Ticket Confirmed: ${event.title}`
@@ -506,7 +508,7 @@ export async function sendNewSupportTicketNotification(ticket: {
 
                 <div class="field">
                   <div class="field-label">Submitted At</div>
-                  <div class="field-value">${new Date().toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</div>
+                  <div class="field-value">${new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" }).format(new Date())} UTC</div>
                 </div>
 
                 <div class="cta">

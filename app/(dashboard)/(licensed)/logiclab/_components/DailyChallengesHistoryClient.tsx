@@ -221,11 +221,9 @@ export function DailyChallengesHistoryClient({
   // ── Countdown Timer ──
   const calculateTimeLeft = (): string => {
     const now = new Date()
-    const istOffset = 5.5 * 60 * 60 * 1000
-    const istTime = new Date(now.getTime() + istOffset)
-    const nextMidnightIST = new Date(istTime)
-    nextMidnightIST.setUTCHours(24, 0, 0, 0)
-    const diff = nextMidnightIST.getTime() - istTime.getTime()
+    const nextMidnightUTC = new Date(now)
+    nextMidnightUTC.setUTCHours(24, 0, 0, 0)
+    const diff = nextMidnightUTC.getTime() - now.getTime()
     if (diff <= 0) return "00h 00m 00s"
     const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, "0")
     const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, "0")

@@ -31,9 +31,9 @@ export default function VerifyCertificateClient({
   errorOccurred,
 }: VerifyCertificateClientProps) {
   const issueDateStr = certificate
-    ? new Date(certificate.issued_at).toLocaleDateString("en-IN", {
+    ? new Intl.DateTimeFormat(undefined, {
       dateStyle: "long",
-    })
+    }).format(new Date(certificate.issued_at))
     : ""
 
   return (

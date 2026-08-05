@@ -165,7 +165,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   );
 
   // 7. Fetch LogicLab performance data for the target candidate
-  const cutOffDate20Weeks = new Date(Date.now() + 5.5 * 60 * 60 * 1000 - 140 * 24 * 60 * 60 * 1000);
+  const cutOffDate20Weeks = new Date(Date.now() - 140 * 24 * 60 * 60 * 1000);
   const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0];
 
   const [
@@ -215,12 +215,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
       .limit(100),
   ]);
 
-  // Compute streaks accurately across all activity
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const todayIst = new Date(Date.now() + istOffset);
-  const todayStr = todayIst.toISOString().split("T")[0];
-  const yesterdayIst = new Date(todayIst.getTime() - 24 * 60 * 60 * 1000);
-  const yesterdayStr = yesterdayIst.toISOString().split("T")[0];
+  // Activity calendar and streak computation uses UTC calendar dates
+  // to match the UTC-based activity_date column in the DB.
+  const todayUtc = new Date();
+  const todayStr = todayUtc.toISOString().split("T")[0];
+  const yesterdayUtc = new Date(todayUtc.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayStr = yesterdayUtc.toISOString().split("T")[0];
 
   const allActiveDates = new Map<string, boolean>();
   for (const row of streakRows ?? []) {
@@ -258,7 +258,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
     const hasActiveStreak = allActiveDates.has(todayStr) || allActiveDates.has(yesterdayStr);
     if (hasActiveStreak) {
-      const checkDate = allActiveDates.has(todayStr) ? new Date(todayIst) : new Date(yesterdayIst);
+      const checkDate = allActiveDates.has(todayStr) ? new Date(todayUtc) : new Date(yesterdayUtc);
       let checkStr = checkDate.toISOString().split("T")[0];
       while (allActiveDates.has(checkStr)) {
         currentStreak++;
@@ -279,7 +279,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const activityCalendar: any[] = [];
   for (let i = 139; i >= 0; i--) {
-    const d = new Date(todayIst.getTime() - i * 24 * 60 * 60 * 1000);
+    const d = new Date(todayUtc.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = d.toISOString().split("T")[0];
     const activity = uniqueDatesWithStatus.get(dateStr);
     activityCalendar.push({

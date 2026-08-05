@@ -130,7 +130,7 @@ function OpportunityCard({
                 <span>{opp.location || "Remote"}</span>
                 <span>•</span>
                 <span className={cn(isExpired && "text-rose-600 dark:text-rose-400 font-medium")}>
-                  {isExpired ? "Expired" : `Ends: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
+                  {isExpired ? "Expired" : `Ends: ${new Intl.DateTimeFormat(undefined, { dateStyle: "short" }).format(deadlineDate)}`}
                 </span>
                 {opp.my_application_id && (
                   <>
@@ -209,7 +209,7 @@ function OpportunityCard({
               </StatChip>
 
               <StatChip icon={<Clock className="h-3.5 w-3.5" />} tone={isExpired ? "rose" : "neutral"}>
-                {isExpired ? "Expired" : `Deadline: ${deadlineDate.toLocaleDateString("en-IN", { dateStyle: "short" })}`}
+                {isExpired ? "Expired" : `Deadline: ${new Intl.DateTimeFormat(undefined, { dateStyle: "short" }).format(deadlineDate)}`}
               </StatChip>
             </div>
           </div>

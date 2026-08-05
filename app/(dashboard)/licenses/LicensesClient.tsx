@@ -155,9 +155,9 @@ export function LicensesClient({ initialInstitutes }: LicensesClientProps) {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A";
-    return new Date(dateStr).toLocaleDateString("en-IN", {
+    return new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
-    });
+    }).format(new Date(dateStr));
   };
 
   return (

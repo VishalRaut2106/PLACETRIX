@@ -365,45 +365,9 @@ export function EventsStaffClient({
         </Link>
       </div>
 
-      {/* Stats Bar */}
-      <StatsBar
-        tabCounts={stats}
-        totalAttendeesCount={totalAttendeesCount}
-        totalCheckedInCount={totalCheckedInCount}
-      />
+      {/* Search and Filters */}
 
       <div className="space-y-4">
-        {/* Quick Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {tabConfig.map(({ value, label, icon, count }) => (
-            <Button
-              key={value}
-              variant={activeTab === value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTab(value)}
-              className={cn(
-                "h-8 rounded-full text-xs shrink-0 gap-1.5 cursor-pointer",
-                activeTab === value
-                  ? "shadow-xs"
-                  : "border-border/60 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {icon}
-              <span>{label}</span>
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 text-[10px] rounded-full font-semibold tabular-nums",
-                  activeTab === value
-                    ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {count}
-              </span>
-            </Button>
-          ))}
-        </div>
-
         {/* Search (left) + Filters (right) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="flex flex-1 items-center gap-2">

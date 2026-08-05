@@ -18,12 +18,10 @@ interface SearchParams {
   tag?: string
 }
 
-// Helper to format Date/String to IST YYYY-MM-DD
-function toIstYYYYMMDD(dateInput: Date | string) {
+// Helper to format Date/String to UTC YYYY-MM-DD
+function toUtcYYYYMMDD(dateInput: Date | string) {
   const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput
-  const istOffset = 5.5 * 60 * 60 * 1000
-  const istDate = new Date(date.getTime() + istOffset)
-  return istDate.toISOString().split("T")[0]
+  return date.toISOString().split("T")[0]
 }
 
 
@@ -52,17 +50,15 @@ export default async function LogicLabPage() {
   })
 
   const enrichedProblems = initialProblemsData || []
-  // Force POTD & Streaks to use IST (+5.5 hours)
-  const istOffset = 5.5 * 60 * 60 * 1000
+  // Use UTC calendar dates (matching DB TIMESTAMPTZ & POTD date column)
   const today = new Date()
-  const istDate = new Date(today.getTime() + istOffset)
-  const todayStr = istDate.toISOString().split("T")[0]
+  const todayStr = today.toISOString().split("T")[0]
 
-  const yesterdayDate = new Date(istDate.getTime() - (24 * 60 * 60 * 1000))
+  const yesterdayDate = new Date(today.getTime() - (24 * 60 * 60 * 1000))
   const yesterdayStr = yesterdayDate.toISOString().split("T")[0]
 
   // Heatmap cut-off date (last 20 weeks = 140 days)
-  const cutOffDate20Weeks = new Date(istDate.getTime() - (140 * 24 * 60 * 60 * 1000))
+  const cutOffDate20Weeks = new Date(today.getTime() - (140 * 24 * 60 * 60 * 1000))
   const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0]
 
   // 1. Fetch aggregated daily activity for the 20-week heatmap
@@ -145,7 +141,7 @@ export default async function LogicLabPage() {
     if (tempStreak > maxStreak) maxStreak = tempStreak
 
     if (hasActiveStreak) {
-      const checkDate = allActiveDates.has(todayStr) ? new Date(istDate) : new Date(yesterdayDate)
+      const checkDate = allActiveDates.has(todayStr) ? new Date(today) : new Date(yesterdayDate)
       let checkStr = checkDate.toISOString().split("T")[0]
 
       while (allActiveDates.has(checkStr)) {
@@ -162,7 +158,7 @@ export default async function LogicLabPage() {
   const activityCalendar: any[] = []
   const daysToGenerate = 140 // 20 weeks * 7 days
   for (let i = daysToGenerate - 1; i >= 0; i--) {
-    const d = new Date(istDate.getTime() - (i * 24 * 60 * 60 * 1000))
+    const d = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000))
     const dateStr = d.toISOString().split("T")[0]
     const activity = uniqueDatesWithStatus.get(dateStr)
     activityCalendar.push({
