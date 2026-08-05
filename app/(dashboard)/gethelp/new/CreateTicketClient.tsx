@@ -59,7 +59,7 @@ export function CreateTicketClient({ userProfile }: CreateTicketClientProps) {
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <h1 className="text-xl font-semibold tracking-tight">Submit a Ticket</h1>
+            <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Submit a Ticket</h1>
             <p className="text-sm text-muted-foreground">
               Describe the issue you&apos;re experiencing and we&apos;ll resolve it as soon as possible.
             </p>

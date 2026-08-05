@@ -5,7 +5,6 @@ import {
   saveDraftAction,
   publishTestAction,
   generateQuestionsAction,
-  generateQuestionsFromSyllabusAction,
   loadTestAction,
 } from "./actions"
 import { getCohortOptionsAction } from "@/app/(dashboard)/(licensed)/cohorts/actions"
@@ -50,10 +49,10 @@ export default async function TestEditorPage({ params }: Props) {
       initialData={initialData ?? undefined}
       availableTags={tags ?? []}
       generateQuestionsAction={generateQuestionsAction}
-      generateQuestionsFromSyllabusAction={generateQuestionsFromSyllabusAction}
       onSaveDraft={saveDraftAction}
       onPublish={publishTestAction}
       cohortOptions={cohortOptions}
     />
   )
 }
+

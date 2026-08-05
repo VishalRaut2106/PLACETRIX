@@ -227,7 +227,9 @@ function MetaItem({
         <p className={cn('text-[10px]', 'font-medium', 'uppercase', 'tracking-wide', 'text-muted-foreground')}>
           {label}
         </p>
-        <p className={cn('mt-0.5', 'text-sm', 'font-medium', 'text-foreground')}>{value}</p>
+        <p className={cn('mt-0.5', 'text-sm', 'font-medium', 'text-foreground')} suppressHydrationWarning>
+          {value}
+        </p>
       </div>
     </div>
   )

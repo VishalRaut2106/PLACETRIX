@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Loader2, Save, Send, Building2, MapPin, IndianRupee, Calendar, Info, FileText } from "lucide-react"
 import { toast } from "sonner"
-import { DateTimePicker } from "@/components/ui/datetime-picker"
+import { DateTimePicker } from "@/components/datetime-picker"
 import { createOpportunityAction, updateOpportunityAction } from "./actions"
 import type { 
   OpportunityListItem, 
@@ -21,8 +21,19 @@ import type {
   CompanyProfile,
   CompensationType
 } from "./types"
-import { CohortSelector } from "@/app/(dashboard)/(licensed)/cohorts/CohortsClient"
 import type { CohortOption } from "@/app/(dashboard)/(licensed)/cohorts/types"
+import {
+  Combobox,
+  ComboboxChips,
+  ComboboxChip,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxList,
+  ComboboxItem,
+  useComboboxAnchor,
+} from "@/components/ui/combobox"
+import { UsersRound } from "lucide-react"
 
 const COMPENSATION_TYPES: { value: CompensationType; label: string }[] = [
   { value: "full_time", label: "Full-Time Job" },
@@ -46,6 +57,7 @@ export function OpportunityEditorClient({
 }: OpportunityEditorClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const cohortsAnchor = useComboboxAnchor()
   const isEditMode = opportunity !== undefined
 
   const [selectedCohortIds, setSelectedCohortIds] = useState<string[]>(initialCohortIds)
@@ -138,7 +150,7 @@ export function OpportunityEditorClient({
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <h1 className="text-2xl font-semibold tracking-tight font-cirka">
+            <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
               {isEditMode ? "Edit Opportunity" : "Create Opportunity"}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -393,7 +405,7 @@ export function OpportunityEditorClient({
                   <DateTimePicker 
                     id="deadline" 
                     value={formData.deadline} 
-                    onChange={val => setFormData({ ...formData, deadline: val })}
+                    onChange={val => setFormData({ ...formData, deadline: val ? (val instanceof Date ? val.toISOString() : String(val)) : "" })}
                   />
                 </div>
               </div>
@@ -514,23 +526,68 @@ export function OpportunityEditorClient({
                   onChange={e => setFormData({ ...formData, perks: e.target.value })}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Cohort Targeting */}
-          <Card>
-            <CardContent className="p-5 space-y-3">
-              <div>
-                <h3 className="font-semibold text-sm text-foreground">Target Cohorts *</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+              <div className="space-y-1.5 pt-2 border-t border-border/50">
+                <Label htmlFor="target_cohorts">Target Cohorts *</Label>
+                <p className="text-xs text-muted-foreground">
                   Select which student cohorts can see this opportunity. At least one cohort is required to publish.
                 </p>
               </div>
-              <CohortSelector
-                selectedCohortIds={selectedCohortIds}
-                onChange={setSelectedCohortIds}
-                cohorts={cohortOptions}
-              />
+              {(() => {
+                const options = cohortOptions ?? []
+                if (options.length === 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground italic py-1">
+                      No cohorts found. Create cohorts first from the Cohorts page.
+                    </p>
+                  )
+                }
+                return (
+                  <Combobox
+                    items={options.map((c) => c.id)}
+                    value={selectedCohortIds}
+                    onValueChange={(v) => setSelectedCohortIds(v as string[])}
+                    multiple
+                    itemToStringLabel={(id) => options.find((c) => c.id === id)?.name ?? id}
+                  >
+                    <ComboboxChips ref={cohortsAnchor} className="w-full">
+                      {selectedCohortIds.map((id) => {
+                        const cohort = options.find((c) => c.id === id)
+                        return (
+                          <ComboboxChip key={id} showRemove>
+                            <UsersRound className="mr-1 h-3 w-3 text-muted-foreground" />
+                            {cohort?.name ?? id}
+                            {cohort && (
+                              <span className="ml-1 text-[10px] text-muted-foreground">
+                                ({cohort.student_count})
+                              </span>
+                            )}
+                          </ComboboxChip>
+                        )
+                      })}
+                      <ComboboxChipsInput
+                        placeholder={selectedCohortIds.length ? "Add more cohorts..." : "Select target cohorts..."}
+                      />
+                    </ComboboxChips>
+                    <ComboboxContent anchor={cohortsAnchor}>
+                      <ComboboxEmpty>No cohorts found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(id: string) => {
+                          const cohort = options.find((c) => c.id === id)
+                          return (
+                            <ComboboxItem key={id} value={id}>
+                              <UsersRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">{cohort?.name ?? id}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {cohort?.student_count ?? 0} student{(cohort?.student_count ?? 0) !== 1 ? "s" : ""}
+                              </span>
+                            </ComboboxItem>
+                          )
+                        }}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                )
+              })()}
             </CardContent>
           </Card>
 

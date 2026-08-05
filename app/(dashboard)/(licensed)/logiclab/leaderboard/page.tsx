@@ -36,8 +36,8 @@ export default async function LeaderboardPage() {
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 w-full">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
-        <p className="text-muted-foreground">See how you stack up against your peers in LogicLab.</p>
+        <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Leaderboard</h1>
+        <p className="text-sm text-muted-foreground">See how you stack up against your peers in LogicLab.</p>
       </div>
 
       <LeaderboardClient 

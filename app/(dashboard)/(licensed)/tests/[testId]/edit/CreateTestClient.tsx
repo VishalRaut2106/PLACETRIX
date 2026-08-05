@@ -21,14 +21,25 @@ import {
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion"
-import { DateTimePicker } from "@/components/ui/datetime-picker"
+import { DateTimePicker } from "@/components/datetime-picker"
 import { MathText } from "@/components/others/latex-renderer"
 import { cn } from "@/lib/utils"
 import {
   Loader2, Save, Send, AlertCircle, AlertTriangle, BookOpen, CheckCircle2, Circle, Plus, Tag, X,
   PlusCircle, Sparkles, Upload, Trash2, Pencil, ChevronDown, ChevronUp, Info, FileJson, Image
 } from "lucide-react"
-import { CohortSelector } from "@/app/(dashboard)/(licensed)/cohorts/CohortsClient"
+import {
+  Combobox,
+  ComboboxChips,
+  ComboboxChip,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxList,
+  ComboboxItem,
+  useComboboxAnchor,
+} from "@/components/ui/combobox"
+import { UsersRound } from "lucide-react"
 import type { CohortOption } from "@/app/(dashboard)/(licensed)/cohorts/types"
 import { GenerateButton } from "@/components/others/generate-button"
 
@@ -47,7 +58,6 @@ interface Props {
   initialData?: InitialTestData
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
-  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
   onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
   onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
   cohortOptions?: CohortOption[]
@@ -119,12 +129,12 @@ export function CreateTestClient({
   initialData,
   availableTags,
   generateQuestionsAction,
-  generateQuestionsFromSyllabusAction,
   onSaveDraft,
   onPublish,
   cohortOptions,
 }: Props) {
   const isEditMode = propTestId !== undefined
+  const cohortsAnchor = useComboboxAnchor()
 
   // Stable ID: use prop when editing, generate once when creating
   const [testId] = useState<string>(() => propTestId ?? crypto.randomUUID())
@@ -191,7 +201,7 @@ export function CreateTestClient({
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-0.5">
-            <h1 className="text-xl font-semibold tracking-tight">
+            <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
               {isEditMode ? "Edit Test" : "Create Test"}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -244,7 +254,6 @@ export function CreateTestClient({
           setQuestions={setQuestions}
           availableTags={availableTags}
           generateQuestionsAction={generateQuestionsAction}
-          generateQuestionsFromSyllabusAction={generateQuestionsFromSyllabusAction}
         />
 
       </div>
@@ -261,6 +270,7 @@ interface SettingsFormProps {
 }
 
 function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsFormProps) {
+  const cohortsAnchor = useComboboxAnchor()
   const set = useCallback(
     (key: keyof SettingsForm) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -349,7 +359,7 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
                 <DateTimePicker
                   id="available_from"
                   value={values.available_from}
-                  onChange={(val) => onChange({ ...values, available_from: val })}
+                  onChange={(val) => onChange({ ...values, available_from: val ? (val instanceof Date ? val.toISOString() : String(val)) : "" })}
                 />
               </div>
               <div className="space-y-1.5">
@@ -357,7 +367,7 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
                 <DateTimePicker
                   id="available_until"
                   value={values.available_until}
-                  onChange={(val) => onChange({ ...values, available_until: val })}
+                  onChange={(val) => onChange({ ...values, available_until: val ? (val instanceof Date ? val.toISOString() : String(val)) : "" })}
                 />
               </div>
             </div>
@@ -371,20 +381,68 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
           </div>
 
           {/* Cohort Targeting */}
-          <div className="space-y-2 border rounded-lg p-4 bg-muted/20">
-            <div>
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Target Cohorts *
-              </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Select which cohorts can take this test. At least one cohort is required to publish.
-              </p>
-            </div>
-            <CohortSelector
-              selectedCohortIds={values.cohort_ids || []}
-              onChange={(ids: string[]) => onChange({ ...values, cohort_ids: ids })}
-              cohorts={cohortOptions}
-            />
+          <div className="space-y-1.5">
+            <Label htmlFor="target_cohorts">Target Cohorts <span className="text-destructive">*</span></Label>
+            <p className="text-xs text-muted-foreground">
+              Select which cohorts can take this test. At least one cohort is required to publish.
+            </p>
+            {(() => {
+              const options = cohortOptions ?? []
+              const selectedIds = values.cohort_ids || []
+              if (options.length === 0) {
+                return (
+                  <p className="text-xs text-muted-foreground italic py-1">
+                    No cohorts found. Create cohorts first from the Cohorts page.
+                  </p>
+                )
+              }
+              return (
+                <Combobox
+                  items={options.map((c) => c.id)}
+                  value={selectedIds}
+                  onValueChange={(v) => onChange({ ...values, cohort_ids: v as string[] })}
+                  multiple
+                  itemToStringLabel={(id) => options.find((c) => c.id === id)?.name ?? id}
+                >
+                  <ComboboxChips ref={cohortsAnchor} className="w-full">
+                    {selectedIds.map((id) => {
+                      const cohort = options.find((c) => c.id === id)
+                      return (
+                        <ComboboxChip key={id} showRemove>
+                          <UsersRound className="mr-1 h-3 w-3 text-muted-foreground" />
+                          {cohort?.name ?? id}
+                          {cohort && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">
+                              ({cohort.student_count})
+                            </span>
+                          )}
+                        </ComboboxChip>
+                      )
+                    })}
+                    <ComboboxChipsInput
+                      placeholder={selectedIds.length ? "Add more cohorts..." : "Select target cohorts..."}
+                    />
+                  </ComboboxChips>
+                  <ComboboxContent anchor={cohortsAnchor}>
+                    <ComboboxEmpty>No cohorts found.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(id: string) => {
+                        const cohort = options.find((c) => c.id === id)
+                        return (
+                          <ComboboxItem key={id} value={id}>
+                            <UsersRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{cohort?.name ?? id}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {cohort?.student_count ?? 0} student{(cohort?.student_count ?? 0) !== 1 ? "s" : ""}
+                            </span>
+                          </ComboboxItem>
+                        )
+                      }}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              )
+            })()}
           </div>
 
         </CardContent>
@@ -1807,305 +1865,6 @@ function QuestionListItem({
   )
 }
 
-// ─── Sub-Component: AiGenerateSyllabusSheet ───────────────────────────────────────────
-
-interface AiGenerateSyllabusSheetProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
-  onImport: (questions: QuestionForm[]) => void
-}
-
-function AiGenerateSyllabusSheet({
-  open,
-  onOpenChange,
-  generateQuestionsFromSyllabusAction,
-  onImport,
-}: AiGenerateSyllabusSheetProps) {
-  const [form, setForm] = useState<AiGenerateForm>({ topic: "", count: "5", difficulty: "medium", question_type: "single_correct" })
-  const [file, setFile] = useState<File | null>(null)
-  const [generated, setGenerated] = useState<AiPreviewQuestion[]>([])
-  const [generatedWith, setGeneratedWith] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const countFieldError =
-    form.count !== "" && (Number(form.count) < 1 || Number(form.count) > 20)
-      ? "Enter a number between 1 and 20."
-      : null
-
-  const setField = <K extends keyof AiGenerateForm>(k: K, v: AiGenerateForm[K]) =>
-    setForm((f) => ({ ...f, [k]: v }))
-
-  const handleGenerate = () => {
-    const count = Number(form.count)
-    if (!file) {
-      setError("Please upload a PDF syllabus.")
-      return
-    }
-    if (!generateQuestionsFromSyllabusAction) {
-      setError("AI generation is not configured.")
-      return
-    }
-    if (isNaN(count) || count < 1 || count > 20) {
-      setError("Count must be between 1 and 20.")
-      return
-    }
-
-    setError(null)
-    setGenerated([])
-    setGeneratedWith(null)
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("count", String(count))
-    formData.append("difficulty", form.difficulty)
-    formData.append("question_type", form.question_type)
-    if (form.topic.trim()) formData.append("topic", form.topic.trim())
-
-    startTransition(async () => {
-      try {
-        const result = await generateQuestionsFromSyllabusAction(formData)
-        if (result.error) {
-          setGeneratedWith(null)
-          setError(result.error)
-          return
-        }
-        setGeneratedWith(result.generatedWith || null)
-        setGenerated((result.questions || []).map((q) => ({
-          ...q, _selected: true, _previewId: crypto.randomUUID(), _warnings: [], _showExplanation: false
-        })))
-      } catch (err: any) {
-        setGeneratedWith(null)
-        setError(err?.message ?? "Failed to generate questions. Please try again.")
-      }
-    })
-  }
-
-  const handleImport = () => {
-    const selected = generated.filter((q) => q._selected)
-    if (!selected.length) {
-      setError("Select at least one question.")
-      return
-    }
-    onImport(selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => q))
-    handleClose()
-  }
-
-  const handleClose = () => {
-    setForm({ topic: "", count: "5", difficulty: "medium", question_type: "single_correct" })
-    setFile(null)
-    setGenerated([])
-    setGeneratedWith(null)
-    setError(null)
-    onOpenChange(false)
-  }
-
-  const toggleSelected = (previewId: string) =>
-    setGenerated((p) => p.map((x) => x._previewId === previewId ? { ...x, _selected: !x._selected } : x))
-
-  const toggleExplanation = (previewId: string) =>
-    setGenerated((p) => p.map((x) => x._previewId === previewId ? { ...x, _showExplanation: !x._showExplanation } : x))
-
-  const selectedCount = generated.filter((q) => q._selected).length
-
-  return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
-        <SheetHeader className="shrink-0 border-b px-6 py-4">
-          <SheetTitle className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-purple-500" />
-            Generate from Syllabus
-          </SheetTitle>
-          <SheetDescription>
-            Upload a PDF syllabus to automatically extract topics and generate questions.
-          </SheetDescription>
-          {generatedWith && (
-            <div className="pt-2"><Badge variant="secondary" className="font-normal">Generated with: {generatedWith}</Badge></div>
-          )}
-        </SheetHeader>
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          {error && (
-            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />{error}
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <Label>Syllabus Document (PDF) <span className="text-destructive">*</span></Label>
-            <div
-              className="flex cursor-pointer flex-col items-center gap-3 rounded-md border-2 border-dashed p-6 transition-colors hover:bg-muted/40"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-6 w-6 text-muted-foreground/40" />
-              <div className="text-center">
-                <p className="text-sm font-medium">{file ? file.name : "Click to upload"}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">PDF files only (max 20,000 characters extracted)</p>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (!f) return
-                  if (!f.name.toLowerCase().endsWith(".pdf") && f.type !== "application/pdf") {
-                    setError("Please select a valid PDF file.")
-                    return
-                  }
-                  if (f.size > 15 * 1024 * 1024) {
-                    setError("File size exceeds 15MB limit.")
-                    return
-                  }
-                  setError(null)
-                  setFile(f)
-                }}
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Focus Topic (Optional)</Label>
-            <Input
-              type="text"
-              placeholder="e.g. Newtonian Mechanics"
-              value={form.topic}
-              onChange={(e) => setField("topic", e.target.value)}
-              disabled={isPending}
-              className="text-sm"
-            />
-            <p className="text-xs text-muted-foreground">If provided, AI will only generate questions about this specific topic.</p>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label>Count</Label>
-              <Input
-                type="number"
-                min={1}
-                max={20}
-                value={form.count}
-                onChange={(e) => setField("count", e.target.value)}
-                onBlur={() => { if (!form.count.trim()) setField("count", "5") }}
-                className={cn("text-sm", countFieldError && "border-destructive focus-visible:ring-destructive")}
-                disabled={isPending}
-              />
-              {countFieldError && (
-                <p className="flex items-center gap-1 text-xs text-destructive"><AlertCircle className="h-3 w-3 shrink-0" />{countFieldError}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label>Difficulty</Label>
-              <Select value={form.difficulty} onValueChange={(v: "easy" | "medium" | "hard") => setField("difficulty", v)} disabled={isPending}>
-                <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Type</Label>
-              <Select value={form.question_type} onValueChange={(v: "single_correct" | "multiple_correct" | "mixed") => setField("question_type", v)} disabled={isPending}>
-                <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single_correct">Single</SelectItem>
-                  <SelectItem value="multiple_correct">Multiple</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <GenerateButton
-            onClick={handleGenerate}
-            isGenerating={isPending}
-            disabled={isPending || !file || !generateQuestionsFromSyllabusAction || !!countFieldError}
-            text="Extract & Generate"
-            generatingText="Extracting & Generating"
-            hue={275}
-            className="w-full"
-          />
-          {isPending && (
-            <div className="space-y-3">
-              {Array.from({ length: Number(form.count) || 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 border border-border/40" />
-              ))}
-            </div>
-          )}
-          {!isPending && generated.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{generated.length} question{generated.length !== 1 ? "s" : ""} generated</p>
-                </div>
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  <button type="button" className="hover:text-foreground" onClick={() => setGenerated((p) => p.map((q) => ({ ...q, _selected: true })))}>Select all</button>
-                  <span>·</span>
-                  <button type="button" className="hover:text-foreground" onClick={() => setGenerated((p) => p.map((q) => ({ ...q, _selected: false })))}>Deselect all</button>
-                </div>
-              </div>
-              {generated.map((q, idx) => (
-                <button
-                  key={q._previewId}
-                  type="button"
-                  onClick={() => toggleSelected(q._previewId)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSelected(q._previewId) } }}
-                  className={cn("w-full text-left space-y-2 rounded-md border p-3 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1", q._selected ? "border-primary/40 bg-primary/5" : "opacity-50 hover:opacity-80")}
-                >
-                  <div className="flex items-start gap-2">
-                    <Checkbox checked={q._selected} onCheckedChange={() => toggleSelected(q._previewId)} className="mt-0.5 shrink-0" onClick={(e) => e.stopPropagation()} />
-                    <p className="flex-1 text-sm font-medium leading-snug">{idx + 1}. <MathText>{q.question_text}</MathText></p>
-                    {q._warnings.length > 0 && <Badge className="shrink-0 border-amber-300 bg-amber-100 text-xs text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400">Auto-fixed</Badge>}
-                  </div>
-                  <div className="space-y-1 pl-6">
-                    {q.options.map((opt, oi) => (
-                      <div key={opt._key} className={cn("flex items-center gap-1.5 text-xs", opt.is_correct ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                        {opt.is_correct ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <Circle className="h-3 w-3 shrink-0" />}
-                        {String.fromCharCode(65 + oi)}. <MathText>{opt.option_text}</MathText>
-                      </div>
-                    ))}
-                  </div>
-                  {q._warnings.length > 0 && (
-                    <div className="space-y-1 pl-6">
-                      {q._warnings.map((w) => (
-                        <p key={w} className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400"><AlertTriangle className="h-3 w-3 shrink-0" />{w}</p>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2 pl-6">
-                    <Badge variant="outline" className="h-4 px-1.5 py-0 text-xs">{q.question_type === "single_correct" ? "Single" : "Multiple"}</Badge>
-                    <span className="text-xs text-muted-foreground">{q.marks} mark{q.marks !== 1 ? "s" : ""}</span>
-                    {q.tag_names.map((tag) => <Badge key={tag} variant="secondary" className="h-4 px-1.5 py-0 text-xs font-normal">{tag}</Badge>)}
-                  </div>
-                  {q.explanation && (
-                    <div className="pl-6">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleExplanation(q._previewId) }} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                        {q._showExplanation ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        {q._showExplanation ? "Hide" : "Show"} explanation
-                      </button>
-                      {q._showExplanation && (
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground"><MathText>{q.explanation}</MathText></p>
-                      )}
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <SheetFooter className="shrink-0 flex-row justify-end gap-2 border-t px-6 py-4">
-          <Button variant="outline" onClick={handleClose} disabled={isPending}>Cancel</Button>
-          {generated.length > 0 && (
-            <Button onClick={handleImport} disabled={selectedCount === 0 || isPending}>
-              Add {selectedCount} Question{selectedCount !== 1 ? "s" : ""}
-            </Button>
-          )}
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
 // ─── Sub-Component: QuestionsPanel ────────────────────────────────────────────
 
 interface QuestionsPanelProps {
@@ -2113,7 +1872,6 @@ interface QuestionsPanelProps {
   setQuestions: React.Dispatch<React.SetStateAction<LocalQuestion[]>>
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
-  generateQuestionsFromSyllabusAction?: (formData: FormData) => Promise<GenerateQuestionsResult>
 }
 
 function QuestionsPanel({
@@ -2121,11 +1879,9 @@ function QuestionsPanel({
   setQuestions,
   availableTags,
   generateQuestionsAction,
-  generateQuestionsFromSyllabusAction,
 }: QuestionsPanelProps) {
   const [questionSheetOpen, setQuestionSheetOpen] = useState(false)
   const [aiSheetOpen, setAiSheetOpen] = useState(false)
-  const [aiSyllabusSheetOpen, setAiSyllabusSheetOpen] = useState(false)
   const [importSheetOpen, setImportSheetOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<LocalQuestion | null>(null)
 
@@ -2242,9 +1998,6 @@ function QuestionsPanel({
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setAiSheetOpen(true)}>
                 <Sparkles className="mr-1.5 size-4" /> AI Generate
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setAiSyllabusSheetOpen(true)}>
-                <BookOpen className="mr-1.5 size-4" /> Syllabus PDF
               </Button>
               <Button size="sm" variant="outline" onClick={() => setImportSheetOpen(true)}>
                 <Upload className="mr-1.5 size-4" /> Import
@@ -2412,13 +2165,6 @@ function QuestionsPanel({
         open={aiSheetOpen}
         onOpenChange={setAiSheetOpen}
         generateQuestionsAction={generateQuestionsAction}
-        onImport={handleAiImport}
-      />
-
-      <AiGenerateSyllabusSheet
-        open={aiSyllabusSheetOpen}
-        onOpenChange={setAiSyllabusSheetOpen}
-        generateQuestionsFromSyllabusAction={generateQuestionsFromSyllabusAction}
         onImport={handleAiImport}
       />
 

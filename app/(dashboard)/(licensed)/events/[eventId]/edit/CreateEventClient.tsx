@@ -18,19 +18,30 @@ import {
   Upload,
   X,
   FileText,
+  UsersRound,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { DateTimePicker } from "@/components/ui/datetime-picker"
+import { DateTimePicker } from "@/components/datetime-picker"
 import { createEventAction, updateEventAction } from "../../actions"
 import type { EventFormData, EventStatus } from "../../types"
 import { createClient } from "@/lib/supabase/client"
 import { buildStorageUrl } from "@/lib/storage"
-import { CohortSelector } from "@/app/(dashboard)/(licensed)/cohorts/CohortsClient"
 import type { CohortOption } from "@/app/(dashboard)/(licensed)/cohorts/types"
+import {
+  Combobox,
+  ComboboxChips,
+  ComboboxChip,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxList,
+  ComboboxItem,
+  useComboboxAnchor,
+} from "@/components/ui/combobox"
 
 interface Props {
   eventId?: string
@@ -105,6 +116,7 @@ const addMinutesToISTString = (istStr: string, mins: number) => {
 export function CreateEventClient({ eventId, initialData, cohortOptions }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const cohortsAnchor = useComboboxAnchor()
 
   const [selectedCohortIds, setSelectedCohortIds] = useState<string[]>(
     initialData?.cohort_ids ?? []
@@ -294,10 +306,10 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold font-cirka tracking-tight">
+            <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
               {eventId ? "Edit Event" : "Create New Event"}
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Fill in the details below to schedule an event for your institution.
             </p>
           </div>
@@ -359,7 +371,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                   <DateTimePicker
                     id="date"
                     value={formData.date}
-                    onChange={(val) => handleStartDateChange(val)}
+                    onChange={(val) => handleStartDateChange(val ? (val instanceof Date ? val.toISOString() : String(val)) : "")}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -367,7 +379,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                   <DateTimePicker
                     id="end_date"
                     value={endDate}
-                    onChange={(val) => handleEndDateChange(val)}
+                    onChange={(val) => handleEndDateChange(val ? (val instanceof Date ? val.toISOString() : String(val)) : "")}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -509,20 +521,67 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
               </div>
 
               {/* Cohort Targeting */}
-              <div className="grid gap-3 pt-2">
-                <div>
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Target Cohorts *
-                  </Label>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
-                    Select which cohorts can see this event.
-                  </p>
-                </div>
-                <CohortSelector
-                  selectedCohortIds={selectedCohortIds}
-                  onChange={setSelectedCohortIds}
-                  cohorts={cohortOptions}
-                />
+              <div className="grid gap-1.5">
+                <Label htmlFor="target_cohorts">Target Cohorts *</Label>
+                <p className="text-xs text-muted-foreground">
+                  Select which cohorts can see this event.
+                </p>
+                {(() => {
+                  const options = cohortOptions ?? []
+                  if (options.length === 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground italic py-1">
+                        No cohorts found. Create cohorts first from the Cohorts page.
+                      </p>
+                    )
+                  }
+                  return (
+                    <Combobox
+                      items={options.map((c) => c.id)}
+                      value={selectedCohortIds}
+                      onValueChange={(v) => setSelectedCohortIds(v as string[])}
+                      multiple
+                      itemToStringLabel={(id) => options.find((c) => c.id === id)?.name ?? id}
+                    >
+                      <ComboboxChips ref={cohortsAnchor} className="w-full">
+                        {selectedCohortIds.map((id) => {
+                          const cohort = options.find((c) => c.id === id)
+                          return (
+                            <ComboboxChip key={id} showRemove>
+                              <UsersRound className="mr-1 h-3 w-3 text-muted-foreground" />
+                              {cohort?.name ?? id}
+                              {cohort && (
+                                <span className="ml-1 text-[10px] text-muted-foreground">
+                                  ({cohort.student_count})
+                                </span>
+                              )}
+                            </ComboboxChip>
+                          )
+                        })}
+                        <ComboboxChipsInput
+                          placeholder={selectedCohortIds.length ? "Add more cohorts..." : "Select target cohorts..."}
+                        />
+                      </ComboboxChips>
+                      <ComboboxContent anchor={cohortsAnchor}>
+                        <ComboboxEmpty>No cohorts found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {(id: string) => {
+                            const cohort = options.find((c) => c.id === id)
+                            return (
+                              <ComboboxItem key={id} value={id}>
+                                <UsersRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">{cohort?.name ?? id}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                  {cohort?.student_count ?? 0} student{(cohort?.student_count ?? 0) !== 1 ? "s" : ""}
+                                </span>
+                              </ComboboxItem>
+                            )
+                          }}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  )
+                })()}
               </div>
             </CardContent>
           </Card>

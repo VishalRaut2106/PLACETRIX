@@ -15,6 +15,30 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.16",
+    date: "2026-08-05",
+    title: "Pro DateTimePicker, Target Cohort Combobox & UTC Standardization",
+    badge: "Patch",
+    categories: [
+      {
+        type: "improved",
+        items: [
+          "Upgraded DateTimePicker with keyboard-first navigation and 12-hour AM/PM format support.",
+          "Enhanced target cohort selector with a searchable, multi-select dropdown combobox across all creation forms.",
+          "Standardized header typography, fonts, and subtitle styling across creation & editing pages.",
+          "Standardized all database operations to UTC timestamps with dynamic browser local timezone display.",
+          "Improved sidebar button hover state and font weight stability."
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          "Resolved date hydration mismatch between server-rendered and client-rendered local date formatting."
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.15",
     date: "2026-08-03",
     title: "AI Assistant & New Test-Taking Environment",
@@ -31,7 +55,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.15";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.16";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
