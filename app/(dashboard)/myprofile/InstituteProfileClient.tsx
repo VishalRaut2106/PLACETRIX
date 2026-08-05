@@ -733,7 +733,7 @@ export function InstituteProfileClient({ userProfile, initialData }: Props) {
       refresh()
     } catch (err) {
       console.error(err)
-      toast.error("Failed to upload logo. Please try again.")
+      toast.error((err as any)?.message || "Failed to upload logo. Please try again.")
       dispatch({
         type: "SET_FIELD",
         field: "logoSrc",

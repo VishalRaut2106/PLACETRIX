@@ -393,7 +393,8 @@ export function CandidateOpportunityDetailClient({
                   label="Apply Before"
                   value={new Intl.DateTimeFormat(undefined, {
                     dateStyle: "medium",
-                    timeStyle: "short"
+                    timeStyle: "short",
+                    hour12: true,
                   }).format(new Date(opp.deadline))}
                 />
               </div>

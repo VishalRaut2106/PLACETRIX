@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ArrowLeft,
   Loader2,
@@ -19,8 +19,13 @@ import {
   X,
   FileText,
   UsersRound,
+  Clock,
+  MapPin,
+  User,
+  Sparkles,
+  Eye,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, toLocalDateTimeInput, toUTCISOString } from "@/lib/utils"
 import { toast } from "sonner"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -33,13 +38,15 @@ import { buildStorageUrl } from "@/lib/storage"
 import type { CohortOption } from "@/app/(dashboard)/(licensed)/cohorts/types"
 import {
   Combobox,
+  ComboboxItem,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxEmpty,
   ComboboxChips,
   ComboboxChip,
   ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxList,
-  ComboboxItem,
+  ComboboxInput,
+  ComboboxTrigger,
   useComboboxAnchor,
 } from "@/components/ui/combobox"
 
@@ -49,69 +56,16 @@ interface Props {
   cohortOptions?: CohortOption[]
 }
 
-// Ensure the local input parses from a UTC string as exactly IST (+05:30)
-const toISTDatetimeString = (isoStr?: string) => {
-  if (!isoStr) return ""
+const addMinutesToLocal = (localStr: string, mins: number) => {
+  if (!localStr) return ""
   try {
-    const d = new Date(isoStr)
+    const d = new Date(localStr)
     if (isNaN(d.getTime())) return ""
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    const parts = formatter.formatToParts(d)
-    const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "00"
-    
-    const year = getPart("year")
-    const month = getPart("month")
-    const day = getPart("day")
-    let hour = getPart("hour")
-    if (hour === "24") hour = "00"
-    const minute = getPart("minute")
-    
-    return `${year}-${month}-${day}T${hour}:${minute}`
+    return toLocalDateTimeInput(new Date(d.getTime() + mins * 60000))
   } catch {
     return ""
   }
 }
-
-const toUTCISOFromIST = (istLocalStr: string) => {
-  if (!istLocalStr) return ""
-  try {
-    const cleanStr = istLocalStr.replace(/Z|[+-]\d{2}:\d{2}$/, "")
-    const [datePart, timePart] = cleanStr.split("T")
-    if (!datePart || !timePart) return new Date(istLocalStr).toISOString()
-    const [year, month, day] = datePart.split("-").map(Number)
-    const [hours, minutes] = timePart.split(":").map(Number)
-    const utcMs = Date.UTC(year, month - 1, day, hours - 5, minutes - 30)
-    return new Date(utcMs).toISOString()
-  } catch {
-    return new Date(istLocalStr).toISOString()
-  }
-}
-
-const addMinutesToISTString = (istStr: string, mins: number) => {
-  if (!istStr) return ""
-  try {
-    const cleanStr = istStr.replace(/Z|[+-]\d{2}:\d{2}$/, "")
-    const [datePart, timePart] = cleanStr.split("T")
-    if (!datePart || !timePart) return ""
-    const [year, month, day] = datePart.split("-").map(Number)
-    const [hours, minutes] = timePart.split(":").map(Number)
-    const d = new Date(year, month - 1, day, hours, minutes + mins)
-    const pad = (n: number) => String(n).padStart(2, "0")
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  } catch {
-    return ""
-  }
-}
-
-
 
 export function CreateEventClient({ eventId, initialData, cohortOptions }: Props) {
   const router = useRouter()
@@ -122,11 +76,11 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
     initialData?.cohort_ids ?? []
   )
 
-  const initialStartDate = initialData?.date ? toISTDatetimeString(initialData.date) : ""
+  const initialStartDate = initialData?.date ? toLocalDateTimeInput(initialData.date) : ""
   const initialEndDate = initialData?.end_date 
-    ? toISTDatetimeString(initialData.end_date)
+    ? toLocalDateTimeInput(initialData.end_date)
     : initialStartDate 
-      ? addMinutesToISTString(initialStartDate, initialData?.duration_minutes ?? 120)
+      ? addMinutesToLocal(initialStartDate, initialData?.duration_minutes ?? 120)
       : ""
 
   const [endDate, setEndDate] = useState<string>(initialEndDate)
@@ -136,7 +90,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
       ? {
           ...initialData,
           date: initialStartDate,
-          end_date: initialData.end_date ? toISTDatetimeString(initialData.end_date) : null,
+          end_date: initialEndDate || null,
           speaker_name: initialData.speaker_name || "",
         }
       : {
@@ -153,29 +107,31 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
         }
   )
 
-  const handleStartDateChange = (newStartDate: string) => {
+  const handleStartDateChange = (val: string) => {
+    const localStr = toLocalDateTimeInput(val)
     setFormData((p) => {
       let duration = p.duration_minutes || 120
-      if (newStartDate && endDate) {
-        const startMs = new Date(newStartDate).getTime()
+      if (localStr && endDate) {
+        const startMs = new Date(localStr).getTime()
         const endMs = new Date(endDate).getTime()
         if (endMs > startMs) {
           duration = Math.max(1, Math.round((endMs - startMs) / 60000))
         } else {
-          setEndDate(addMinutesToISTString(newStartDate, duration))
+          setEndDate(addMinutesToLocal(localStr, duration))
         }
-      } else if (newStartDate && !endDate) {
-        setEndDate(addMinutesToISTString(newStartDate, duration))
+      } else if (localStr && !endDate) {
+        setEndDate(addMinutesToLocal(localStr, duration))
       }
-      return { ...p, date: newStartDate, duration_minutes: duration }
+      return { ...p, date: localStr, duration_minutes: duration }
     })
   }
 
-  const handleEndDateChange = (newEndDate: string) => {
-    setEndDate(newEndDate)
-    if (formData.date && newEndDate) {
+  const handleEndDateChange = (val: string) => {
+    const localStr = toLocalDateTimeInput(val)
+    setEndDate(localStr)
+    if (formData.date && localStr) {
       const startMs = new Date(formData.date).getTime()
-      const endMs = new Date(newEndDate).getTime()
+      const endMs = new Date(localStr).getTime()
       if (endMs > startMs) {
         const duration = Math.max(1, Math.round((endMs - startMs) / 60000))
         setFormData((p) => ({ ...p, duration_minutes: duration }))
@@ -227,8 +183,8 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
     let utcIsoDate = ""
     let utcIsoEndDate = ""
     try {
-      utcIsoDate = toUTCISOFromIST(formData.date)
-      utcIsoEndDate = toUTCISOFromIST(endDate)
+      utcIsoDate = toUTCISOString(formData.date)
+      utcIsoEndDate = toUTCISOString(endDate)
     } catch {
       toast.error("Invalid Date format.")
       return
@@ -298,19 +254,32 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 w-full">
       {/* Header Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href={eventId ? `/events/${eventId}` : "/events"}>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
-              {eventId ? "Edit Event" : "Create New Event"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Fill in the details below to schedule an event for your institution.
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold font-cirka tracking-tight text-foreground">
+                {eventId ? "Edit Event" : "Create New Event"}
+              </h1>
+              <Badge
+                variant={formData.status === "Published" ? "default" : "outline"}
+                className={cn(
+                  "rounded-md text-[11px] font-semibold uppercase tracking-wider",
+                  formData.status === "Published"
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {formData.status}
+              </Badge>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Fill in the details below to schedule and publish an event for your institution.
             </p>
           </div>
         </div>
@@ -336,27 +305,35 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Details */}
+        {/* Main Details (Left 2 cols) */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Card 1: Event Overview */}
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" /> Event Overview
               </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Specify the core title, speaker, location, and description for this event.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-xs font-semibold">
+                  Event Title <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="title"
-                  placeholder="e.g. Campus Placement Drive 2026"
+                  placeholder="e.g. Campus Placement Drive 2026 / Technical Hackathon"
                   value={formData.title}
                   onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="speaker_name">Speaker Name (Optional)</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="speaker_name" className="text-xs font-semibold">
+                  Speaker / Guest Name <span className="text-muted-foreground font-normal">(Optional)</span>
+                </Label>
                 <Input
                   id="speaker_name"
                   placeholder="e.g. Dr. Jane Doe (Tech Director at Acme Corp)"
@@ -364,26 +341,78 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                   onChange={(e) => setFormData((p) => ({ ...p, speaker_name: e.target.value }))}
                 />
               </div>
-              
+
+              <div className="space-y-1.5">
+                <Label htmlFor="venue" className="text-xs font-semibold">
+                  Venue / Location <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="venue"
+                    placeholder="e.g. Main Auditorium / Seminar Hall 3 / Online Google Meet"
+                    className="pl-9"
+                    value={formData.venue}
+                    onChange={(e) => setFormData((p) => ({ ...p, venue: e.target.value }))}
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-xs font-semibold">
+                  Description &amp; Guidelines
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Provide a detailed overview of the event schedule, rules, prerequisites, or guest bios..."
+                  value={formData.description}
+                  onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                  rows={6}
+                  className="resize-none"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Candidates will see this description on their event registration page.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Schedule & Timing */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" /> Schedule &amp; Timing
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Set when the event begins, ends, and its total duration in IST.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Start Date & Time (IST) *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="date" className="text-xs font-semibold">
+                    Start Date &amp; Time (IST) <span className="text-destructive">*</span>
+                  </Label>
                   <DateTimePicker
                     id="date"
                     value={formData.date}
                     onChange={(val) => handleStartDateChange(val ? (val instanceof Date ? val.toISOString() : String(val)) : "")}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="end_date">End Date & Time (IST) *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="end_date" className="text-xs font-semibold">
+                    End Date &amp; Time (IST) <span className="text-destructive">*</span>
+                  </Label>
                   <DateTimePicker
                     id="end_date"
                     value={endDate}
                     onChange={(val) => handleEndDateChange(val ? (val instanceof Date ? val.toISOString() : String(val)) : "")}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="duration">Calculated Duration *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="duration" className="text-xs font-semibold">
+                    Duration (minutes) <span className="text-destructive">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="duration"
@@ -394,7 +423,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                         const mins = parseInt(e.target.value) || 120
                         setFormData((p) => ({ ...p, duration_minutes: mins }))
                         if (formData.date) {
-                          setEndDate(addMinutesToISTString(formData.date, mins))
+                          setEndDate(addMinutesToLocal(formData.date, mins))
                         }
                       }}
                     />
@@ -404,41 +433,25 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                   </div>
                 </div>
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="venue">Venue *</Label>
-                <Input
-                  id="venue"
-                  placeholder="e.g. Seminar Hall 3 / Placement Cell Library"
-                  value={formData.venue}
-                  onChange={(e) => setFormData((p) => ({ ...p, venue: e.target.value }))}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description & Schedule</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Provide a detailed description of the event details, guest speakers, or guidelines..."
-                  value={formData.description}
-                  onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
-                  rows={8}
-                />
-              </div>
             </CardContent>
           </Card>
 
-          {/* Event Banner */}
+          {/* Card 3: Event Banner */}
           <Card>
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-semibold text-sm border-b pb-2 mb-2 text-foreground/90 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4" /> Event Banner
-              </h3>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-primary" /> Event Banner
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Upload a high-quality cover banner image to customize the event card.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex flex-col gap-4">
                 {bannerPreviewUrl ? (
                   <div className="space-y-2 w-full">
                     <div className={cn(
-                      "relative rounded-lg overflow-hidden border bg-muted flex items-center justify-center",
+                      "relative rounded-xl overflow-hidden border bg-muted flex items-center justify-center shadow-xs",
                       imageOrientation === "landscape" ? "aspect-video w-full" : "aspect-[3/4] max-w-sm mx-auto"
                     )}>
                       <img
@@ -462,9 +475,10 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                     </div>
                   </div>
                 ) : (
-                  <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center justify-center text-center gap-2 w-full bg-muted/10 hover:bg-muted/20 transition-all">
-                    <Upload className="h-8 w-8 text-muted-foreground/60" />
-                    <p className="text-xs text-muted-foreground">Upload Event Banner (Landscape, Portrait, or Square)</p>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-8 flex flex-col items-center justify-center text-center gap-2 w-full bg-muted/10 hover:bg-muted/20 transition-all">
+                    <Upload className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-xs font-semibold text-foreground">Upload Event Banner</p>
+                    <p className="text-[11px] text-muted-foreground">PNG, JPG, WebP up to 5MB (Landscape or Portrait)</p>
                     <input
                       type="file"
                       accept="image/*"
@@ -486,7 +500,7 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                     />
                     <label
                       htmlFor="banner-upload"
-                      className="mt-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 cursor-pointer transition-colors"
                     >
                       Select File
                     </label>
@@ -497,15 +511,59 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
           </Card>
         </div>
 
-        {/* Sidebar: Audience, Capacity & Cohorts */}
+        {/* Sidebar (Right 1 col) */}
         <div className="space-y-6">
+          {/* Card 1: Status & Visibility */}
           <Card>
-            <CardContent className="p-5 space-y-4">
-              <h3 className="font-semibold text-sm border-b pb-2 mb-2 text-foreground/90">
-                Audience &amp; Capacity
-              </h3>
-              <div className="grid gap-2">
-                <Label htmlFor="capacity">Seating Capacity *</Label>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" /> Status &amp; Visibility
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Control the current lifecycle state of this event.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="status" className="text-xs font-semibold">
+                  Publishing Status
+                </Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(val) => setFormData((p) => ({ ...p, status: val as EventStatus }))}
+                >
+                  <SelectTrigger id="status" className="w-full">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Draft">Draft</SelectItem>
+                    <SelectItem value="Published">Published</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Draft events are hidden from candidates. Published events are visible for RSVP.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Audience & Capacity */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <UsersRound className="h-4 w-4 text-primary" /> Audience &amp; Capacity
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Set attendee limits and restrict access to specific cohorts.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="capacity" className="text-xs font-semibold">
+                  Seating Capacity <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="capacity"
                   type="number"
@@ -518,13 +576,18 @@ export function CreateEventClient({ eventId, initialData, cohortOptions }: Props
                     }))
                   }
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Maximum number of confirmed registrations allowed.
+                </p>
               </div>
 
               {/* Cohort Targeting */}
-              <div className="grid gap-1.5">
-                <Label htmlFor="target_cohorts">Target Cohorts *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="target_cohorts" className="text-xs font-semibold">
+                  Target Cohorts <span className="text-destructive">*</span>
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  Select which cohorts can see this event.
+                  Select which cohorts can view and RSVP to this event.
                 </p>
                 {(() => {
                   const options = cohortOptions ?? []

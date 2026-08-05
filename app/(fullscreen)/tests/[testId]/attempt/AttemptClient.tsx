@@ -60,11 +60,13 @@ import {
     HelpCircle,
     RotateCw,
     ArrowRight,
+    WifiOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
+import { isDeploymentError } from "@/lib/errors"
 import type { AttemptTest, AttemptQuestion, AttemptInfo, SavedAnswer } from "./_types"
 
 
@@ -125,8 +127,6 @@ function formatTime(seconds: number): string {
         return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
     return `${m}:${String(s).padStart(2, "0")}`
 }
-
-
 
 // ─── Seeded PRNG (mulberry32) ──────────────────────────────────────────────────
 
@@ -673,6 +673,7 @@ function IntroScreen({
                                     month: "short",
                                     hour: "2-digit",
                                     minute: "2-digit",
+                                    hour12: true,
                                 }).format(new Date(test.available_until))}
                             </span>
                         </div>
@@ -850,6 +851,7 @@ function SubmittedScreen({
                             year: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
+                            hour12: true,
                         }).format(new Date())}
                     </p>
                 </div>
@@ -1166,6 +1168,10 @@ export function AttemptClient({
     const [showSubmitDialog, setShowSubmitDialog] = useState(false)
     const [navSheetOpen, setNavSheetOpen] = useState(false)
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+    const [isClaimingSession, setIsClaimingSession] = useState(false)
+    const [claimError, setClaimError] = useState<string | null>(null)
+    // Set to true when a new deployment invalidates this browser's server-action IDs
+    const [showDeploymentError, setShowDeploymentError] = useState(false)
 
     // Fullscreen
     const [showFullscreenWarning, setShowFullscreenWarning] = useState(false)
@@ -1646,8 +1652,14 @@ export function AttemptClient({
                     return true
                 } catch (err: any) {
                     idsToSync.forEach((id) => batchQueueRef.current.add(id))
-                    setSyncStatus("error")
-                    setSyncError(err?.message ?? "Network error")
+                    if (isDeploymentError(err)) {
+                        setShowDeploymentError(true)
+                        setSyncStatus("error")
+                        setSyncError("App was updated \u2014 please refresh")
+                    } else {
+                        setSyncStatus("error")
+                        setSyncError(err?.message ?? "Network error")
+                    }
                     return false
                 } finally {
                     syncPromiseRef.current = null
@@ -1825,6 +1837,12 @@ export function AttemptClient({
 
                 setIsSubmitting(false)
                 isSubmittingRef.current = false
+
+                if (isDeploymentError(err)) {
+                    setShowDeploymentError(true)
+                    return
+                }
+
                 const msg = err?.message ?? "Submission failed. Please try again."
 
                 const lowerMsg = msg.toLowerCase()
@@ -1945,6 +1963,43 @@ export function AttemptClient({
 
     // ── Intro ──────────────────────────────────────────────────────────────────
 
+    // ── Deployment Update Overlay (checked before all other phase guards) ──────
+    if (showDeploymentError) {
+        return (
+            <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+                <div className="mx-auto w-full max-w-md space-y-5 rounded-2xl border bg-card p-6 shadow-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40">
+                            <RotateCw className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-base font-bold text-foreground">App Updated Mid-Session</h2>
+                            <p className="text-xs text-muted-foreground">A new version was deployed while you had this page open.</p>
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20 p-4 space-y-2 text-sm text-amber-800 dark:text-amber-300">
+                        <p className="font-semibold">Your answers are safe.</p>
+                        <p className="text-xs leading-relaxed">
+                            All answers synced to this point are stored on the server. Refreshing will load the updated app and reconnect your test session — you can continue exactly where you left off.
+                        </p>
+                    </div>
+                    <div className="rounded-xl border bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+                        <p className="font-semibold text-foreground">What to do:</p>
+                        <ol className="list-decimal list-inside space-y-0.5 leading-relaxed">
+                            <li>Note any unsaved answers (shown in your navigation panel)</li>
+                            <li>Click <span className="font-semibold text-foreground">Refresh Page</span> below</li>
+                            <li>Your test will resume automatically — continue and submit normally</li>
+                        </ol>
+                    </div>
+                    <Button className="w-full" onClick={() => window.location.reload()}>
+                        <RotateCw className="mr-2 h-4 w-4" />
+                        Refresh Page to Continue
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     // ── Session Conflict & Superseded Screens ──────────────────────────────────
     if (sessionState === "conflict") {
         return (
@@ -1957,23 +2012,46 @@ export function AttemptClient({
                     <p className="text-sm text-muted-foreground leading-relaxed">
                         This test session is currently active on another device or tab.
                     </p>
+                    {claimError && (
+                        <p className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            {claimError}
+                        </p>
+                    )}
                     <div className="flex justify-end gap-3 pt-2">
-                        <Button variant="outline" onClick={() => router.push(`/tests/${test.id}`)}>
+                        <Button variant="outline" onClick={() => router.push(`/tests/${test.id}`)} disabled={isClaimingSession}>
                             Cancel
                         </Button>
-                        <Button onClick={async () => {
-                            if (!attemptInfo) return
-                            const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
-                            if (res.ok) {
+                        <Button
+                            disabled={isClaimingSession}
+                            onClick={async () => {
+                                if (!attemptInfo) return
+                                setIsClaimingSession(true)
+                                setClaimError(null)
                                 try {
-                                    const supabase = createClient()
-                                    const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
-                                    await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
-                                } catch {}
-                                setSessionState("ok")
-                            }
-                        }}>
-                            Switch to This Device
+                                    const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
+                                    if (res.ok) {
+                                        try {
+                                            const supabase = createClient()
+                                            const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
+                                            await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
+                                        } catch {}
+                                        setSessionState("ok")
+                                    } else {
+                                        setClaimError(res.error ?? "Failed to switch session. Please try again.")
+                                    }
+                                } catch (err: any) {
+                                    setClaimError(err?.message ?? "Failed to switch session. Please try again.")
+                                } finally {
+                                    setIsClaimingSession(false)
+                                }
+                            }}
+                        >
+                            {isClaimingSession ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Switching…</>
+                            ) : (
+                                "Switch to This Device"
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -1992,20 +2070,43 @@ export function AttemptClient({
                     <p className="text-sm text-muted-foreground leading-relaxed">
                         Your test session was opened and claimed on another device. Interaction on this window is paused. Your progress is preserved.
                     </p>
+                    {claimError && (
+                        <p className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            {claimError}
+                        </p>
+                    )}
                     <div className="flex justify-end gap-3 pt-2">
-                        <Button onClick={async () => {
-                            if (!attemptInfo) return
-                            const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
-                            if (res.ok) {
+                        <Button
+                            disabled={isClaimingSession}
+                            onClick={async () => {
+                                if (!attemptInfo) return
+                                setIsClaimingSession(true)
+                                setClaimError(null)
                                 try {
-                                    const supabase = createClient()
-                                    const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
-                                    await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
-                                } catch {}
-                                setSessionState("ok")
-                            }
-                        }}>
-                            Reclaim This Session
+                                    const res = await onClaimSession(attemptInfo.id, sessionTokenRef.current)
+                                    if (res.ok) {
+                                        try {
+                                            const supabase = createClient()
+                                            const sessionChannel = supabase.channel(`pt-session-${attemptInfo.id}`)
+                                            await sessionChannel.send({ type: "broadcast", event: "session_claimed", payload: {} })
+                                        } catch {}
+                                        setSessionState("ok")
+                                    } else {
+                                        setClaimError(res.error ?? "Failed to reclaim session. Please try again.")
+                                    }
+                                } catch (err: any) {
+                                    setClaimError(err?.message ?? "Failed to reclaim session. Please try again.")
+                                } finally {
+                                    setIsClaimingSession(false)
+                                }
+                            }}
+                        >
+                            {isClaimingSession ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Reclaiming…</>
+                            ) : (
+                                "Reclaim This Session"
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -2044,6 +2145,11 @@ export function AttemptClient({
                             setFocusLostCount(info.tab_switch_count)
                             focusLostCountRef.current = info.tab_switch_count
                         } catch (err: any) {
+                            if (isDeploymentError(err)) {
+                                setShowDeploymentError(true)
+                                setIsStarting(false)
+                                return
+                            }
                             const msg = err?.message ?? "Failed to start test"
                             const lowerMsg = msg.toLowerCase()
                             const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
@@ -2067,6 +2173,7 @@ export function AttemptClient({
 
     return (
         <div className="flex min-h-screen overflow-hidden bg-background select-none">
+
 
             {/* ── Anti-Cheat: Focus Lost Dialog (highest priority) ─────────────── */}
             <AlertDialog open={showFocusWarning}>
@@ -2179,8 +2286,20 @@ export function AttemptClient({
                     </div>
                 </header>
 
+                {/* Offline banner */}
+                {isOffline && (
+                    <div className="border-b border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30 px-6 py-3">
+                        <div className="mx-auto flex items-center gap-3 text-sm font-medium text-red-800 dark:text-red-300">
+                            <WifiOff className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 min-w-0">
+                                You are offline. Your answers are saved locally and will sync automatically when you reconnect.
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Global sync error banner */}
-                {syncStatus === "error" && (
+                {syncStatus === "error" && !isOffline && (
                     <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30 px-6 py-3">
                         <div className="mx-auto flex flex-wrap items-center gap-3 text-sm font-medium text-amber-800 dark:text-amber-300">
                             <AlertTriangle className="h-4 w-4 shrink-0" />

@@ -15,6 +15,27 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.17",
+    date: "2026-08-05",
+    title: "Secure Check-Ins, System Recovery & Test Stability",
+    badge: "Patch",
+    categories: [
+      {
+        type: "added",
+        items: [
+          "Secure QR Check-In: Added token verification to event QR check-ins for verified session attendance.",
+          "Automatic System Recovery: Added real-time notifications to safely recover your active session if an update occurs."
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          "Test Attempt Stability: Enhanced background saving and time synchronization during online test attempts."
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.16",
     date: "2026-08-05",
     title: "Local Timezone Accuracy, Instant Navigation & UI Enhancements",
@@ -55,7 +76,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.16";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.17";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {

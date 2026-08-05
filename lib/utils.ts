@@ -30,6 +30,7 @@ export function formatDateTime(
     return new Intl.DateTimeFormat(undefined, {
       dateStyle: "medium",
       timeStyle: "short",
+      hour12: true,
       ...options,
     }).format(new Date(isoString))
   } catch {
@@ -77,6 +78,58 @@ export function formatDateOnly(
   } catch {
     return "—"
   }
+}
+
+/**
+ * Formats a UTC ISO timestamp as time-only in the user's local timezone in 12-hour format.
+ * Example output (in IST): "3:10 PM"
+ */
+export function formatTimeOnly(
+  isoString: string | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!isoString) return "—"
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      timeStyle: "short",
+      hour12: true,
+      ...options,
+    }).format(new Date(isoString))
+  } catch {
+    return "—"
+  }
+}
+
+/**
+ * Converts a UTC ISO string from Supabase (e.g. "2024-01-15T04:30:00+00:00")
+ * to the "YYYY-MM-DDTHH:mm" format expected by DateTimePicker / <input type="datetime-local">,
+ * expressed in the user's LOCAL timezone.
+ */
+export function toLocalDateTimeInput(isoString?: string | Date | null): string {
+  if (!isoString) return ""
+  if (isoString instanceof Date) {
+    if (isNaN(isoString.getTime())) return ""
+    const offsetMs = isoString.getTimezoneOffset() * 60 * 1000
+    const localDate = new Date(isoString.getTime() - offsetMs)
+    return localDate.toISOString().slice(0, 16)
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(isoString)) return isoString
+  const d = new Date(isoString)
+  if (isNaN(d.getTime())) return ""
+  const offsetMs = d.getTimezoneOffset() * 60 * 1000
+  const localDate = new Date(d.getTime() - offsetMs)
+  return localDate.toISOString().slice(0, 16)
+}
+
+/**
+ * Converts a "YYYY-MM-DDTHH:mm" local string or Date object back to a UTC ISO string for DB storage.
+ */
+export function toUTCISOString(localDT?: string | Date | null): string {
+  if (!localDT) return ""
+  if (localDT instanceof Date) return isNaN(localDT.getTime()) ? "" : localDT.toISOString()
+  const d = new Date(localDT)
+  if (isNaN(d.getTime())) return ""
+  return d.toISOString()
 }
 
 /**

@@ -171,6 +171,7 @@ export function DateTimePicker({
 
   const [month, setMonth] = useState<Date>(initDate);
   const [date, setDate] = useState<Date>(initDate);
+  const dateRef = useRef<Date>(initDate);
 
   const endMonth = useMemo(() => {
     return setYear(month, getYear(month) + 1);
@@ -178,23 +179,48 @@ export function DateTimePicker({
   const minDate = useMemo(() => (min ? new TZDate(min, timezone) : undefined), [min, timezone]);
   const maxDate = useMemo(() => (max ? new TZDate(max, timezone) : undefined), [max, timezone]);
 
+  const handleDateChange = useCallback(
+    (newDate: Date) => {
+      dateRef.current = newDate;
+      setDate(newDate);
+      onChange(new Date(newDate));
+    },
+    [onChange]
+  );
+
   const onDayChanged = useCallback(
     (d: Date) => {
-      d.setHours(date.getHours(), date.getMinutes(), date.getSeconds());
+      const current = dateRef.current || date;
+      d.setHours(current.getHours(), current.getMinutes(), current.getSeconds());
       if (min && d < min) {
         d.setHours(min.getHours(), min.getMinutes(), min.getSeconds());
       }
       if (max && d > max) {
         d.setHours(max.getHours(), max.getMinutes(), max.getSeconds());
       }
-      setDate(d);
+      handleDateChange(d);
+      if (hideTime) {
+        setOpen(false);
+      }
     },
-    [setDate, setMonth]
+    [date, min, max, handleDateChange, hideTime]
   );
   const onSubmit = useCallback(() => {
-    onChange(new Date(date));
+    if (dateRef.current) {
+      onChange(new Date(dateRef.current));
+    }
     setOpen(false);
-  }, [date, onChange]);
+  }, [onChange]);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && dateRef.current) {
+        onChange(new Date(dateRef.current));
+      }
+      setOpen(nextOpen);
+    },
+    [onChange]
+  );
 
   const onMonthYearChanged = useCallback(
     (d: Date, mode: 'month' | 'year') => {
@@ -216,6 +242,7 @@ export function DateTimePicker({
 
   useEffect(() => {
     if (open) {
+      dateRef.current = initDate;
       setDate(initDate);
       setMonth(initDate);
       setMonthYearPicker(false);
@@ -236,7 +263,7 @@ export function DateTimePicker({
   }, [displayValue, hideTime, use12HourFormat]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={modal}>
+    <Popover open={open} onOpenChange={handleOpenChange} modal={modal}>
       <PopoverTrigger asChild>
         {renderTrigger ? (
           renderTrigger({ value: displayValue, open, timezone, disabled, use12HourFormat, setOpen })
@@ -356,7 +383,7 @@ export function DateTimePicker({
             <TimePicker
               timePicker={timePicker}
               value={date}
-              onChange={setDate}
+              onChange={handleDateChange}
               use12HourFormat={use12HourFormat}
               min={minDate}
               max={maxDate}

@@ -398,7 +398,7 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
       refresh()
     } catch (err) {
       console.error(err)
-      toast.error("Failed to upload avatar. Please try again.")
+      toast.error((err as any)?.message || "Failed to upload avatar. Please try again.")
       setAvatarSrc(getStorageUrl(supabase, "avatars", storedAvatarPath.current))
     } finally {
       setIsUploadingAvatar(false)

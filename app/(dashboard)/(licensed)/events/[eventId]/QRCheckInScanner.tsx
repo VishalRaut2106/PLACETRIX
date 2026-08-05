@@ -89,12 +89,15 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
 
   const handleScan = useCallback((results: { rawValue: string }[]) => {
     if (results.length === 0) return
-    const ticketId = results[0].rawValue?.trim()
+    const rawPayload = results[0].rawValue?.trim()
+    if (!rawPayload) return
 
     if (isScanningBlockedRef.current) return
     isScanningBlockedRef.current = true
+
+    const ticketId = rawPayload
     
-    // Quick debounce for duplicate QR scans
+    // Quick debounce for duplicate scans of the same ticket ID
     if (ticketId === lastScannedRef.current) {
       setShowMoveQrOverlay(true)
       setTimeout(() => { 
@@ -128,7 +131,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
     
     startTransition(async () => {
       try {
-        const result = await markAttendanceAction(ticketId, eventId)
+        const result = await markAttendanceAction(rawPayload, eventId)
         
         const name = result.candidateName || ticket?.candidate_name || "Unknown Attendee"
         toast.success(`${name} checked in!`)

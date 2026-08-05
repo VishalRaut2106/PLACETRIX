@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition, type ReactNode } from "react"
+import { useState, useEffect, useCallback, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import QRCode from "qrcode"
@@ -47,46 +47,15 @@ import {
   X,
   Mic,
   Lock,
+  ShieldCheck,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime, formatTimeOnly } from "@/lib/utils"
 import { toast } from "sonner"
 import { buildStorageUrl } from "@/lib/storage"
 import { rsvpEventAction, cancelRsvpAction } from "../actions"
 import type { EventStatus, TicketStatus, AttendanceStatus, EventAgendaItem } from "../types"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDateTime(dt: string): string {
-  try {
-    const d = new Date(dt)
-    if (isNaN(d.getTime())) return dt
-    const day = String(d.getDate()).padStart(2, "0")
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const year = d.getFullYear()
-    const timeStr = d.toLocaleTimeString("en-US", {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    return `${day}/${month}/${year}, ${timeStr}`
-  } catch {
-    return dt
-  }
-}
-
-function formatTimeOnly(dtStr: string): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(new Date(dtStr))
-  } catch {
-    return ""
-  }
-}
 
 interface EventInfo {
   id: string
@@ -144,10 +113,37 @@ export function QRTicketCard({
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [attendanceStatus, setAttendanceStatus] = useState(ticket.attendance_status)
+  const [currentTime, setCurrentTime] = useState<string>("")
+
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(
+        new Intl.DateTimeFormat(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }).format(new Date())
+      )
+    }
+    updateTime()
+    const timer = setInterval(updateTime, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     setAttendanceStatus(ticket.attendance_status)
   }, [ticket.attendance_status])
+
+  useEffect(() => {
+    if (ticket.status === "Confirmed") {
+      QRCode.toDataURL(ticket.id, {
+        width: 240,
+        margin: 1,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      }).then(setQrDataUrl)
+    }
+  }, [ticket.id, ticket.status])
 
   useEffect(() => {
     const supabase = createClient()
@@ -190,19 +186,11 @@ export function QRTicketCard({
     }
   }, [ticket.id, attendanceStatus])
 
-  useEffect(() => {
-    QRCode.toDataURL(ticket.id, {
-      width: 200,
-      margin: 2,
-      color: { dark: "#000000", light: "#ffffff" },
-    }).then(setQrDataUrl)
-  }, [ticket.id])
-
   return (
     <Card className="overflow-hidden border-none shadow-none bg-transparent">
-      <CardContent className="p-5">
+      <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col items-center text-center">
-          {/* Status */}
+          {/* Status badges */}
           <div className="flex items-center gap-2 mb-3">
             {ticket.status === "Confirmed" ? (
               <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
@@ -220,43 +208,49 @@ export function QRTicketCard({
             )}
           </div>
 
-          {/* QR Code or Verified Animation */}
+          {/* QR Code or Checked In status */}
           {attendanceStatus === "Present" ? (
-            <div className="relative bg-emerald-500/5 dark:bg-emerald-950/20 p-6 rounded-2xl border border-emerald-500/20 shadow-xs mb-3 flex flex-col items-center justify-center aspect-square w-48 h-48 transition-all animate-in fade-in zoom-in-95 duration-500">
-              <div className="relative flex items-center justify-center">
-                <span className="absolute inline-flex h-16 w-16 rounded-full bg-emerald-500/20 animate-ping opacity-30" />
-                <div className="relative h-14 w-14 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-7 w-7" />
-                </div>
+            <div className="bg-emerald-500/10 p-6 rounded-xl border border-emerald-500/20 mb-3 flex flex-col items-center justify-center size-52">
+              <div className="size-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-6" />
               </div>
-              <p className="font-bold text-sm tracking-wide text-emerald-600 dark:text-emerald-400 mt-3.5 flex items-center gap-1.5">
+              <p className="font-semibold text-sm text-emerald-600 dark:text-emerald-400 mt-3">
                 Marked Present
               </p>
-              <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 font-medium mt-1">
+              <span className="text-xs text-muted-foreground font-medium mt-0.5">
                 Attendance Verified
               </span>
             </div>
           ) : ticket.status === "Confirmed" && qrDataUrl ? (
-            <div className="bg-white p-3 rounded-xl shadow-sm mb-3">
-              <img src={qrDataUrl} alt="QR Ticket" className="w-48 h-48" />
+            <div className="bg-white p-3 rounded-xl border border-border shadow-xs">
+              <img
+                src={qrDataUrl}
+                alt="Event Ticket QR Code"
+                className="size-48"
+              />
             </div>
           ) : (
             ticket.status === "Waitlisted" && (
               <div className="bg-muted rounded-xl p-8 mb-3 flex flex-col items-center gap-2">
-                <Hourglass className="h-10 w-10 text-amber-500" />
-                <p className="text-xs text-muted-foreground">
-                  Your QR will appear here once you're confirmed.
+                <Hourglass className="size-8 text-amber-500" />
+                <p className="text-xs text-muted-foreground text-center">
+                  Your QR will appear here once you&apos;re confirmed.
                 </p>
               </div>
             )
           )}
 
-          {/* Details */}
-          <p className="font-semibold text-sm">{candidateName}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{eventTitle}</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-2 font-mono break-all">
-            Ticket: {ticket.id}
-          </p>
+          {/* Attendee Info & Live Clock */}
+          <div className="mt-3 flex flex-col items-center text-center">
+            <p className="font-semibold text-sm text-foreground">{candidateName}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{eventTitle}</p>
+            {currentTime && (
+              <div className="mt-2.5 flex items-center gap-1.5 text-xs font-mono font-medium text-muted-foreground bg-muted/60 px-3 py-1 rounded-full border border-border/60">
+                <Clock className="size-3.5 text-primary" />
+                <span>{currentTime}</span>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -462,7 +456,7 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
   }
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full animate-in fade-in duration-500 pb-24 lg:pb-8">
+    <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full pb-24 lg:pb-8">
       {/* Back Button */}
       <div>
         <Button variant="ghost" asChild className="gap-1.5 -ml-3 hover:bg-muted/50 rounded-xl transition-all">
@@ -585,11 +579,9 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
                 <div className="relative pl-6 md:pl-8 border-l border-primary/20 space-y-6">
                   {agenda.map((item, idx) => (
                     <div key={item.id || idx} className="relative group">
-                      {/* Timeline Dot Marker with glow */}
-                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-background ring-4 ring-primary/10 transition-all duration-300 group-hover:scale-110" />
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-background" />
 
                       <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4">
-                        {/* Time Badge */}
                         <div className="shrink-0 flex items-center">
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary font-mono bg-primary/5 dark:bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md shadow-2xs">
                             <Clock className="h-3 w-3" />
@@ -597,7 +589,6 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
                           </span>
                         </div>
 
-                        {/* Content */}
                         <div className="space-y-1 flex-1 min-w-0">
                           <h4 className="text-sm font-bold text-foreground leading-snug">
                             {item.title}
@@ -627,7 +618,7 @@ export function EventDetailCandidateClient({ event, agenda, ticket, candidateNam
       <div className="h-28 lg:hidden shrink-0" />
 
       {/* Floating Bottom Bar/Card for Mobile/Tablet */}
-      <div className="lg:hidden sticky bottom-4 z-40 animate-in slide-in-from-bottom duration-300">
+      <div className="lg:hidden sticky bottom-4 z-40">
         {renderActionCard(true)}
       </div>
     </div>

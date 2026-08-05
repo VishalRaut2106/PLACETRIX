@@ -31,16 +31,11 @@ import {
 import { toast } from "sonner"
 import { createCohortAction, getCohortOptionsAction } from "./actions"
 import type { Cohort, CohortOption } from "./types"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
+
 interface Props {
   cohorts: Cohort[]
   isCandidate?: boolean
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function formatDateTime(dt?: string): string {
-  if (!dt) return "—"
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(dt))
 }
 
 // ─── Stat Chip ───────────────────────────────────────────────────────────────

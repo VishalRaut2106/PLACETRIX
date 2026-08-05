@@ -1062,7 +1062,7 @@ export function CandidateProfileClient({
       router.refresh();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to upload profile picture. Please try again.");
+      toast.error(err?.message || "Failed to upload profile picture. Please try again.");
     } finally {
       setIsUploadingAvatar(false);
     }

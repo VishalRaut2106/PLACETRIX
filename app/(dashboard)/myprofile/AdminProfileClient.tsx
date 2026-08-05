@@ -341,7 +341,7 @@ export function AdminProfileClient({ userProfile }: Props) {
       refresh()
     } catch (err) {
       console.error(err)
-      toast.error("Failed to upload avatar. Please try again.")
+      toast.error((err as any)?.message || "Failed to upload avatar. Please try again.")
       setAvatarSrc(getStorageUrl(supabase, "avatars", storedAvatarPath.current))
     } finally {
       setIsUploadingAvatar(false)
@@ -395,7 +395,7 @@ export function AdminProfileClient({ userProfile }: Props) {
       refresh()
     } catch (err) {
       console.error(err)
-      toast.error("Failed to upload signature. Please try again.")
+      toast.error((err as any)?.message || "Failed to upload signature. Please try again.")
       setSignatureSrc(getStorageUrl(supabase, "avatars", storedSignaturePath.current))
     } finally {
       setIsUploadingSignature(false)
@@ -428,7 +428,7 @@ export function AdminProfileClient({ userProfile }: Props) {
       refresh()
     } catch (err) {
       console.error(err)
-      toast.error("Failed to remove signature. Please try again.")
+      toast.error((err as any)?.message || "Failed to remove signature. Please try again.")
     } finally {
       setIsUploadingSignature(false)
     }

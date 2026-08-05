@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Outfit, EB_Garamond, Source_Code_Pro } from "next/font/google";
 import { AuthSync } from "@/components/auth/auth-sync";
 import { NavigationProgress } from "@/components/ui/navigation-progress";
+import { DeploymentErrorDetector } from "@/components/deployment-error-detector";
 
 const fontSans = Outfit({
   subsets: ["latin"],
@@ -95,6 +96,7 @@ export default function RootLayout({
           <TooltipProvider>
             <NavigationProgress />
             <AuthSync />
+            <DeploymentErrorDetector />
             {children}
             <Toaster position="top-right" richColors />
           </TooltipProvider>

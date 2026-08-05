@@ -23,7 +23,7 @@ import {
   CalendarClock,
   FileText,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
 import type { CandidateEventListItem, TicketStatus } from "./types"
 
 type Tab = "all" | "upcoming" | "my" | "past"
@@ -33,25 +33,6 @@ interface TabConfig {
   label: string
   icon: React.ReactNode
   count: number
-}
-
-function formatDateTime(dt: string): string {
-  try {
-    const d = new Date(dt)
-    if (isNaN(d.getTime())) return dt
-    const day = String(d.getDate()).padStart(2, "0")
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const year = d.getFullYear()
-    const timeStr = d.toLocaleTimeString("en-US", {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    return `${day}/${month}/${year}, ${timeStr}`
-  } catch {
-    return dt
-  }
 }
 
 function isEventPast(eventDate: string, durationMinutes?: number, endDate?: string | null): boolean {

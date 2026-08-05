@@ -261,15 +261,21 @@ export async function concludeEventAction(eventId: string) {
 }
 
 
-export async function markAttendanceAction(ticketId: string, eventId: string) {
+export async function markAttendanceAction(scannedPayload: string, eventId: string) {
   await requireStaff()
+
+  const targetTicketId = scannedPayload?.trim()
+  if (!targetTicketId) {
+    throw new Error("Invalid or empty QR code.")
+  }
+
   const supabase = await createClient()
 
   // Check if ticket exists and is confirmed
-    const { data: ticket, error: fetchError } = await (supabase as any)
+  const { data: ticket, error: fetchError } = await (supabase as any)
     .from("event_tickets")
     .select("id, status, attendance_status, candidate_id, event_id, profile:profiles(full_name)")
-    .eq("id", ticketId)
+    .eq("id", targetTicketId)
     .maybeSingle()
 
   if (fetchError || !ticket) {
@@ -291,7 +297,7 @@ export async function markAttendanceAction(ticketId: string, eventId: string) {
   const { error } = await (supabase as any)
     .from("event_tickets")
     .update({ attendance_status: "Present" })
-    .eq("id", ticketId)
+    .eq("id", targetTicketId)
 
   if (error) {
     console.error("Error marking attendance:", error)
@@ -301,6 +307,46 @@ export async function markAttendanceAction(ticketId: string, eventId: string) {
   revalidatePath("/events")
   const candidateName = ticket.profile?.full_name || "Attendee"
   return { success: true, candidateId: ticket.candidate_id, candidateName }
+}
+
+export async function removeAttendanceAction(ticketId: string, eventId: string) {
+  await requireStaff()
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from("event_tickets")
+    .update({ attendance_status: "Absent" })
+    .eq("id", ticketId)
+    .eq("event_id", eventId)
+
+  if (error) {
+    console.error("Error removing attendance:", error)
+    throw new Error(error.message || "Failed to remove attendance.")
+  }
+
+  revalidatePath("/events")
+  revalidatePath(`/events/${eventId}`)
+  return { success: true }
+}
+
+export async function cancelTicketAction(ticketId: string, eventId: string) {
+  await requireStaff()
+  const supabase = await createClient()
+
+  const { error } = await (supabase as any)
+    .from("event_tickets")
+    .update({ status: "Cancelled" })
+    .eq("id", ticketId)
+    .eq("event_id", eventId)
+
+  if (error) {
+    console.error("Error cancelling ticket:", error)
+    throw new Error(error.message || "Failed to cancel ticket.")
+  }
+
+  revalidatePath("/events")
+  revalidatePath(`/events/${eventId}`)
+  return { success: true }
 }
 
 // ─── Candidate Actions ────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ import {
   BookOpen,
   PlayCircle,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
 import type { EventListItem, EventStatus } from "./types"
 
 type Tab = "all" | "published" | "draft" | "concluded"
@@ -35,25 +35,6 @@ interface TabConfig {
   label: string
   icon: React.ReactNode
   count: number
-}
-
-function formatDateTime(dt: string): string {
-  try {
-    const d = new Date(dt)
-    if (isNaN(d.getTime())) return dt
-    const day = String(d.getDate()).padStart(2, "0")
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const year = d.getFullYear()
-    const timeStr = d.toLocaleTimeString("en-US", {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    return `${day}/${month}/${year}, ${timeStr}`
-  } catch {
-    return dt
-  }
 }
 
 // ─── Stats Bar ────────────────────────────────────────────────────────────────
@@ -67,7 +48,7 @@ function StatsBar({
   totalCheckedInCount: number
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-in fade-in duration-300">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {[
         {
           icon: <Calendar className="h-3.5 w-3.5 text-primary" />,

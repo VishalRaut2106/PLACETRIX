@@ -52,6 +52,8 @@ import {
   MapPin,
   Users,
   UserCheck,
+  UserX,
+  Copy,
   Search,
   X,
   QrCode,
@@ -69,47 +71,15 @@ import {
   Image as ImageIcon,
   Mic,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime, formatTimeOnly } from "@/lib/utils"
 import { toast } from "sonner"
 import { buildStorageUrl } from "@/lib/storage"
-import { markAttendanceAction, deleteEventAction, concludeEventAction } from "../actions"
+import { markAttendanceAction, removeAttendanceAction, cancelTicketAction, deleteEventAction, concludeEventAction } from "../actions"
 import type { EventTicket, EventStatus, TicketStatus, AttendanceStatus, EventAgendaItem } from "../types"
 import { ExportEventAttendeesModal } from "./ExportEventAttendeesModal"
 import { QRCheckInScanner } from "./QRCheckInScanner"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDateTime(dt: string): string {
-  try {
-    const d = new Date(dt)
-    if (isNaN(d.getTime())) return dt
-    const day = String(d.getDate()).padStart(2, "0")
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const year = d.getFullYear()
-    const timeStr = d.toLocaleTimeString("en-US", {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    return `${day}/${month}/${year}, ${timeStr}`
-  } catch {
-    return dt
-  }
-}
-
-function formatTimeOnly(dtStr: string): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(new Date(dtStr))
-  } catch {
-    return ""
-  }
-}
 
 function getInitials(name: string) {
   if (!name) return "?"
@@ -252,67 +222,38 @@ function StatsBarWidget({
   activeFilter: string
   setFilter: (f: any) => void
 }) {
+  const filterItems = [
+    { id: "all", label: "All Attendees", count: stats.confirmed + stats.waitlisted + stats.cancelled },
+    { id: "confirmed", label: "Confirmed Seats", count: stats.confirmed },
+    { id: "present", label: "Checked In", count: stats.present },
+    { id: "waitlisted", label: "Waitlisted Queue", count: stats.waitlisted },
+  ]
+
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <button
-        onClick={() => setFilter("confirmed")}
-        className={cn(
-          "rounded-xl border p-4 text-left transition-all",
-          activeFilter === "confirmed" ? "border-primary bg-primary/5 shadow-2xs" : "hover:border-primary/30"
-        )}
-      >
-        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
-          <span className="text-xs font-medium">Confirmed Seats</span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-500">{stats.confirmed}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Approved RSVP attendees</p>
-      </button>
-
-      <button
-        onClick={() => setFilter("waitlisted")}
-        className={cn(
-          "rounded-xl border p-4 text-left transition-all",
-          activeFilter === "waitlisted" ? "border-primary bg-primary/5 shadow-2xs" : "hover:border-primary/30"
-        )}
-      >
-        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-          <Hourglass className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
-          <span className="text-xs font-medium">Waitlisted Queue</span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{stats.waitlisted}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Waiting in queue</p>
-      </button>
-
-      <button
-        onClick={() => setFilter("present")}
-        className={cn(
-          "rounded-xl border p-4 text-left transition-all",
-          activeFilter === "present" ? "border-primary bg-primary/5 shadow-2xs" : "hover:border-primary/30"
-        )}
-      >
-        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-          <UserCheck className="h-3.5 w-3.5 text-indigo-500" />
-          <span className="text-xs font-medium">Checked In</span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums text-indigo-600 dark:text-indigo-500">{stats.present}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Scanned or manually checked in</p>
-      </button>
-
-      <button
-        onClick={() => setFilter("all")}
-        className={cn(
-          "rounded-xl border p-4 text-left transition-all",
-          activeFilter === "all" ? "border-primary bg-primary/5 shadow-2xs" : "hover:border-primary/30"
-        )}
-      >
-        <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-          <XCircle className="h-3.5 w-3.5 text-red-500" />
-          <span className="text-xs font-medium">Cancelled RSVPs</span>
-        </div>
-        <p className="text-2xl font-bold tabular-nums text-red-500">{stats.cancelled}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Withdrawn candidate slots</p>
-      </button>
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {filterItems.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => setFilter(item.id)}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer shrink-0",
+            activeFilter === item.id
+              ? "bg-foreground text-background border-foreground font-semibold shadow-xs"
+              : "bg-card text-muted-foreground hover:bg-muted border-border"
+          )}
+        >
+          <span>{item.label}</span>
+          <span className={cn(
+            "px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono",
+            activeFilter === item.id
+              ? "bg-background/20 text-background"
+              : "bg-muted text-foreground"
+          )}>
+            {item.count}
+          </span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -408,7 +349,7 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
 
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 md:py-8 md:px-8 w-full animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 px-4 py-4 md:py-8 md:px-8 w-full">
       {/* Back Button */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <Button variant="ghost" asChild className="gap-1.5 -ml-2 md:-ml-3 self-start hover:bg-muted/50 rounded-xl transition-all">
@@ -646,11 +587,9 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
                 <div className="relative pl-6 md:pl-8 border-l border-primary/20 space-y-6">
                   {agenda.map((item, idx) => (
                     <div key={item.id || idx} className="relative group">
-                      {/* Timeline Dot Marker with glow */}
-                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-background ring-4 ring-primary/10 transition-all duration-300 group-hover:scale-110" />
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-background" />
 
                       <div className="flex flex-col md:flex-row md:items-start gap-2 md:gap-4">
-                        {/* Time Badge */}
                         <div className="shrink-0 flex items-center">
                           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary font-mono bg-primary/5 dark:bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md shadow-2xs">
                             <Clock className="h-3 w-3" />
@@ -658,7 +597,6 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
                           </span>
                         </div>
 
-                        {/* Content */}
                         <div className="space-y-1 flex-1 min-w-0">
                           <h4 className="text-sm font-bold text-foreground leading-snug">
                             {item.title}
@@ -754,6 +692,100 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
   )
 }
 
+// ─── Attendee Actions Dropdown (3-dot Menu) ───────────────────────────────────
+
+function AttendeeActionsDropdown({
+  ticket,
+  onUpdate,
+}: {
+  ticket: EventTicket
+  onUpdate: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+
+  const handleCheckIn = () => {
+    startTransition(async () => {
+      try {
+        await markAttendanceAction(ticket.id, ticket.event_id)
+        toast.success(`${ticket.candidate_name || "Attendee"} checked in!`)
+        onUpdate()
+      } catch (err: any) {
+        toast.error(err.message)
+      }
+    })
+  }
+
+  const handleRemoveAttendance = () => {
+    startTransition(async () => {
+      try {
+        await removeAttendanceAction(ticket.id, ticket.event_id)
+        toast.success(`Attendance removed for ${ticket.candidate_name || "Attendee"}`)
+        onUpdate()
+      } catch (err: any) {
+        toast.error(err.message)
+      }
+    })
+  }
+
+  const handleCancelTicket = () => {
+    startTransition(async () => {
+      try {
+        await cancelTicketAction(ticket.id, ticket.event_id)
+        toast.success(`RSVP ticket cancelled for ${ticket.candidate_name || "Attendee"}`)
+        onUpdate()
+      } catch (err: any) {
+        toast.error(err.message)
+      }
+    })
+  }
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(ticket.id)
+    toast.success("Ticket ID copied to clipboard")
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 p-0 cursor-pointer hover:bg-muted">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {ticket.status === "Confirmed" && ticket.attendance_status !== "Present" && (
+          <DropdownMenuItem onClick={handleCheckIn} disabled={isPending} className="cursor-pointer">
+            <UserCheck className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
+            <span>Check In Attendance</span>
+          </DropdownMenuItem>
+        )}
+
+        {ticket.attendance_status === "Present" && (
+          <DropdownMenuItem onClick={handleRemoveAttendance} disabled={isPending} className="cursor-pointer text-amber-600 dark:text-amber-400">
+            <UserX className="h-4 w-4 mr-2" />
+            <span>Remove Attendance</span>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem onClick={handleCopyId} className="cursor-pointer">
+          <Copy className="h-4 w-4 mr-2 text-muted-foreground" />
+          <span>Copy Ticket ID</span>
+        </DropdownMenuItem>
+
+        {ticket.status !== "Cancelled" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleCancelTicket} disabled={isPending} className="cursor-pointer text-destructive focus:text-destructive">
+              <XCircle className="h-4 w-4 mr-2" />
+              <span>Cancel Ticket RSVP</span>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 // ─── Attendee Row (Desktop) ──────────────────────────────────────────────────
 
 function AttendeeRow({
@@ -763,54 +795,29 @@ function AttendeeRow({
   ticket: EventTicket
   onCheckIn: () => void
 }) {
-  const [isPending, startTransition] = useTransition()
-
-  const handleCheckIn = () => {
-    startTransition(async () => {
-      try {
-        await markAttendanceAction(ticket.id, ticket.event_id)
-        toast.success(`${ticket.candidate_name} checked in!`)
-        onCheckIn()
-      } catch (err: any) {
-        toast.error(err.message)
-      }
-    })
-  }
-
   return (
-    <TableRow className="hover:bg-muted/10">
-      <TableCell className="pl-6 py-4">
+    <TableRow className="hover:bg-muted/20">
+      <TableCell className="pl-6 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary border font-bold text-xs shadow-2xs">
-            {getInitials(ticket.candidate_name || "Unknown")}
-          </div>
-          <div>
-            <div className="font-bold text-sm text-foreground">{ticket.candidate_name}</div>
-            <div className="text-muted-foreground text-[10px] mt-0.5 font-medium">{ticket.candidate_email}</div>
+          <Avatar className="h-8 w-8 border shrink-0">
+            <AvatarFallback className="text-[11px] font-bold bg-primary/5 text-primary">
+              {getInitials(ticket.candidate_name || "Unknown")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-foreground truncate">{ticket.candidate_name || "Unknown"}</p>
+            {ticket.candidate_email && (
+              <p className="text-muted-foreground text-xs font-normal truncate">{ticket.candidate_email}</p>
+            )}
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-sm font-semibold text-foreground">{ticket.candidate_course ?? "—"}</TableCell>
-      <TableCell className="text-center text-sm font-medium text-foreground">{ticket.candidate_passout_year ?? "—"}</TableCell>
+      <TableCell className="text-sm font-medium text-foreground">{ticket.candidate_course ?? "—"}</TableCell>
+      <TableCell className="text-center text-sm font-medium text-muted-foreground tabular-nums">{ticket.candidate_passout_year ?? "—"}</TableCell>
       <TableCell className="text-center"><TicketStatusBadge status={ticket.status} /></TableCell>
       <TableCell className="text-center"><AttendanceBadge status={ticket.attendance_status} /></TableCell>
       <TableCell className="text-right pr-6">
-        {ticket.status === "Confirmed" && ticket.attendance_status !== "Present" && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleCheckIn}
-            disabled={isPending}
-            className="text-[11px] font-semibold h-8 gap-1 rounded-lg border-border/80 hover:bg-muted/50"
-          >
-            {isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <UserCheck className="h-3.5 w-3.5" />
-            )}
-            Check In
-          </Button>
-        )}
+        <AttendeeActionsDropdown ticket={ticket} onUpdate={onCheckIn} />
       </TableCell>
     </TableRow>
   )
@@ -825,67 +832,31 @@ function AttendeeCard({
   ticket: EventTicket
   onCheckIn: () => void
 }) {
-  const [isPending, startTransition] = useTransition()
-
-  const handleCheckIn = () => {
-    startTransition(async () => {
-      try {
-        await markAttendanceAction(ticket.id, ticket.event_id)
-        toast.success(`${ticket.candidate_name} checked in!`)
-        onCheckIn()
-      } catch (err: any) {
-        toast.error(err.message)
-      }
-    })
-  }
-
   return (
-    <Card className="rounded-2xl border bg-card p-4 sm:p-5 space-y-4 shadow-2xs">
+    <Card className="rounded-xl border bg-card p-4 space-y-3 shadow-xs">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/5 text-primary border font-bold text-xs shadow-2xs">
-            {getInitials(ticket.candidate_name || "Unknown")}
-          </div>
-          <div className="min-w-0 flex-1 pr-2">
-            <h4 className="font-bold text-sm text-foreground truncate">{ticket.candidate_name}</h4>
-            <p className="text-muted-foreground text-[10px] mt-0.5 font-medium truncate">{ticket.candidate_email}</p>
+          <Avatar className="h-9 w-9 border shrink-0">
+            <AvatarFallback className="text-xs font-bold bg-primary/5 text-primary">
+              {getInitials(ticket.candidate_name || "Unknown")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-sm text-foreground truncate">{ticket.candidate_name || "Unknown"}</h4>
+            <p className="text-muted-foreground text-xs font-medium truncate">{ticket.candidate_email}</p>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <AttendeeActionsDropdown ticket={ticket} onUpdate={onCheckIn} />
+      </div>
+
+      <div className="flex items-center justify-between border-t pt-3 text-xs">
+        <div className="flex items-center gap-2">
           <TicketStatusBadge status={ticket.status} />
           <AttendanceBadge status={ticket.attendance_status} />
         </div>
+        <span className="text-muted-foreground text-xs">{ticket.candidate_course ?? "—"} ({ticket.candidate_passout_year ?? "—"})</span>
       </div>
-
-      <div className="grid grid-cols-2 gap-4 border-y py-3 text-xs">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Course / Branch</p>
-          <p className="font-semibold text-foreground mt-0.5">{ticket.candidate_course ?? "—"}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Passout Year</p>
-          <p className="font-semibold text-foreground mt-0.5">{ticket.candidate_passout_year ?? "—"}</p>
-        </div>
-      </div>
-
-      {ticket.status === "Confirmed" && ticket.attendance_status !== "Present" && (
-        <div className="pt-1">
-          <Button
-            size="sm"
-            onClick={handleCheckIn}
-            disabled={isPending}
-            className="w-full h-9 gap-1.5 rounded-xl text-xs font-semibold cursor-pointer"
-          >
-            {isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <UserCheck className="h-3.5 w-3.5" />
-            )}
-            Check In Attendee
-          </Button>
-        </div>
-      )}
     </Card>
   )
 }

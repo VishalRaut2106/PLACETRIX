@@ -34,6 +34,7 @@ import {
   useComboboxAnchor,
 } from "@/components/ui/combobox"
 import { UsersRound } from "lucide-react"
+import { cn, toLocalDateTimeInput, toUTCISOString } from "@/lib/utils"
 
 const COMPENSATION_TYPES: { value: CompensationType; label: string }[] = [
   { value: "full_time", label: "Full-Time Job" },
@@ -84,8 +85,8 @@ export function OpportunityEditorClient({
     bond_details: opportunity?.bond_details || "",
     application_link: opportunity?.application_link || "",
     deadline: opportunity 
-      ? new Date(opportunity.deadline).toISOString().slice(0, 16)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      ? toLocalDateTimeInput(opportunity.deadline)
+      : toLocalDateTimeInput(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
     status: opportunity?.status || "Draft",
     min_cgpa: opportunity?.min_cgpa || 0,
     collect_resume: opportunity ? opportunity.collect_resume : true
@@ -96,6 +97,7 @@ export function OpportunityEditorClient({
     
     const finalData = {
       ...formData,
+      deadline: toUTCISOString(formData.deadline),
       status: overrideStatus || formData.status,
       cohort_ids: selectedCohortIds,
     }
@@ -405,7 +407,7 @@ export function OpportunityEditorClient({
                   <DateTimePicker 
                     id="deadline" 
                     value={formData.deadline} 
-                    onChange={val => setFormData({ ...formData, deadline: val ? (val instanceof Date ? val.toISOString() : String(val)) : "" })}
+                    onChange={val => setFormData({ ...formData, deadline: toLocalDateTimeInput(val) })}
                   />
                 </div>
               </div>
