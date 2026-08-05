@@ -76,21 +76,21 @@ export function WhatsNewModal() {
               <div key={release.version} className="flex flex-col gap-3">
                 {releaseIdx > 0 && <Separator className="my-1" />}
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm">v{release.version}</span>
-                    <span className="text-sm font-medium text-muted-foreground">{release.title}</span>
+                    <span className="text-xs text-muted-foreground">{release.date}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{release.date}</span>
+                  <h4 className="text-sm font-medium text-foreground">{release.title}</h4>
                 </div>
 
-                <div className="flex flex-col gap-3 pl-2">
+                <div className="flex flex-col gap-3">
                   {release.categories.map((cat, catIdx) => (
                     <div key={catIdx} className="flex flex-col gap-1.5">
                       <div>
                         <CategoryBadge type={cat.type} />
                       </div>
-                      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 pl-1">
+                      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                         {cat.items.map((item, itemIdx) => (
                           <li key={itemIdx}>{item}</li>
                         ))}
@@ -103,7 +103,7 @@ export function WhatsNewModal() {
           </div>
         </ScrollArea>
 
-        <DialogFooter className="sm:justify-end items-center gap-2 border-t pt-4">
+        <DialogFooter className="sm:justify-end items-center gap-2 pt-2">
           <DialogClose asChild>
             <Button size="sm" onClick={handleClose}>
               Got it

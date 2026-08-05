@@ -17,23 +17,23 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   {
     version: "1.4.16",
     date: "2026-08-05",
-    title: "Pro DateTimePicker, Target Cohort Combobox & UTC Standardization",
+    title: "Local Timezone Accuracy, Instant Navigation & UI Enhancements",
     badge: "Patch",
     categories: [
       {
         type: "improved",
         items: [
-          "Upgraded DateTimePicker with keyboard-first navigation and 12-hour AM/PM format support.",
-          "Enhanced target cohort selector with a searchable, multi-select dropdown combobox across all creation forms.",
-          "Standardized header typography, fonts, and subtitle styling across creation & editing pages.",
-          "Standardized all database operations to UTC timestamps with dynamic browser local timezone display.",
-          "Improved sidebar button hover state and font weight stability."
+          "Automatic Local Timezones: All test dates, event schedules, and Logic Lab challenge timers now dynamically display in your exact local timezone.",
+          "Instant Navigation Feedback: Added a zero-delay top progress bar on link clicks for faster, seamless page transitions.",
+          "Clutter-Free Events Page: Streamlined the events dashboard with a clean filter sheet so you can find upcoming sessions faster.",
+          "Enhanced DateTime Picker: Upgraded date selectors with 12-hour AM/PM formatting and keyboard-friendly controls.",
+          "Sidebar Stability: Improved sidebar text rendering so menu items stay crisp and steady when hovering."
         ]
       },
       {
         type: "fixed",
         items: [
-          "Resolved date hydration mismatch between server-rendered and client-rendered local date formatting."
+          "Fixed a date formatting hydration glitch between server and browser timezones."
         ]
       }
     ]
