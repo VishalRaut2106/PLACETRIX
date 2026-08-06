@@ -15,6 +15,27 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.18",
+    date: "2026-08-06",
+    title: "Cleaner Error Messages & Security Hardening",
+    badge: "Patch",
+    categories: [
+      {
+        type: "improved",
+        items: [
+          "All error messages across tests, test creation, and LogicLab are now clear and user-friendly.",
+          "Internal technical details are no longer shown in error popups."
+        ]
+      },
+      {
+        type: "security",
+        items: [
+          "Prevented internal database and server details from appearing in error messages."
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.17",
     date: "2026-08-05",
     title: "Secure Check-Ins, System Recovery & Test Stability",
@@ -76,7 +97,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.17";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.18";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
