@@ -66,7 +66,7 @@ import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
-import { isDeploymentError } from "@/lib/errors"
+import { isDeploymentError, getFriendlyErrorMessage } from "@/lib/errors"
 import type { AttemptTest, AttemptQuestion, AttemptInfo, SavedAnswer } from "./_types"
 
 
@@ -1658,7 +1658,7 @@ export function AttemptClient({
                         setSyncError("App was updated \u2014 please refresh")
                     } else {
                         setSyncStatus("error")
-                        setSyncError(err?.message ?? "Network error")
+                        setSyncError(getFriendlyErrorMessage(err, "Connection lost. Your answers are saved locally and will sync when reconnected."))
                     }
                     return false
                 } finally {
@@ -1843,12 +1843,7 @@ export function AttemptClient({
                     return
                 }
 
-                const msg = err?.message ?? "Submission failed. Please try again."
-
-                const lowerMsg = msg.toLowerCase()
-                const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
-                    ? "Your session may have expired. Please refresh the page and try finishing again."
-                    : msg
+                const userFriendlyMsg = getFriendlyErrorMessage(err, "Submission failed. Please try again.")
 
                 setSubmitError(userFriendlyMsg)
                 toast.error(userFriendlyMsg)
@@ -2150,11 +2145,7 @@ export function AttemptClient({
                                 setIsStarting(false)
                                 return
                             }
-                            const msg = err?.message ?? "Failed to start test"
-                            const lowerMsg = msg.toLowerCase()
-                            const userFriendlyMsg = (lowerMsg.includes("unexpected") && lowerMsg.includes("response"))
-                                ? "Your session may have expired. Please refresh the page and try again."
-                                : msg
+                            const userFriendlyMsg = getFriendlyErrorMessage(err, "Failed to start test. Please try again.")
                             toast.error(userFriendlyMsg)
                             setIsStarting(false)
                             return

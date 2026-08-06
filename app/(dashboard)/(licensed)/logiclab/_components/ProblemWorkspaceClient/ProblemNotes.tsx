@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { getPersonalNote, savePersonalNote, getCommunityNotes, toggleUpvote } from "../../problems/[id]/notes-actions"
 import { toast } from "sonner"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -320,7 +321,7 @@ export function ProblemNotes({ problemId, currentCode, currentLanguage, submissi
       const langObj = LANGUAGES.find((l: any) => l.id === data.language_id)
       handleInsertAtEnd(data.code, langObj ? langObj.value : "javascript")
     } catch (e: any) {
-      toast.error("Failed: " + e.message)
+      toast.error(getFriendlyErrorMessage(e, "Failed to load submission code."))
     } finally {
       setIsFetchingCode(false)
     }

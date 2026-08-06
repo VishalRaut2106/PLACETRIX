@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 import { GoogleGenAI } from "@google/genai"
 
 // --- Shared types ---
@@ -109,7 +110,7 @@ async function saveTestToDb(
   })
 
   if (error) {
-    throw new Error("Failed to save test: " + error.message)
+    throw new Error(getFriendlyErrorMessage(error, "Failed to save the test. Please try again."))
   }
 }
 

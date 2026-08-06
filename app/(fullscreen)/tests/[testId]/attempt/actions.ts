@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 import type { AttemptInfo } from "./_types"
 
 
@@ -156,7 +157,7 @@ export async function startAttemptAction(testId: string): Promise<AttemptInfo> {
         }
       }
     }
-    throw new Error(insertError.message || "Failed to start attempt")
+    throw new Error(getFriendlyErrorMessage(insertError, "Failed to start the test. Please try again."))
   }
 
   if (!newAttempt) throw new Error("Failed to start attempt")
@@ -192,11 +193,11 @@ export async function syncAction(
 
   if (error) {
     console.error("[syncAction] RPC error:", error)
-    return { ok: false, error: error.message || "Failed to sync attempt" }
+    return { ok: false, error: getFriendlyErrorMessage(error, "Failed to sync your answers. They are saved locally and will retry.") }
   }
 
   if (data?.error) {
-    return { ok: false, error: data.error }
+    return { ok: false, error: getFriendlyErrorMessage(data, "An issue occurred during sync. Your answers are safe.") }
   }
 
   return { ok: true }
@@ -217,11 +218,11 @@ export async function claimSessionAction(
 
   if (error) {
     console.error("[claimSessionAction] RPC error:", error)
-    return { ok: false, error: error.message || "Failed to claim session" }
+    return { ok: false, error: getFriendlyErrorMessage(error, "Failed to claim session. Please refresh and try again.") }
   }
 
   if (data?.error) {
-    return { ok: false, error: data.error }
+    return { ok: false, error: getFriendlyErrorMessage(data, "Session could not be claimed. Please try again.") }
   }
 
   return { ok: true }
@@ -252,7 +253,7 @@ export async function submitAttemptAction(
 
   if (error) {
     console.error("[submitAttemptAction] RPC error:", error)
-    return { error: error.message || "Failed to submit attempt" }
+    return { error: getFriendlyErrorMessage(error, "Failed to submit your test. Please try again.") }
   }
 
   const typedResult = result as { test_id?: string; error?: string } | null
@@ -262,7 +263,7 @@ export async function submitAttemptAction(
   }
 
   if (typedResult.error) {
-    return { error: typedResult.error }
+    return { error: getFriendlyErrorMessage(typedResult, "Something went wrong during grading. Please contact your instructor.") }
   }
 
   return { redirectPath: typedResult.test_id ? `/tests/${typedResult.test_id}` : "/tests" }
@@ -348,6 +349,6 @@ export async function submitFeedbackAction(
 
   if (error) {
     console.error("[submitFeedbackAction] insert error:", error)
-    throw new Error(error.message || "Failed to submit feedback")
+    throw new Error(getFriendlyErrorMessage(error, "Failed to submit feedback. Please try again."))
   }
 }

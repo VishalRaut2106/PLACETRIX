@@ -54,6 +54,7 @@ import {
   IconDownload,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
 import { getProblemDataSPA, fetchProblemsInfinite } from "../../actions";
 import { getSubmissionCode } from "../../problems/[id]/notes-actions";
@@ -445,7 +446,7 @@ export function ProblemWorkspaceClient({
       document.documentElement.requestFullscreen().catch((err) => {
         setIsFullScreen(false);
         toast.error(
-          "Error attempting to enable fullscreen mode: " + err.message,
+          "Could not enter fullscreen mode. Your browser may not support this feature.",
         );
       });
     } else {
@@ -1036,7 +1037,7 @@ export function ProblemWorkspaceClient({
       }
       setViewingCode(res.code);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to load submission code.");
+      toast.error(getFriendlyErrorMessage(err, "Failed to load submission code."));
       setViewingSubmission(null);
     } finally {
       setLoadingCode(false);
@@ -1166,7 +1167,7 @@ export function ProblemWorkspaceClient({
         success: false,
         error: err?.message || "Execution failed.",
       });
-      toast.error(err?.message || "Execution failed.");
+      toast.error(getFriendlyErrorMessage(err, "Code execution failed. Please check your code and try again."));
     } finally {
       setRunning(false);
     }
@@ -1225,7 +1226,7 @@ export function ProblemWorkspaceClient({
       setSubmitResult(data);
 
       if (data.save_error) {
-        toast.error(`Database save error: ${data.save_error}`);
+        toast.error("Your submission ran successfully but couldn't be saved. Please try submitting again.");
       }
 
       const newSubId = data.submission_id || Date.now();

@@ -94,6 +94,7 @@ import {
   RotateCw,
 } from "lucide-react"
 import { toast } from "sonner"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
 import type { InstituteTestDetail, InstituteQuestion, InstituteAttemptRow } from "./_types"
@@ -128,7 +129,7 @@ function useActionState() {
         await fn()
       } catch (err: any) {
         if (err?.message === "NEXT_REDIRECT") throw err
-        toast.error(err?.message || "Operation failed")
+        toast.error(getFriendlyErrorMessage(err, "Operation failed. Please try again."))
       } finally {
         setActiveAction(null)
       }
@@ -1154,7 +1155,7 @@ function AttemptsTab({
                   toast.success("Attempt deleted successfully")
                   setAttemptToDelete(null)
                 } catch (err: any) {
-                  toast.error(err.message || "Failed to delete attempt")
+                  toast.error(getFriendlyErrorMessage(err, "Failed to delete attempt. Please try again."))
                 } finally {
                   setIsDeleting(false)
                 }

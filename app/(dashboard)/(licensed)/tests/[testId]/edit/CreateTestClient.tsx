@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useTransition, useRef } from "react"
 import { toast } from "sonner"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -172,7 +173,7 @@ export function CreateTestClient({
       await onSaveDraft(testId, settingsForDb(settings), questions)
       toast.success("Draft saved.")
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to save draft.")
+      toast.error(getFriendlyErrorMessage(err, "Failed to save draft. Please try again."))
     } finally {
       setIsSaving(false)
     }
@@ -189,7 +190,7 @@ export function CreateTestClient({
       await onPublish(testId, settingsForDb(settings), questions)
     } catch (err: any) {
       if (err?.message === "NEXT_REDIRECT") throw err
-      toast.error(err?.message ?? "Failed to publish.")
+      toast.error(getFriendlyErrorMessage(err, "Failed to publish. Please try again."))
       setIsPublishing(false)
     }
   }, [testId, settings, questions, onPublish, canSave, titleValid])

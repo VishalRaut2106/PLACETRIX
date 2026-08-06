@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { getFriendlyErrorMessage } from "@/lib/errors"
 
 
 // ─── Guard helper ─────────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ export async function toggleMarksAction(testId: string): Promise<void> {
     if (error.message?.includes("marks_available")) {
       throw new Error("Column 'marks_available' does not exist in DB tests table yet. Please run the SQL migration script.")
     }
-    throw new Error("Failed to toggle marks: " + error.message)
+    throw new Error(getFriendlyErrorMessage(error, "Failed to toggle marks visibility. Please try again."))
   }
   revalidatePath(`/tests/${testId}`)
 }
@@ -109,7 +110,7 @@ export async function toggleResultsAction(testId: string): Promise<void> {
     error = res.error
   }
 
-  if (error) throw new Error("Failed to toggle results: " + error.message)
+  if (error) throw new Error(getFriendlyErrorMessage(error, "Failed to toggle results visibility. Please try again."))
   revalidatePath(`/tests/${testId}`)
 }
 
@@ -138,7 +139,7 @@ export async function togglePublishAction(testId: string): Promise<void> {
     .update({ status: next })
     .eq("id", testId)
 
-  if (error) throw new Error("Failed to update status: " + error.message)
+  if (error) throw new Error(getFriendlyErrorMessage(error, "Failed to update test status. Please try again."))
   revalidatePath(`/tests/${testId}`)
   revalidatePath("/tests")
 }
@@ -157,7 +158,7 @@ export async function deleteTestAction(testId: string): Promise<void> {
     .delete()
     .eq("id", testId)
 
-  if (error) throw new Error("Failed to delete test: " + error.message)
+  if (error) throw new Error(getFriendlyErrorMessage(error, "Failed to delete the test. Please try again."))
 
   revalidatePath("/tests")
   redirect("/tests")
@@ -178,7 +179,7 @@ export async function deleteAttemptAction(testId: string, attemptId: string): Pr
     .eq("id", attemptId)
     .eq("test_id", testId) // safety check
 
-  if (error) throw new Error("Failed to delete attempt: " + error.message)
+  if (error) throw new Error(getFriendlyErrorMessage(error, "Failed to delete the attempt. Please try again."))
 
   revalidatePath(`/tests/${testId}`)
 }
@@ -197,7 +198,7 @@ export async function clearAllAttemptsAction(testId: string): Promise<void> {
     .delete()
     .eq("test_id", testId)
 
-  if (error) throw new Error("Failed to clear attempts: " + error.message)
+  if (error) throw new Error(getFriendlyErrorMessage(error, "Failed to clear attempts. Please try again."))
 
   revalidatePath(`/tests/${testId}`)
 }
@@ -219,7 +220,7 @@ export async function fetchAllTestAttemptsForExportAction(testId: string) {
     .order("started_at", { ascending: false })
 
   if (error) {
-    throw new Error("Failed to fetch attempts for export: " + error.message)
+    throw new Error(getFriendlyErrorMessage(error, "Failed to fetch attempts for export. Please try again."))
   }
 
   // Format exactly like mapAttemptRow in page.tsx
