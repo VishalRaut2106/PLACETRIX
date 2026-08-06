@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { RecentSupportTickets } from "./RecentSupportTickets";
 import { CandidateDashboardClient } from "./_components/CandidateDashboardClient";
 import { LicenseBanner } from "@/components/license/LicenseBanner";
+import { getCachedPotd } from "../(licensed)/logiclab/actions";
 import {
   ArrowRight,
   BookOpen,
@@ -129,8 +130,8 @@ export default async function HomePage() {
     const yesterdayDate = new Date(today.getTime() - (24 * 60 * 60 * 1000));
     const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
 
-    const cutOffDate14Days = new Date(today.getTime() - (14 * 24 * 60 * 60 * 1000));
-    const cutOffStr14Days = cutOffDate14Days.toISOString().split("T")[0];
+    const cutOffDate20Weeks = new Date(today.getTime() - (140 * 24 * 60 * 60 * 1000));
+    const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0];
 
     // Fetch stats, attempts, global stats, and daily challenge activity in parallel
     const [homeStatsRes, testAttemptsRes, statsRes, allActivityRes] = await Promise.all([
@@ -139,13 +140,13 @@ export default async function HomePage() {
       }),
       (supabase as any)
         .from("test_attempts")
-        .select("percentage, score, total_marks, status, test_id")
+        .select("percentage, score, total_marks, status, test_id, tests(marks_available, results_available)")
         .eq("candidate_id", profile.id)
         .eq("status", "submitted"),
       (supabase as any).rpc('get_user_global_stats', { p_user_id: profile.id }),
       (supabase as any)
         .from("logiclab_daily_challenge_user_activity")
-        .select("activity_date, submission_count, solved")
+        .select("activity_date, submission_count, solved, easy_solved, medium_solved, hard_solved, easy_attempted, medium_attempted, hard_attempted")
         .eq("user_id", profile.id)
         .order("activity_date", { ascending: true })
     ]);
@@ -165,12 +166,15 @@ export default async function HomePage() {
     let validScoresCount = 0;
     if (testAttempts && testAttempts.length > 0) {
       testAttempts.forEach((attempt: any) => {
-        if (attempt.percentage !== null && attempt.percentage !== undefined) {
-          totalPercentage += Number(attempt.percentage);
-          validScoresCount++;
-        } else if (attempt.score !== null && attempt.total_marks) {
-          totalPercentage += (Number(attempt.score) / Number(attempt.total_marks)) * 100;
-          validScoresCount++;
+        const isPublished = attempt.tests?.marks_available || attempt.tests?.results_available;
+        if (isPublished) {
+          if (attempt.percentage !== null && attempt.percentage !== undefined) {
+            totalPercentage += Number(attempt.percentage);
+            validScoresCount++;
+          } else if (attempt.score !== null && attempt.total_marks) {
+            totalPercentage += (Number(attempt.score) / Number(attempt.total_marks)) * 100;
+            validScoresCount++;
+          }
         }
       });
     }
@@ -244,23 +248,41 @@ export default async function HomePage() {
     if (currentStreak > maxStreak) maxStreak = currentStreak;
     const streakStats = { currentStreak, maxStreak };
 
-    // 4. 14-day Activity Calendar
+    // 4. 20-week (140-day) Activity Calendar
     const activityRows = (allActivityRows ?? []).filter(
-      (r: any) => r.activity_date && r.activity_date >= cutOffStr14Days
+      (r: any) => r.activity_date && r.activity_date >= cutOffStr20Weeks
     );
 
-    const uniqueDatesWithStatus = new Map<string, { solved: boolean; attempted: boolean; count: number }>();
+    const uniqueDatesWithStatus = new Map<string, {
+      solved: boolean
+      attempted: boolean
+      count: number
+      easy_solved: number
+      medium_solved: number
+      hard_solved: number
+      easy_attempted: number
+      medium_attempted: number
+      hard_attempted: number
+    }>();
+
     for (const row of activityRows) {
       const dateStr = row.activity_date;
       uniqueDatesWithStatus.set(dateStr, {
         solved: !!row.solved,
-        attempted: !row.solved && row.submission_count > 0,
+        attempted: !row.solved && Number(row.submission_count) > 0,
         count: Number(row.submission_count),
+        easy_solved: Number(row.easy_solved || 0),
+        medium_solved: Number(row.medium_solved || 0),
+        hard_solved: Number(row.hard_solved || 0),
+        easy_attempted: Number(row.easy_attempted || 0),
+        medium_attempted: Number(row.medium_attempted || 0),
+        hard_attempted: Number(row.hard_attempted || 0),
       });
     }
 
     const activityCalendar: any[] = [];
-    for (let i = 14 - 1; i >= 0; i--) {
+    const daysToGenerate = 140; // 20 weeks * 7 days
+    for (let i = daysToGenerate - 1; i >= 0; i--) {
       const d = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
       const dateStr = d.toISOString().split("T")[0];
       const activity = uniqueDatesWithStatus.get(dateStr);
@@ -268,6 +290,13 @@ export default async function HomePage() {
         date: dateStr,
         count: activity?.count || 0,
         status: activity?.solved ? "solved" : activity?.attempted ? "attempted" : "none",
+        dayOfWeek: d.getUTCDay(),
+        easySolved: activity?.easy_solved || 0,
+        mediumSolved: activity?.medium_solved || 0,
+        hardSolved: activity?.hard_solved || 0,
+        easyAttempted: activity?.easy_attempted || 0,
+        mediumAttempted: activity?.medium_attempted || 0,
+        hardAttempted: activity?.hard_attempted || 0,
       });
     }
 
@@ -280,12 +309,30 @@ export default async function HomePage() {
     let liveTests: any[] = [];
     let upcomingTests: any[] = [];
 
-    if (cp.institute_id) {
+    // Find candidate's cohorts and eligible test IDs
+    const { data: memberRows } = await (supabase as any)
+      .from("cohort_students")
+      .select("cohort_id")
+      .eq("student_id", profile.id);
+
+    const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id);
+
+    let eligibleTestIds: string[] = [];
+    if (cohortIds.length > 0) {
+      const { data: testCohortRows } = await (supabase as any)
+        .from("test_cohorts")
+        .select("test_id")
+        .in("cohort_id", cohortIds);
+
+      eligibleTestIds = Array.from(new Set((testCohortRows ?? []).map((r: any) => String(r.test_id)))) as string[];
+    }
+
+    if (eligibleTestIds.length > 0) {
       let liveQuery = (supabase as any)
         .from("tests")
         .select("id, title, description, time_limit_seconds, available_from, available_until")
         .eq("status", "published")
-        .eq("institute_id", cp.institute_id)
+        .in("id", eligibleTestIds)
         .lte("available_from", nowIso)
         .or(`available_until.gt.${nowIso},available_until.is.null`);
 
@@ -303,7 +350,7 @@ export default async function HomePage() {
         .from("tests")
         .select("id, title, description, time_limit_seconds, available_from, available_until")
         .eq("status", "published")
-        .eq("institute_id", cp.institute_id)
+        .in("id", eligibleTestIds)
         .gt("available_from", nowIso);
 
       if (submittedTestIds.length > 0) {
@@ -315,6 +362,108 @@ export default async function HomePage() {
         .limit(2);
 
       if (upcomingData) upcomingTests = upcomingData;
+    }
+
+    // 7. Fetch Problem of the Day
+    let initialPotd = await getCachedPotd(todayStr);
+    let fullPotdProblem = null;
+
+    if (initialPotd) {
+      const { data: dbProblem } = await (supabase as any)
+        .from("logiclab_problems")
+        .select("id, number, title, difficulty, tags")
+        .eq("id", initialPotd.problem_id)
+        .maybeSingle();
+
+      if (dbProblem) {
+        const { data: statsRow } = await (supabase as any)
+          .from("logiclab_problem_stats")
+          .select("accepted_submissions, total_submissions")
+          .eq("problem_id", initialPotd.problem_id)
+          .maybeSingle();
+
+        const totalSubmissions = statsRow?.total_submissions || 0;
+        const acceptedSubmissions = statsRow?.accepted_submissions || 0;
+        const acceptanceRate = totalSubmissions > 0 ? Math.round((acceptedSubmissions / totalSubmissions) * 100) : null;
+
+        fullPotdProblem = {
+          ...dbProblem,
+          acceptance_rate: acceptanceRate,
+          total_submissions: totalSubmissions,
+        };
+
+        const { data: potdSub } = await (supabase as any)
+          .from("logiclab_daily_challenge_submissions")
+          .select("status")
+          .eq("user_id", profile.id)
+          .eq("problem_id", initialPotd.problem_id)
+          .eq("status", "Accepted")
+          .limit(1);
+
+        fullPotdProblem.solved_status = (potdSub && potdSub.length > 0) ? "Accepted" : null;
+      }
+    }
+
+    // 8. Fetch active & upcoming opportunities for candidate
+    let opportunities: any[] = [];
+    if (cohortIds.length > 0) {
+      const { data: oppCohortRows } = await (supabase as any)
+        .from("opportunity_cohorts")
+        .select("opportunity_id")
+        .in("cohort_id", cohortIds);
+
+      const eligibleOppIds = Array.from(new Set((oppCohortRows ?? []).map((r: any) => String(r.opportunity_id)))) as string[];
+
+      if (eligibleOppIds.length > 0) {
+        const { data: oppsData } = await (supabase as any)
+          .from("opportunities")
+          .select("id, title, job_role, location, ctc_lpa, stipend_monthly, deadline, company:companies(name, logo_url)")
+          .eq("status", "Published")
+          .in("id", eligibleOppIds)
+          .gte("deadline", nowIso)
+          .order("deadline", { ascending: true })
+          .limit(3);
+
+        if (oppsData) opportunities = oppsData;
+      }
+    }
+
+    // 9. Fetch active & upcoming events for candidate
+    let candidateEvent: any = null;
+    if (profile.institute_id) {
+      const { data: rawEvents } = await (supabase as any)
+        .from("events")
+        .select(`
+          id, title, description, date, venue, capacity, status, duration_minutes, speaker_name,
+          event_cohorts(cohort_id)
+        `)
+        .eq("status", "Published")
+        .eq("institute_id", profile.institute_id)
+        .order("date", { ascending: true });
+
+      if (rawEvents && rawEvents.length > 0) {
+        const eligibleEvents = rawEvents.filter((event: any) => {
+          const targetedCohorts = (event.event_cohorts ?? []).map((ec: any) => ec.cohort_id);
+          if (targetedCohorts.length === 0) return true;
+          return targetedCohorts.some((cId: string) => cohortIds.includes(cId));
+        });
+
+        const activeEvents = eligibleEvents.filter((e: any) => {
+          const startTime = new Date(e.date).getTime();
+          const endTime = startTime + (e.duration_minutes || 120) * 60 * 1000;
+          const nowTime = Date.now();
+          return nowTime >= startTime && nowTime <= endTime;
+        });
+
+        if (activeEvents.length > 0) {
+          candidateEvent = { ...activeEvents[0], derived_status: "live" };
+        } else {
+          const upcomingEvents = eligibleEvents.filter((e: any) => new Date(e.date).getTime() > Date.now());
+          if (upcomingEvents.length > 0) {
+            candidateEvent = { ...upcomingEvents[0], derived_status: "upcoming" };
+          }
+        }
+      }
     }
 
     const candidateProfile = {
@@ -336,7 +485,11 @@ export default async function HomePage() {
         activityCalendar={activityCalendar}
         liveTests={liveTests}
         upcomingTests={upcomingTests}
+        opportunities={opportunities}
+        candidateEvent={candidateEvent}
         todayStr={todayStr}
+        initialPotd={initialPotd}
+        fullPotdProblem={fullPotdProblem}
       />
     );
   }

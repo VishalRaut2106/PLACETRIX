@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Award,
   ArrowRight,
@@ -12,10 +13,15 @@ import {
   ChevronRight,
   FileText,
   Search,
+  CircleCheck,
+  Flame,
+  Briefcase,
+  MapPin,
+  CalendarDays,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Empty,
   EmptyHeader,
@@ -54,6 +60,33 @@ interface MockTest {
   available_until: string | null
 }
 
+export interface CalendarCell {
+  date: string
+  count: number
+  status: "none" | "attempted" | "solved"
+  dayOfWeek: number
+  easySolved?: number
+  mediumSolved?: number
+  hardSolved?: number
+  easyAttempted?: number
+  mediumAttempted?: number
+  hardAttempted?: number
+}
+
+export interface Opportunity {
+  id: string
+  title: string
+  job_role: string | null
+  location: string | null
+  ctc_lpa: number | null
+  stipend_monthly: number | null
+  deadline: string
+  company: {
+    name: string
+    logo_url: string | null
+  } | null
+}
+
 interface CandidateDashboardClientProps {
   profile: {
     id: string
@@ -70,14 +103,14 @@ interface CandidateDashboardClientProps {
     currentStreak: number
     maxStreak: number
   }
-  activityCalendar: Array<{
-    date: string
-    count: number
-    status: "none" | "attempted" | "solved"
-  }>
+  activityCalendar: CalendarCell[]
   liveTests: MockTest[]
   upcomingTests: MockTest[]
+  opportunities?: Opportunity[]
+  candidateEvent?: any
   todayStr: string
+  initialPotd?: any
+  fullPotdProblem?: any
 }
 
 
@@ -157,9 +190,161 @@ export function CandidateDashboardClient({
   activityCalendar,
   liveTests,
   upcomingTests,
+  opportunities = [],
+  candidateEvent = null,
   todayStr,
+  initialPotd,
+  fullPotdProblem,
 }: CandidateDashboardClientProps) {
+  const router = useRouter()
   const [greeting, setGreeting] = useState("Hello")
+
+  const calculateTimeLeft = () => {
+    const now = new Date();
+    const nextMidnightUTC = new Date(now);
+    nextMidnightUTC.setUTCHours(24, 0, 0, 0);
+
+    const diff = nextMidnightUTC.getTime() - now.getTime();
+
+    if (diff <= 0) return "00h 00m 00s";
+
+    const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+    const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+
+    return `${h}h ${m}m ${s}s`;
+  }
+
+  const [timeLeft, setTimeLeft] = useState<string>("")
+
+  const cellRadiusClass = "rounded-[18%]"
+
+  const getTooltipText = useCallback((cell: CalendarCell) => {
+    if (!cell.count || cell.count === 0) {
+      return `No activity on ${cell.date}`
+    }
+
+    const solvedParts: string[] = []
+    if (cell.easySolved && cell.easySolved > 0) solvedParts.push(`${cell.easySolved} Easy`)
+    if (cell.mediumSolved && cell.mediumSolved > 0) solvedParts.push(`${cell.mediumSolved} Medium`)
+    if (cell.hardSolved && cell.hardSolved > 0) solvedParts.push(`${cell.hardSolved} Hard`)
+
+    const attemptedParts: string[] = []
+    if (cell.easyAttempted && cell.easyAttempted > 0) attemptedParts.push(`${cell.easyAttempted} Easy`)
+    if (cell.mediumAttempted && cell.mediumAttempted > 0) attemptedParts.push(`${cell.mediumAttempted} Medium`)
+    if (cell.hardAttempted && cell.hardAttempted > 0) attemptedParts.push(`${cell.hardAttempted} Hard`)
+
+    const solvedStr = solvedParts.length > 0 ? `${solvedParts.join(", ")} solved` : ""
+    const attemptedStr = attemptedParts.length > 0 ? `${attemptedParts.join(", ")} attempted` : ""
+
+    let detail = ""
+    if (solvedStr && attemptedStr) {
+      detail = ` (${solvedStr}, ${attemptedStr})`
+    } else if (solvedStr) {
+      detail = ` (${solvedStr})`
+    } else if (attemptedStr) {
+      detail = ` (${attemptedStr})`
+    }
+
+    return `${cell.date}: ${cell.count} submission${cell.count > 1 ? "s" : ""}${detail}`
+  }, [])
+
+  // Align cells into weeks starting on Sunday for 20-week heatmap
+  const alignedWeeks = useMemo(() => {
+    const result: CalendarCell[][] = []
+    let currentWeek: CalendarCell[] = []
+
+    if (!activityCalendar || activityCalendar.length === 0) return result
+
+    const firstDay = activityCalendar[0].dayOfWeek
+    for (let i = 0; i < firstDay; i++) {
+      currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
+    }
+
+    activityCalendar.forEach((cell) => {
+      currentWeek.push(cell)
+      if (cell.dayOfWeek === 6) {
+        result.push(currentWeek)
+        currentWeek = []
+      }
+    })
+
+    if (currentWeek.length > 0) {
+      const lastDay = currentWeek[currentWeek.length - 1].dayOfWeek
+      for (let i = lastDay + 1; i <= 6; i++) {
+        currentWeek.push({ date: "", count: 0, status: "none", dayOfWeek: i })
+      }
+      result.push(currentWeek)
+    }
+
+    return result.slice(-20)
+  }, [activityCalendar])
+
+  const { displayColumns, visibleMonthLabels } = useMemo(() => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const cols: any[] = [];
+    const labels: string[] = [];
+
+    let currentMonthStr = "";
+
+    alignedWeeks.forEach((week) => {
+      const monthsInWeek: string[] = [];
+      week.forEach((cell) => {
+        if (cell && cell.date) {
+          const m = cell.date.substring(0, 7);
+          if (!monthsInWeek.includes(m)) monthsInWeek.push(m);
+        }
+      });
+
+      if (monthsInWeek.length === 2) {
+        const m1 = monthsInWeek[0];
+        const m2 = monthsInWeek[1];
+
+        const part1 = week.map((c) =>
+          c && c.date && c.date.substring(0, 7) === m1 ? c : { date: "", count: 0, status: "none", dayOfWeek: c?.dayOfWeek || 0 }
+        );
+        const part2 = week.map((c) =>
+          c && c.date && c.date.substring(0, 7) === m2 ? c : { date: "", count: 0, status: "none", dayOfWeek: c?.dayOfWeek || 0 }
+        );
+
+        if (currentMonthStr === "") {
+          currentMonthStr = m1;
+          labels.push(monthNames[parseInt(m1.split("-")[1], 10) - 1]);
+        } else {
+          labels.push("");
+        }
+        cols.push(part1);
+
+        cols.push("GAP");
+        labels.push("");
+
+        cols.push(part2);
+        labels.push(monthNames[parseInt(m2.split("-")[1], 10) - 1]);
+        currentMonthStr = m2;
+      } else if (monthsInWeek.length === 1) {
+        const m = monthsInWeek[0];
+        if (currentMonthStr !== "" && m !== currentMonthStr) {
+          cols.push("GAP");
+          labels.push("");
+          cols.push(week);
+          labels.push(monthNames[parseInt(m.split("-")[1], 10) - 1]);
+        } else {
+          cols.push(week);
+          if (currentMonthStr === "") {
+            labels.push(monthNames[parseInt(m.split("-")[1], 10) - 1]);
+          } else {
+            labels.push("");
+          }
+        }
+        currentMonthStr = m;
+      } else {
+        cols.push(week);
+        labels.push("");
+      }
+    });
+
+    return { displayColumns: cols, visibleMonthLabels: labels };
+  }, [alignedWeeks])
 
   useEffect(() => {
     const hours = new Date().getHours()
@@ -240,111 +425,99 @@ export function CandidateDashboardClient({
           </Card>
         </motion.div>
 
-        {/* Cell 2: Coding Challenges (col-span-1) */}
+        {/* Card 1: Daily Challenge (col-span-1) */}
         <motion.div variants={itemVariants} className="col-span-1">
-          <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
-            <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Logic Lab Challenges
+          <Card className="group/potd bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+            <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="flex flex-row items-center justify-between pb-1">
+                  <Link href="/logiclab/dailychallenges" className="hover:opacity-80 transition-opacity cursor-pointer">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      Daily Challenge<ChevronRight className="size-3" />
+                    </div>
+                  </Link>
+                  {timeLeft && (
+                    <div className="text-xs text-muted-foreground/80 flex items-center gap-1 font-medium select-none">
+                      <Clock className="size-3.5" />
+                      {timeLeft}
+                    </div>
+                  )}
+                </div>
+
+                {fullPotdProblem ? (
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug">
+                        {fullPotdProblem.title}
+                      </h3>
+                      {fullPotdProblem.solved_status === "Accepted" && (
+                        <CircleCheck className="size-6 text-emerald-500 shrink-0 mt-0.5" />
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                      {fullPotdProblem.difficulty && (
+                        <span className={cn(
+                          "font-semibold",
+                          fullPotdProblem.difficulty === "Easy" ? "text-emerald-600 dark:text-emerald-400" :
+                            fullPotdProblem.difficulty === "Medium" ? "text-amber-600 dark:text-amber-400" :
+                              "text-rose-600 dark:text-rose-400"
+                        )}>
+                          {fullPotdProblem.difficulty}
+                        </span>
+                      )}
+                      <span>•</span>
+                      {fullPotdProblem.acceptance_rate !== undefined && fullPotdProblem.acceptance_rate !== null && (
+                        <>
+                          <span>{fullPotdProblem.acceptance_rate}% acceptance</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      <span>{fullPotdProblem.total_submissions?.toLocaleString() || 0} submissions</span>
+                    </div>
+
+                    {fullPotdProblem.tags && fullPotdProblem.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {fullPotdProblem.tags.slice(0, 2).map((t: string) => (
+                          <span key={t} className="text-[11px] bg-muted px-2.5 py-1 rounded-md text-muted-foreground font-medium">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
+                    <span className="text-sm font-semibold">No Challenge Available</span>
+                    <span className="text-xs">Check back later for today's puzzle.</span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-between gap-4 flex-1">
-                <div className="space-y-2 flex-1">
-                  <div>
-                    <p className="text-2xl font-extrabold text-foreground tracking-tight">
-                      {globalStats.solved} <span className="text-xs font-normal text-muted-foreground">/ {globalStats.total} Solved</span>
-                    </p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {/* Easy */}
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          <span className="font-medium">Easy</span>
-                        </div>
-                        <span className="font-semibold text-foreground">{globalStats.easy.solved}/{globalStats.easy.total}</span>
-                      </div>
-                      <Progress
-                        value={globalStats.easy.total > 0 ? (globalStats.easy.solved / globalStats.easy.total) * 100 : 0}
-                        className="h-1 bg-emerald-500/10 [&>div]:bg-emerald-500"
-                      />
-                    </div>
-                    {/* Medium */}
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                          <span className="font-medium">Medium</span>
-                        </div>
-                        <span className="font-semibold text-foreground">{globalStats.medium.solved}/{globalStats.medium.total}</span>
-                      </div>
-                      <Progress
-                        value={globalStats.medium.total > 0 ? (globalStats.medium.solved / globalStats.medium.total) * 100 : 0}
-                        className="h-1 bg-amber-500/10 [&>div]:bg-amber-500"
-                      />
-                    </div>
-                    {/* Hard */}
-                    <div className="space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                          <span className="font-medium">Hard</span>
-                        </div>
-                        <span className="font-semibold text-foreground">{globalStats.hard.solved}/{globalStats.hard.total}</span>
-                      </div>
-                      <Progress
-                        value={globalStats.hard.total > 0 ? (globalStats.hard.solved / globalStats.hard.total) * 100 : 0}
-                        className="h-1 bg-rose-500/10 [&>div]:bg-rose-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Concentric Ring Graphic */}
-                <div className="relative h-24 w-24 shrink-0 flex items-center justify-center transition-transform duration-500 hover:scale-105">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <ConcentricRing
-                      radius={42}
-                      value={globalStats.easy.solved}
-                      max={globalStats.easy.total}
-                      className="stroke-emerald-500"
-                    />
-                    <ConcentricRing
-                      radius={32}
-                      value={globalStats.medium.solved}
-                      max={globalStats.medium.total}
-                      className="stroke-amber-500"
-                    />
-                    <ConcentricRing
-                      radius={22}
-                      value={globalStats.hard.solved}
-                      max={globalStats.hard.total}
-                      className="stroke-rose-500"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-lg font-extrabold tracking-tight text-foreground">
-                      {globalStats.total > 0 ? Math.round((globalStats.solved / globalStats.total) * 100) : 0}
-                      <span className="text-xs font-semibold text-muted-foreground/80 ml-0.5">%</span>
-                    </span>
-                    <span className="text-[7px] font-bold tracking-widest text-muted-foreground/80 uppercase">Progress</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Streak Footer Grid */}
-              <div className="grid grid-cols-2 gap-1 bg-background/50 dark:bg-muted/10 rounded-xl p-2 border border-border/20 select-none text-center">
-                <div>
-                  <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider block">Current Streak</span>
-                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400 block">{streakStats.currentStreak} Days</span>
-                </div>
-                <div className="border-l border-border/20">
-                  <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider block">Max Streak</span>
-                  <span className="text-xs font-bold text-foreground block">{streakStats.maxStreak} Days</span>
-                </div>
-              </div>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
+                  !fullPotdProblem && "opacity-50 pointer-events-none",
+                  fullPotdProblem?.solved_status === "Accepted"
+                    ? "border-emerald-500/20 text-emerald-600 dark:border-emerald-500/10 dark:text-emerald-400 hover:bg-emerald-500/10"
+                    : "border-orange-500/20 text-orange-600 dark:border-orange-500/10 dark:text-orange-400 hover:bg-orange-500/10"
+                )}
+                onClick={() => initialPotd && router.push(`/logiclab/dailychallenges/${initialPotd.id}`)}
+                disabled={!initialPotd}
+              >
+                {fullPotdProblem?.solved_status === "Accepted" ? (
+                  <>
+                    Review Challenge
+                    <CircleCheck className="size-[18px] transition-transform duration-300 group-hover/potd:scale-110" />
+                  </>
+                ) : (
+                  <>
+                    Solve Challenge
+                    <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/potd:translate-x-1" />
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
         </motion.div>
@@ -416,212 +589,367 @@ export function CandidateDashboardClient({
           </Card>
         </motion.div>
 
-        {/* Cell 4: Practice Activity Calendar (md:col-span-2 lg:col-span-1) */}
+        {/* Practice Activity Calendar -> Heatmap Graph (md:col-span-2 lg:col-span-1) */}
         <motion.div variants={itemVariants} className="md:col-span-2 lg:col-span-1">
-          <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
-            <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Practice Activity
-              </div>
+          <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'py-0', 'bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md duration-300 h-full')}>
+            <CardHeader className={cn('pt-4', 'pb-1')}>
+              <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
+                Activity Graph
+              </CardTitle>
+            </CardHeader>
 
-              <div className="flex-1 flex items-center justify-center w-full my-auto">
-                <div className="grid grid-cols-7 gap-2 w-full">
-                  {activityCalendar.map((day) => {
-                    const isToday = day.date === todayStr
-                    return (
-                      <div
-                        key={day.date}
-                        className={cn(
-                          "aspect-square w-full rounded-full border flex flex-col items-center justify-center gap-0.5 transition-all relative group cursor-default hover:scale-105",
-                          day.status === "solved"
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
-                            : day.status === "attempted"
-                              ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
-                              : "bg-background border-border/30 text-muted-foreground",
-                          isToday && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-background"
+            <CardContent className={cn('flex', 'flex-col', 'flex-1', 'justify-between', 'gap-5', 'pb-4')}>
+              <div className="w-full">
+                <div
+                  className={cn('grid', 'gap-x-[2px]', 'gap-y-[2px]', 'sm:gap-x-[3px]', 'sm:gap-y-[3px]', 'w-full')}
+                  style={{
+                    gridTemplateColumns: `auto ${displayColumns.map(c => c === "GAP" ? "minmax(4px, 8px)" : "minmax(0, 1fr)").join(" ")}`
+                  }}
+                >
+                  <div className=""></div>
+                  {(() => {
+                    const blocks: { label: string; span: number }[] = [];
+                    let currentLabel: string | null = null;
+                    let currentSpan = 0;
+
+                    displayColumns.forEach((col, wIdx) => {
+                      const m = visibleMonthLabels[wIdx];
+                      if (m) {
+                        if (currentSpan > 0) {
+                          blocks.push({ label: currentLabel || "", span: currentSpan });
+                        }
+                        currentLabel = m;
+                        currentSpan = 1;
+                      } else {
+                        if (currentLabel === null) {
+                          currentLabel = "";
+                        }
+                        currentSpan += 1;
+                      }
+                    });
+                    if (currentSpan > 0) {
+                      blocks.push({ label: currentLabel || "", span: currentSpan });
+                    }
+
+                    return blocks.map((block, i) => (
+                      <div key={`month-block-${i}`} className={cn('relative', 'h-5', 'flex', 'items-end', 'justify-center', 'pb-1')} style={{ gridColumn: `span ${block.span}` }}>
+                        {block.label && (
+                          <span className={cn('text-[10px]', 'font-semibold', 'text-muted-foreground/70', 'whitespace-nowrap')}>
+                            {block.label}
+                          </span>
                         )}
-                      >
-                        <span className="text-xs font-bold leading-none">
-                          {new Date(day.date).getDate()}
-                        </span>
-                        <span className="text-[8px] opacity-75 uppercase font-medium leading-none">
-                          {new Date(day.date).toLocaleDateString("en-US", { weekday: "short" }).substring(0, 1)}
-                        </span>
+                      </div>
+                    ));
+                  })()}
 
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-full mb-2 hidden group-hover:block bg-popover text-popover-foreground border text-xs px-2.5 py-1.5 rounded shadow-lg z-30 whitespace-nowrap pointer-events-none animate-in fade-in slide-in-from-bottom-1">
-                          <p className="font-semibold">{day.date}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {day.count} submission{day.count !== 1 && "s"} · {day.status === "solved" ? "Solved Challenge" : day.status === "attempted" ? "Attempted" : "No submissions"}
+                  {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => (
+                    <React.Fragment key={dayIndex}>
+                      <div className={cn('relative', 'w-6', 'sm:w-7')}>
+                        <span className={cn('absolute', 'inset-y-0', 'right-2', 'flex', 'items-center', 'text-[10px]', 'font-medium', 'text-muted-foreground/50', 'leading-none')}>
+                          {dayIndex === 1 ? "Mon" : dayIndex === 3 ? "Wed" : dayIndex === 5 ? "Fri" : ""}
+                        </span>
+                      </div>
+                      {displayColumns.map((col, wIdx) => {
+                        if (col === "GAP") return <div key={`gap-cell-${dayIndex}-${wIdx}`} className="" />;
+
+                        const cell = col[dayIndex];
+
+                        if (!cell || !cell.date) {
+                          return (
+                            <div
+                              key={`cell-${dayIndex}-${wIdx}`}
+                              className={cn("w-full aspect-square bg-transparent pointer-events-none", cellRadiusClass)}
+                            />
+                          );
+                        }
+
+                        let cellColor = "bg-muted";
+                        if (cell.status === "attempted") {
+                          cellColor = "bg-rose-400/80 dark:bg-rose-500/60";
+                        } else if (cell.status === "solved") {
+                          if (cell.count === 1) cellColor = "bg-sky-300 dark:bg-sky-800";
+                          else if (cell.count <= 3) cellColor = "bg-sky-400 dark:bg-sky-600";
+                          else if (cell.count <= 6) cellColor = "bg-sky-500 dark:bg-sky-500";
+                          else cellColor = "bg-sky-600 dark:bg-sky-400";
+                        }
+
+                        return (
+                          <div
+                            key={`cell-${dayIndex}-${wIdx}`}
+                            className={cn(
+                              "w-full aspect-square cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-foreground/20 dark:hover:ring-offset-background",
+                              cellRadiusClass,
+                              cellColor
+                            )}
+                            title={getTooltipText(cell)}
+                          />
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
+              <div className={cn('mt-auto', 'flex', 'items-end', 'justify-between', 'gap-4', 'flex-wrap', 'min-w-0', 'w-full')}>
+                <div className={cn('flex', 'items-center', 'gap-2', 'text-[10px]', 'font-medium', 'text-muted-foreground/70', 'pb-0.5')}>
+                  <span>Less</span>
+                  <div className={cn('flex', 'gap-[3px]', 'items-center')}>
+                    <div className={cn("size-[10px] bg-muted", cellRadiusClass)} title="0 submissions" />
+                    <div className={cn("size-[10px] bg-rose-400/80 dark:bg-rose-500/60", cellRadiusClass)} title="Attempted" />
+                    <div className={cn("size-[10px] bg-sky-300 dark:bg-sky-800", cellRadiusClass)} title="1 submission" />
+                    <div className={cn("size-[10px] bg-sky-400 dark:bg-sky-600", cellRadiusClass)} title="2-3 submissions" />
+                    <div className={cn("size-[10px] bg-sky-500 dark:bg-sky-500", cellRadiusClass)} title="4-6 submissions" />
+                    <div className={cn("size-[10px] bg-sky-600 dark:bg-sky-400", cellRadiusClass)} title="7+ submissions" />
+                  </div>
+                  <span>More</span>
+                </div>
+
+                <div className={cn('flex', 'items-center', 'gap-2.5', 'shrink-0', 'text-sm', 'font-semibold', 'cursor-pointer', 'group/streak')}>
+                  <div className={cn('flex', 'items-center', 'gap-1.5', 'text-foreground')}>
+                    <Flame className={cn('size-4', 'text-orange-500', 'fill-orange-500/10', 'shrink-0', 'transition-all', 'duration-300', 'group-hover/streak:scale-125', 'group-hover/streak:text-orange-600', 'dark:group-hover/streak:text-orange-400', 'group-hover/streak:rotate-12', 'group-hover/streak:filter', 'group-hover/streak:drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]')} />
+                    <span className={cn('transition-colors', 'group-hover/streak:text-orange-500')}>{streakStats.currentStreak} day streak</span>
+                  </div>
+                  <span className="text-muted-foreground/30">|</span>
+                  <span className={cn('text-xs', 'text-muted-foreground', 'font-medium')}>
+                    Max: <span className={cn('text-foreground', 'font-semibold', 'transition-colors', 'group-hover/streak:text-foreground/80')}>{streakStats.maxStreak}</span>
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Card 1: Active & Upcoming Tests */}
+        <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
+          <Card className="group/test bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+            <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
+              {(() => {
+                const displayTest = liveTests.length > 0
+                  ? { ...liveTests[0], isLive: true }
+                  : upcomingTests.length > 0
+                    ? { ...upcomingTests[0], isLive: false }
+                    : null
+
+                return (
+                  <>
+                    <div className="flex flex-col gap-4 min-w-0">
+                      <div className="flex flex-row items-center justify-between pb-1">
+                        <Link href="/tests" className="hover:opacity-80 transition-opacity cursor-pointer">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            Mock Tests<ChevronRight className="size-3" />
+                          </div>
+                        </Link>
+                        {displayTest && (
+                          displayTest.isLive ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-transparent font-medium text-[10px] px-2 py-0.5">
+                              Live Now
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5 font-medium text-[10px] px-2 py-0.5">
+                              Upcoming
+                            </Badge>
+                          )
+                        )}
+                      </div>
+
+                      {displayTest ? (
+                        <div className="flex flex-col gap-1.5 flex-1">
+                          <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug">
+                            {displayTest.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            {displayTest.description || "No description provided."}
                           </p>
+
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground pt-1">
+                            {displayTest.time_limit_seconds && (
+                              <span className="flex items-center gap-1 font-medium">
+                                <Clock className="size-3.5" />
+                                {Math.round(displayTest.time_limit_seconds / 60)} mins
+                              </span>
+                            )}
+                            {!displayTest.isLive && displayTest.available_from && (
+                              <span>• Starts: {new Date(displayTest.available_from).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
+                          <span className="text-sm font-semibold">No Active Tests</span>
+                          <span className="text-xs">No active or upcoming mock tests assigned.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
+                        !displayTest && "opacity-50 pointer-events-none",
+                        displayTest?.isLive
+                          ? "border-emerald-500/20 text-emerald-600 dark:border-emerald-500/10 dark:text-emerald-400 hover:bg-emerald-500/10"
+                          : "border-amber-500/20 text-amber-600 dark:border-amber-500/10 dark:text-amber-400 hover:bg-amber-500/10"
+                      )}
+                      onClick={() => displayTest && router.push(`/tests/${displayTest.id}`)}
+                      disabled={!displayTest}
+                    >
+                      {displayTest?.isLive ? "Start Test" : "View Test Details"}
+                      <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/test:translate-x-1" />
+                    </Button>
+                  </>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Card 2: Active & Upcoming Events */}
+        <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
+          <Card className="group/event bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+            <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
+              <div className="flex flex-col gap-4 min-w-0">
+                <div className="flex flex-row items-center justify-between pb-1">
+                  <Link href="/events" className="hover:opacity-80 transition-opacity cursor-pointer">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      Events<ChevronRight className="size-3" />
+                    </div>
+                  </Link>
+                  {candidateEvent && (
+                    candidateEvent.derived_status === "live" ? (
+                      <Badge className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border-transparent font-medium text-[10px] px-2 py-0.5">
+                        Happening Now
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5 font-medium text-[10px] px-2 py-0.5">
+                        Upcoming
+                      </Badge>
                     )
-                  })}
+                  )}
                 </div>
-              </div>
 
-              {/* Legend Footer */}
-              <div className="grid grid-cols-2 gap-1 bg-background/50 dark:bg-muted/10 rounded-xl p-2 border border-border/20 select-none text-center">
-                <div>
-                  <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider block">Timeframe</span>
-                  <span className="text-xs font-bold text-foreground block">Last 14 Days</span>
-                </div>
-                <div className="border-l border-border/20 flex flex-col justify-center items-center">
-                  <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider block">Legend</span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="flex items-center gap-1 text-[9px] font-semibold text-foreground">
-                      <span className="h-1.5 w-1.5 rounded-full bg-background border border-border/30" />
-                      <span>No Activity</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      <span>Attempted</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span>Solved</span>
+                {candidateEvent ? (
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug">
+                      {candidateEvent.title}
+                    </h3>
+                    {candidateEvent.speaker_name && (
+                      <p className="text-xs font-semibold text-sky-600 dark:text-sky-400">
+                        Speaker: {candidateEvent.speaker_name}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      {candidateEvent.description || "No description provided."}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground pt-1">
+                      <span className="flex items-center gap-1 font-medium">
+                        <MapPin className="size-3.5" />
+                        {candidateEvent.venue || "Campus Main Hall"}
+                      </span>
+                      {candidateEvent.date && (
+                        <span>• {new Date(candidateEvent.date).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                      )}
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
+                    <span className="text-sm font-semibold">No Active Events</span>
+                    <span className="text-xs">No active or upcoming events scheduled.</span>
+                  </div>
+                )}
               </div>
+
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
+                  !candidateEvent && "opacity-50 pointer-events-none",
+                  "border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10"
+                )}
+                onClick={() => candidateEvent && router.push("/events")}
+                disabled={!candidateEvent}
+              >
+                View Event Details
+                <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/event:translate-x-1" />
+              </Button>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Cell 5: Active & Upcoming Tests (col-span-2 on lg) */}
-        <motion.div variants={itemVariants} className="lg:col-span-2 md:col-span-2 col-span-1">
-          <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
-            <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Active & Upcoming Tests
-              </div>
-              {liveTests.length === 0 && upcomingTests.length === 0 ? (
-                <Empty className="p-8 border-dashed border-border/30 rounded-xl bg-background/10 flex-1 flex flex-col justify-center">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon" className="bg-blue-500/10 text-blue-500 rounded-full">
-                      <BookOpen className="h-5 w-5" strokeWidth={1.5} />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-sm font-semibold">No active Tests</EmptyTitle>
-                    <EmptyDescription className="text-xs">
-                      There are no active or upcoming mock Tests assigned by your institution at the moment.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                  {/* Live Tests */}
-                  {liveTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="border border-emerald-500/20 bg-emerald-500/[0.02] rounded-xl p-4 flex flex-col justify-between gap-4 transition-all hover:bg-emerald-500/[0.04]"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 border-transparent font-medium text-[10px] px-2 py-0.5">
-                            Live Now
+        {/* Card 3: Active & Upcoming Opportunities */}
+        <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
+          <Card className="group/opp bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+            <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
+              {(() => {
+                const opp = opportunities.length > 0 ? opportunities[0] : null
+                const ctcOrStipend = opp?.ctc_lpa
+                  ? `${opp.ctc_lpa} LPA`
+                  : opp?.stipend_monthly
+                    ? `₹${opp.stipend_monthly.toLocaleString()}/mo`
+                    : null
+
+                return (
+                  <>
+                    <div className="flex flex-col gap-4 min-w-0">
+                      <div className="flex flex-row items-center justify-between pb-1">
+                        <Link href="/opportunities" className="hover:opacity-80 transition-opacity cursor-pointer">
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            Opportunities<ChevronRight className="size-3" />
+                          </div>
+                        </Link>
+                        {ctcOrStipend && (
+                          <Badge variant="outline" className="text-[10px] font-semibold border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0">
+                            {ctcOrStipend}
                           </Badge>
-                          {test.time_limit_seconds && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
-                              {Math.round(test.time_limit_seconds / 60)}m
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-semibold text-foreground text-sm line-clamp-1 mt-1">{test.title}</h4>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{test.description || "No description provided."}</p>
+                        )}
                       </div>
 
-                      <Link href={`/tests`} className="w-full mt-2">
-                        <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
-                          Start Test
-                        </Button>
-                      </Link>
-                    </div>
-                  ))}
+                      {opp ? (
+                        <div className="flex flex-col gap-1.5 flex-1">
+                          <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">
+                            {opp.company?.name || "Campus Drive"}
+                          </span>
+                          <h3 className="font-bold text-lg sm:text-xl text-foreground leading-snug">
+                            {opp.title}
+                          </h3>
+                          {opp.job_role && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">{opp.job_role}</p>
+                          )}
 
-                  {/* Upcoming Tests */}
-                  {upcomingTests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="border border-border/30 bg-background/30 rounded-xl p-4 flex flex-col justify-between gap-4 transition-all hover:bg-background/50"
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground pt-1">
+                            <span className="flex items-center gap-1 font-medium">
+                              <MapPin className="size-3.5" />
+                              {opp.location || "Remote / On-site"}
+                            </span>
+                            {opp.deadline && (
+                              <span>• Deadline: {new Date(opp.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
+                          <span className="text-sm font-semibold">No Active Opportunities</span>
+                          <span className="text-xs">No active or upcoming placement drives assigned.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
+                        !opp && "opacity-50 pointer-events-none",
+                        "border-purple-500/20 text-purple-600 dark:border-purple-500/10 dark:text-purple-400 hover:bg-purple-500/10"
+                      )}
+                      onClick={() => opp && router.push(`/opportunities/${opp.id}`)}
+                      disabled={!opp}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 font-medium text-[10px] px-2 py-0.5">
-                            Upcoming
-                          </Badge>
-                          {test.time_limit_seconds && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
-                              {Math.round(test.time_limit_seconds / 60)}m
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-semibold text-foreground text-sm line-clamp-1 mt-1">{test.title}</h4>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{test.description || "No description provided."}</p>
-                      </div>
-
-                      <div className="text-[11px] text-muted-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg border border-border/20 mt-2">
-                        Starts: <span className="font-medium text-foreground">
-                          {test.available_from ? new Date(test.available_from).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Cell 6: Quick Navigation (md:col-span-2 lg:col-span-1) */}
-        <motion.div variants={itemVariants} className="md:col-span-2 lg:col-span-1">
-          <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
-            <CardContent className="p-5 flex flex-col justify-between flex-1 gap-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Quick Navigation
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 flex-1 justify-center">
-                <Link href="/logiclab" className="group flex items-center justify-between p-2 rounded-xl border border-border/30 hover:border-indigo-500/30 hover:bg-indigo-500/[0.02] transition-all duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
-                      <Laptop className="h-3.5 w-3.5 text-indigo-500" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Logic Lab</p>
-                      <p className="text-[10px] text-muted-foreground">Practice coding challenges</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-                </Link>
-
-                <Link href="/courses" className="group flex items-center justify-between p-2 rounded-xl border border-border/30 hover:border-sky-500/30 hover:bg-sky-500/[0.02] transition-all duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
-                      <BookOpen className="h-3.5 w-3.5 text-sky-500" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Courses</p>
-                      <p className="text-[10px] text-muted-foreground">Learn and upgrade your skills</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-                </Link>
-
-                <Link href="/tests" className="group flex items-center justify-between p-2 rounded-xl border border-border/30 hover:border-emerald-500/30 hover:bg-emerald-500/[0.02] transition-all duration-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
-                      <Award className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Tests</p>
-                      <p className="text-[10px] text-muted-foreground">View and take mock tests</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" strokeWidth={1.5} />
-                </Link>
-              </div>
+                      View Opportunity
+                      <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/opp:translate-x-1" />
+                    </Button>
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </motion.div>
