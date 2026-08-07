@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getCachedProblemExecutionData } from "@/app/(dashboard)/(licensed)/logiclab/actions"
+import { getUserProfile } from "@/lib/supabase/profile"
+import { rateLimit } from "@/lib/rate-limit"
+
+// Whitelisted Judge0 language IDs accepted by LogicLab
+const ALLOWED_LANGUAGE_IDS = new Set([54, 62, 63, 71]) // C++, Java, JS, Python
 
 // Deterministic metrics removed in favor of real Judge0 metrics.
 export async function POST(req: NextRequest) {
@@ -11,6 +16,29 @@ export async function POST(req: NextRequest) {
     // Sanitize invisible characters from copy-pasting (like non-breaking spaces) that crash C++/Java compilers
     if (source_code) {
       source_code = source_code.replace(/[\u00A0\u200B]/g, ' ')
+    }
+
+    // ── 0. AUTH + Rate limit ──
+    const profile = await getUserProfile()
+    if (!profile) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+    }
+
+    // ── 0a. SECURITY: Validate language_id ──
+    if (!ALLOWED_LANGUAGE_IDS.has(Number(language_id))) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported language_id: ${language_id}. Allowed: ${[...ALLOWED_LANGUAGE_IDS].join(", ")}.` },
+        { status: 400 }
+      )
+    }
+
+    // ── 0b. RATE LIMIT: 30 runs per minute per user (more lenient than submit) ──
+    const rl = rateLimit("run", profile.id, 30, 60_000)
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, error: `Rate limit exceeded. Please wait ${Math.ceil(rl.resetInMs / 1000)}s before running again.` },
+        { status: 429 }
+      )
     }
 
     // ── 1. SECURITY: Payload Size Check ──
@@ -159,26 +187,28 @@ export async function POST(req: NextRequest) {
         const tokensStr = batchTokens.map(t => t.token).join(",")
         const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`
 
-        // Step 2: Poll for results
+        // Step 2: Poll for results with exponential backoff (300ms → 2 000ms)
         let allDone = false
         let attempts = 0
         let finalBatchResults: any[] = []
+        const MAX_POLL_MS = 30_000 // hard ceiling: 30 seconds total
+        const pollStart = Date.now()
 
-        while (!allDone && attempts < 60) { // Max 30 seconds
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
+        while (!allDone && Date.now() - pollStart < MAX_POLL_MS) {
+          const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000)
+          await new Promise(resolve => setTimeout(resolve, delay))
+
           try {
             const statusRes = await fetch(batchGetUrl)
             if (statusRes.ok) {
               const statusData = await statusRes.json()
               if (statusData && Array.isArray(statusData.submissions)) {
                 finalBatchResults = statusData.submissions
-                
                 allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2)
               }
             }
           } catch (pollErr) {
-            console.warn(`[LogicLab] Polling network drop on attempt ${attempts}, retrying in 500ms...`)
+            console.warn(`[LogicLab] Polling network drop on attempt ${attempts}, retrying...`)
           }
           attempts++
         }

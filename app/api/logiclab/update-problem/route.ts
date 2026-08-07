@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
     try {
       revalidatePath("/logiclab", "page")
       revalidatePath("/logiclab/admin", "page")
+      // Bust the execution data cache for this specific problem
+      // @ts-ignore
+      revalidateTag(`problem-exec-${problemId}`)
+      // Legacy tag names kept for backward compatibility
       // @ts-ignore
       revalidateTag("problem-execution-data")
       // @ts-ignore

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { rateLimit } from "@/lib/rate-limit"
+
+// Whitelisted Judge0 language IDs accepted by LogicLab
+const ALLOWED_LANGUAGE_IDS = new Set([54, 62, 63, 71]) // C++, Java, JS, Python
 
 interface TestCaseResult {
   index: number
@@ -48,6 +52,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Missing required fields: problem_id, code, language_id" },
         { status: 400 }
+      )
+    }
+
+    // ── 0. SECURITY: Validate language_id ──
+    if (!ALLOWED_LANGUAGE_IDS.has(Number(language_id))) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported language_id: ${language_id}. Allowed: ${[...ALLOWED_LANGUAGE_IDS].join(", ")}.` },
+        { status: 400 }
+      )
+    }
+
+    // ── 0b. RATE LIMIT: 15 submissions per minute per user ──
+    const rl = rateLimit("submit", user_id, 15, 60_000)
+    if (!rl.success) {
+      return NextResponse.json(
+        { success: false, error: `Rate limit exceeded. Please wait ${Math.ceil(rl.resetInMs / 1000)}s before submitting again.` },
+        { status: 429 }
       )
     }
 
@@ -202,28 +223,30 @@ export async function POST(req: NextRequest) {
       const tokensStr = batchTokens.map(t => t.token).join(",")
       const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`
 
-      // Step 2: Poll for results
+      // Step 2: Poll for results with exponential backoff (300ms → 2 000ms)
       let allDone = false
       let attempts = 0
       let finalBatchResults: any[] = []
+      const MAX_POLL_MS = 30_000 // hard ceiling: 30 seconds total
+      const pollStart = Date.now()
 
-      while (!allDone && attempts < 60) { // Max 30 seconds (60 * 500ms)
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
+      while (!allDone && Date.now() - pollStart < MAX_POLL_MS) {
+        const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000)
+        await new Promise(resolve => setTimeout(resolve, delay))
+
         try {
           const statusRes = await fetch(batchGetUrl)
           if (statusRes.ok) {
             const statusData = await statusRes.json()
             if (statusData && Array.isArray(statusData.submissions)) {
               finalBatchResults = statusData.submissions
-              
               // Check if all are done (status id 1 = In Queue, 2 = Processing)
               allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2)
             }
           }
         } catch (pollErr) {
           // Silently survive transient network drops during polling (e.g. ECONNRESET)
-          console.warn(`[LogicLab] Polling network drop on attempt ${attempts}, retrying in 500ms...`)
+          console.warn(`[LogicLab] Polling network drop on attempt ${attempts}, retrying...`)
         }
         attempts++
       }
@@ -370,7 +393,7 @@ export async function POST(req: NextRequest) {
     const submission: any = {
       problem_id,
       user_id,
-      code: overallStatus === "Accepted" ? code : "",
+      code,
       language_id,
       status: overallStatus,
       runtime: parseFloat(totalTime.toFixed(3)),

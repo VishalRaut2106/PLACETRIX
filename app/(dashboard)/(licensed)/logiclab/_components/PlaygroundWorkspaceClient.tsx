@@ -867,10 +867,10 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col w-full min-h-0 bg-background text-foreground overflow-hidden",
+        "flex flex-col w-full flex-1 min-h-0 bg-background text-foreground overflow-hidden",
         isFullScreen
-          ? "fixed inset-0 z-[9990] h-[100dvh]"
-          : "h-[100dvh] relative",
+          ? "fixed inset-0 z-[9990] h-screen w-screen"
+          : "flex-1 h-full min-h-0 relative",
       )}
     >
       {/* Mobile warning */}

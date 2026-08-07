@@ -52,19 +52,35 @@ import {
   IconZoomOut,
   IconAdjustments,
   IconDownload,
+  IconKeyboard,
+  IconGitCompare,
 } from "@tabler/icons-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { toast } from "sonner";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
 import { getProblemDataSPA, fetchProblemsInfinite } from "../../actions";
 import { getSubmissionCode } from "../../problems/[id]/notes-actions";
-import Prism from "prismjs";
-import "prismjs/components/prism-java";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-c";
-import "prismjs/components/prism-cpp";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-typescript";
+// Prism is loaded lazily the first time syntax highlighting is needed to
+// avoid adding ~80KB of parse cost to the initial JS bundle.
+let prismReady: Promise<typeof import("prismjs")> | null = null
+function loadPrism() {
+  if (!prismReady) {
+    prismReady = import("prismjs").then(async (mod) => {
+      await Promise.all([
+        import("prismjs/components/prism-java" as any),
+        import("prismjs/components/prism-python" as any),
+        import("prismjs/components/prism-c" as any),
+        import("prismjs/components/prism-cpp" as any),
+        import("prismjs/components/prism-javascript" as any),
+        import("prismjs/components/prism-typescript" as any),
+      ])
+      return mod
+    })
+  }
+  return prismReady
+}
 import { buildStorageUrl } from "@/lib/storage";
 import { useMonaco } from "@monaco-editor/react";
 import {
@@ -259,6 +275,18 @@ export function ProblemWorkspaceClient({
   const clickTimestamps = React.useRef<number[]>([]);
   const badgeCardRef = useRef<HTMLDivElement>(null);
   const [badgeDataUrl, setBadgeDataUrl] = useState<string | null>(null);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [showDiffView, setShowDiffView] = useState(true);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+
+  const jumpToEditorLine = (lineNum: number) => {
+    if (!editorRef.current || !lineNum || lineNum <= 0) return;
+    try {
+      editorRef.current.revealLineInCenter(lineNum);
+      editorRef.current.setPosition({ lineNumber: lineNum, column: 1 });
+      editorRef.current.focus();
+    } catch (e) {}
+  };
 
   // Fetch the image as a blob to completely bypass html2canvas CORS issues
   useEffect(() => {
@@ -344,7 +372,7 @@ export function ProblemWorkspaceClient({
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
-          if (parsed.code && parsed.timestamp && Date.now() - parsed.timestamp < 10 * 60 * 60 * 1000) {
+          if (parsed.code && parsed.timestamp && Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000) {
             loadedCode = parsed.code;
           }
         } catch (e) {
@@ -872,7 +900,7 @@ export function ProblemWorkspaceClient({
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        if (parsed.code && parsed.timestamp && Date.now() - parsed.timestamp < 10 * 60 * 60 * 1000) {
+        if (parsed.code && parsed.timestamp && Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000) {
           loadedCode = parsed.code;
         }
       } catch (e) {
@@ -908,6 +936,7 @@ export function ProblemWorkspaceClient({
         code,
         timestamp: Date.now()
       }));
+      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }
   }, [code, problem.id, dailyChallengeId, isDailyChallenge, selectedLang.value]);
 
@@ -1024,12 +1053,31 @@ export function ProblemWorkspaceClient({
     null,
   );
   const [viewingCode, setViewingCode] = useState<string>("");
+  const [highlightedCode, setHighlightedCode] = useState<string>("");
   const [loadingCode, setLoadingCode] = useState<boolean>(false);
+
+  // Re-highlight whenever the viewed code or selected language changes
+  useEffect(() => {
+    if (!viewingCode || !viewingSubmission) {
+      setHighlightedCode("");
+      return;
+    }
+    let cancelled = false;
+    getHighlightedCode(
+      viewingCode.replace(/^[\r\n]+/, "") || "// Code not available",
+      viewingSubmission.language_id
+    ).then((html) => {
+      if (!cancelled) setHighlightedCode(html);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingCode, viewingSubmission?.language_id]);
 
   const handleViewPastSubmission = async (sub: Submission) => {
     setViewingSubmission(sub);
     setLoadingCode(true);
     setViewingCode("");
+    setHighlightedCode("");
     try {
       const res = await getSubmissionCode(sub.id, !!isDailyChallenge);
       if (res.error || !res.code) {
@@ -1076,7 +1124,7 @@ export function ProblemWorkspaceClient({
     }
   };
 
-  const getHighlightedCode = (codeText: string, langId: number) => {
+  const getHighlightedCode = async (codeText: string, langId: number): Promise<string> => {
     const langObj = LANGUAGES.find((l) => l.id === langId);
     let lang = langObj ? langObj.value : "javascript";
 
@@ -1086,6 +1134,7 @@ export function ProblemWorkspaceClient({
     if (lang === 'c++') lang = 'cpp';
 
     try {
+      const Prism = await loadPrism()
       if (Prism.languages[lang]) {
         return Prism.highlight(codeText, Prism.languages[lang], lang);
       }
@@ -1198,12 +1247,17 @@ export function ProblemWorkspaceClient({
     setSelectedCaseIndex(0);
     setActiveTab("submission_result");
     try {
+      let processedCode = code;
+      if (selectedLang.value === "java") {
+        processedCode = processedCode.replace(/public\s+class\s+/g, "class ");
+      }
+
       const res = await fetch("/api/logiclab/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           problem_id: problem.id,
-          code,
+          code: processedCode,
           language_id: selectedLang.id,
           user_id: userId,
           daily_challenge_id: isDailyChallenge ? dailyChallengeId : undefined,
@@ -1264,23 +1318,56 @@ export function ProblemWorkspaceClient({
   submitRef.current = handleSubmitCode;
   runRef.current = handleRunCode;
 
-  // Global Hotkeys
+  // Global Hotkeys (Clean event listener with proper deps)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + Enter -> open submit confirmation dialog
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      const target = e.target as HTMLElement;
+      const isInput = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+
+      // Cmd/Ctrl + Enter -> Run Code
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "Enter") {
         e.preventDefault();
-        if (!running && !submitting) setShowSubmitConfirm(true);
+        if (runRef.current) runRef.current();
+        return;
       }
-      // Cmd/Ctrl + ' -> Run
-      if ((e.metaKey || e.ctrlKey) && e.key === "'") {
+      // Cmd/Ctrl + Shift + Enter -> Submit Code
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "Enter") {
         e.preventDefault();
-        if (!running && !submitting) handleRunCode();
+        if (submitRef.current) submitRef.current();
+        return;
+      }
+      // Cmd/Ctrl + Alt + F or Shift + Alt + F -> Format Code
+      if (e.altKey && (e.metaKey || e.ctrlKey || e.shiftKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        handleFormatCode();
+        return;
+      }
+      // Alt + N or Alt + ArrowRight -> Next Problem
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "n" || e.key === "N" || e.key === "ArrowRight")) {
+        if (!isInput && nextProblemId) {
+          e.preventDefault();
+          handleNavigate(nextProblemId);
+        }
+        return;
+      }
+      // Alt + P or Alt + ArrowLeft -> Previous Problem
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "p" || e.key === "P" || e.key === "ArrowLeft")) {
+        if (!isInput && prevProblemId) {
+          e.preventDefault();
+          handleNavigate(prevProblemId);
+        }
+        return;
+      }
+      // Shift + ? -> Shortcuts Modal
+      if (!isInput && e.key === "?" && e.shiftKey) {
+        e.preventDefault();
+        setIsShortcutsOpen((prev) => !prev);
+        return;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, [nextProblemId, prevProblemId]);
 
   const handleCopyOutput = () => {
     const text = runResult?.stdout || submitResult?.error || "";
@@ -1295,7 +1382,7 @@ export function ProblemWorkspaceClient({
   const langForDisplay = LANGUAGES.find((l) => l.id === selectedLang.id);
 
   const topNavbarContent = (
-    <div className={cn('relative', 'flex', 'items-center', 'justify-between', 'px-4', 'py-2', 'bg-zinc-100', 'dark:bg-zinc-950', 'shrink-0', 'w-full', 'select-none')}>
+    <div className={cn('relative', 'flex', 'items-center', 'justify-between', 'px-4', 'py-2', 'bg-background', 'border-b', 'border-border/50', 'shrink-0', 'w-full', 'select-none')}>
       {/* Left section: Navigation & Title */}
       <div className={cn('flex', 'items-center', 'gap-1')}>
         <Button
@@ -2665,9 +2752,37 @@ export function ProblemWorkspaceClient({
               </SelectGroup>
             </SelectContent>
           </Select>
+          {lastSavedTime && (
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] text-muted-foreground font-medium bg-muted/40 rounded-full border border-border/40 select-none" title={`Auto-saved draft at ${lastSavedTime}`}>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Draft saved
+            </span>
+          )}
         </div>
-        {/* Format & Reset & Settings Buttons */}
+        {/* Format & Reset & Copy & Shortcuts & Settings Buttons */}
         <div className={cn('flex', 'items-center', 'gap-1', 'pr-2')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Copy Code"
+            className={cn('h-7', 'w-7', 'text-zinc-500 dark:text-muted-foreground', 'hover:text-foreground', 'shrink-0')}
+            onClick={() => {
+              navigator.clipboard.writeText(code);
+              toast.success("Code copied to clipboard!");
+            }}
+          >
+            <IconCopy className={cn('h-4', 'w-4')} />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Keyboard Shortcuts (Shift+?)"
+            className={cn('h-7', 'w-7', 'text-zinc-500 dark:text-muted-foreground', 'hover:text-foreground', 'shrink-0')}
+            onClick={() => setIsShortcutsOpen(true)}
+          >
+            <IconKeyboard className={cn('h-4', 'w-4')} />
+          </Button>
           <IdeSettingsModal
             open={isSettingsOpen}
             onOpenChange={setIsSettingsOpen}
@@ -2842,10 +2957,16 @@ export function ProblemWorkspaceClient({
               handleFormatCode();
             });
 
-            // Bind Ctrl/Cmd + Enter to Submit Code
+            // Bind Ctrl/Cmd + Enter to Run Code
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+              if (runRef.current) runRef.current();
+            });
+
+            // Bind Ctrl/Cmd + Shift + Enter to Submit Code
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
               if (submitRef.current) submitRef.current();
             });
+
             // Bind Ctrl/Cmd + ' (US_QUOTE) to Run Code
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_QUOTE, () => {
               if (runRef.current) runRef.current();
@@ -3342,10 +3463,10 @@ export function ProblemWorkspaceClient({
     <div
       ref={ideContainerRef}
       className={cn(
-        "flex flex-col w-full min-h-0 bg-zinc-100 dark:bg-zinc-950 text-foreground overflow-hidden",
+        "flex flex-col w-full flex-1 min-h-0 bg-background text-foreground overflow-hidden",
         isFullScreen
-          ? "fixed inset-0 z-[9990] h-[100dvh]"
-          : "h-[100dvh] relative",
+          ? "fixed inset-0 z-[9990] h-screen w-screen"
+          : "flex-1 h-full min-h-0 relative",
       )}
     >
       {/* Mobile/Tablet Screen Workspace */}
@@ -3612,7 +3733,7 @@ export function ProblemWorkspaceClient({
                                     className={`language-${LANGUAGES.find((l) => l.id === sub.language_id)?.value || "javascript"
                                       }`}
                                     dangerouslySetInnerHTML={{
-                                      __html: getHighlightedCode((viewingCode ? viewingCode.replace(/^[\r\n]+/, '') : "") || "// Code not available", sub.language_id)
+                                      __html: highlightedCode || (viewingCode ? viewingCode.replace(/^[\r\n]+/, '') : '') || "// Code not available"
                                     }}
                                   />
                                 </pre>
@@ -3669,7 +3790,7 @@ export function ProblemWorkspaceClient({
       {/* Large Screen Desktop IDE */}
       <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden">
         {topNavbarContent}
-        <div className={cn('flex-1', 'pt-0', 'px-2', 'pb-2', 'min-h-0', 'overflow-hidden')}>
+        <div className={cn('flex-1', 'p-2', 'min-h-0', 'overflow-hidden')}>
           {!isMounted ? (
             <div className={cn('w-full', 'h-full', 'bg-card', 'rounded-md', 'border', 'border-border/40', 'animate-pulse')} />
           ) : (
@@ -3684,7 +3805,7 @@ export function ProblemWorkspaceClient({
                     id="sidebar-standard"
                     defaultSize={45}
                     minSize={25}
-                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                   >
                     {leftPanelContent}
                   </Panel>
@@ -3710,7 +3831,7 @@ export function ProblemWorkspaceClient({
                         id="editor-standard"
                         defaultSize={55}
                         minSize={20}
-                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                       >
                         {editorContent}
                       </Panel>
@@ -3724,7 +3845,7 @@ export function ProblemWorkspaceClient({
                         id="output-standard"
                         defaultSize={45}
                         minSize={10}
-                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                       >
                         {outputContent}
                       </Panel>
@@ -3743,7 +3864,7 @@ export function ProblemWorkspaceClient({
                     id="sidebar-split"
                     defaultSize={30}
                     minSize={20}
-                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                   >
                     {leftPanelContent}
                   </Panel>
@@ -3756,7 +3877,7 @@ export function ProblemWorkspaceClient({
                     id="editor-split"
                     defaultSize={40}
                     minSize={20}
-                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                   >
                     {editorContent}
                   </Panel>
@@ -3769,7 +3890,7 @@ export function ProblemWorkspaceClient({
                     id="output-split"
                     defaultSize={30}
                     minSize={20}
-                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                   >
                     {outputContent}
                   </Panel>
@@ -3785,7 +3906,7 @@ export function ProblemWorkspaceClient({
                     id="sidebar-vertical"
                     defaultSize={40}
                     minSize={20}
-                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                    className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                   >
                     {leftPanelContent}
                   </Panel>
@@ -3807,7 +3928,7 @@ export function ProblemWorkspaceClient({
                         id="editor-vertical"
                         defaultSize={50}
                         minSize={20}
-                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                       >
                         {editorContent}
                       </Panel>
@@ -3819,7 +3940,7 @@ export function ProblemWorkspaceClient({
                         id="output-vertical"
                         defaultSize={50}
                         minSize={20}
-                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden', 'shadow-sm')}
+                        className={cn('flex', 'flex-col', 'min-h-0', 'rounded-md', 'border', 'border-border/50', 'overflow-hidden')}
                       >
                         {outputContent}
                       </Panel>
@@ -4111,6 +4232,65 @@ export function ProblemWorkspaceClient({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Keyboard Shortcuts Dialog */}
+      <Dialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen}>
+        <DialogContent className="sm:max-w-md select-none border-border/80 bg-background shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <IconKeyboard className="h-5 w-5 text-emerald-500" />
+              Keyboard Shortcuts
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Master speed shortcuts to code faster in LogicLab.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 py-2 text-xs">
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Run Test Cases</span>
+              <KbdGroup>
+                <Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Submit Solution</span>
+              <KbdGroup>
+                <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Enter</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Format Code</span>
+              <KbdGroup>
+                <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>F</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Next Problem</span>
+              <KbdGroup>
+                <Kbd>Alt</Kbd> + <Kbd>N</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Previous Problem</span>
+              <KbdGroup>
+                <Kbd>Alt</Kbd> + <Kbd>P</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
+              <span className="font-medium text-foreground">Zoom In / Zoom Out</span>
+              <KbdGroup>
+                <Kbd>Ctrl</Kbd> + <Kbd>+</Kbd> / <Kbd>-</Kbd>
+              </KbdGroup>
+            </div>
+            <div className="flex items-center justify-between py-1.5">
+              <span className="font-medium text-foreground">Open Shortcuts Menu</span>
+              <KbdGroup>
+                <Kbd>Shift</Kbd> + <Kbd>?</Kbd>
+              </KbdGroup>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

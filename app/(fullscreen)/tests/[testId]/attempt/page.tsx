@@ -111,6 +111,13 @@ export default async function AttemptPage({
   const currentAttemptNumber = (initResult.completed_count ?? 0) + 1
   const shuffleSeedString = `${user.sub}_${testId}_${currentAttemptNumber}`
 
+  const candidateName =
+    (user.user_metadata?.full_name as string) ??
+    (user.user_metadata?.name as string) ??
+    (user.email as string) ??
+    "Candidate"
+  const candidateEmail = (user.email as string) ?? ""
+
   // ── 4. Build client-safe test object ────────────────────────────────────────
   const testForClient: AttemptTest = {
     id: testId,
@@ -133,6 +140,8 @@ export default async function AttemptPage({
       serverNow={serverNow.toISOString()}
       shuffleSeed={shuffleSeedString}
       candidateId={userId}
+      candidateName={candidateName}
+      candidateEmail={candidateEmail}
       onStartAttempt={startAttemptAction.bind(null, testId)}
       onSync={syncAction}
       onClaimSession={claimSessionAction}

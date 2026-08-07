@@ -1035,6 +1035,8 @@ interface Props {
     attemptInfo: AttemptInfo | null
     savedAnswers: SavedAnswer[]
     candidateId: string
+    candidateName?: string
+    candidateEmail?: string
     onStartAttempt: () => Promise<AttemptInfo>
     onSync: (
         attemptId: string,
@@ -1069,12 +1071,32 @@ interface Props {
     shuffleSeed: string
 }
 
+function ExamWatermark({ name, email, candidateId }: { name?: string; email?: string; candidateId: string }) {
+    const text = `${name || "Candidate"}${email ? ` • ${email}` : ""} • ID: ${candidateId.slice(0, 8).toUpperCase()}`
+    const rows = [0, 1, 2, 3, 4]
+
+    return (
+        <div className="pointer-events-none fixed inset-0 z-50 flex flex-col justify-between overflow-hidden opacity-[0.045] select-none rotate-[-22deg] scale-125">
+            {rows.map((row) => (
+                <div key={row} className="flex whitespace-nowrap gap-12 font-mono text-xs font-bold uppercase tracking-widest text-foreground">
+                    <span>{text}</span>
+                    <span>{text}</span>
+                    <span>{text}</span>
+                    <span>{text}</span>
+                </div>
+            ))}
+        </div>
+    )
+}
+
 export function AttemptClient({
     test,
     questions,
     attemptInfo: initialAttemptInfo,
     savedAnswers,
     candidateId,
+    candidateName,
+    candidateEmail,
     onStartAttempt,
     onSync,
     onClaimSession,
@@ -1131,7 +1153,7 @@ export function AttemptClient({
         return new Date(syncTimeBase.serverAtMount + elapsed)
     }, [syncTimeBase])
 
-    const storagePrefix = initialAttemptInfo ? `pt_attempt_${initialAttemptInfo.id}` : null
+    const storagePrefix = attemptInfo ? `pt_attempt_${attemptInfo.id}` : null
 
     const [currentIndex, setCurrentIndex] = useState(() => {
         if (typeof window !== "undefined" && storagePrefix) {
@@ -1178,6 +1200,8 @@ export function AttemptClient({
 
     // Anti-cheat
     const [showFocusWarning, setShowFocusWarning] = useState(false)
+    const [showMultiMonitorWarning, setShowMultiMonitorWarning] = useState(false)
+    const [showDevToolsWarning, setShowDevToolsWarning] = useState(false)
     const [focusLostCount, setFocusLostCount] = useState(initialAttemptInfo?.tab_switch_count ?? 0)
 
     // ── Session Token (sessionStorage per tab) ─────────────────────────────────
@@ -1516,6 +1540,54 @@ export function AttemptClient({
     }, [phase, attemptInfo, getNowOnServer, onViolation, test.strict_mode])
 
 
+    // ── Level 2 & Level 3 Security Checks (Multi-Monitor & DevTools Detection) ──
+    useEffect(() => {
+        if (phase !== "active") return
+
+        // 1. Level 2: Extended Screen / Multi-Monitor Detection
+        const checkScreenCount = async () => {
+            try {
+                if ("getScreenDetails" in window) {
+                    const details = await (window as any).getScreenDetails()
+                    if (details?.screens?.length > 1) {
+                        setShowMultiMonitorWarning(true)
+                    } else {
+                        setShowMultiMonitorWarning(false)
+                    }
+                } else if (typeof window !== "undefined" && window.screen) {
+                    if ((window as any).screen.isExtended) {
+                        setShowMultiMonitorWarning(true)
+                    }
+                }
+            } catch {}
+        }
+
+        checkScreenCount()
+        const monitorInterval = setInterval(checkScreenCount, 5000)
+
+        // 2. Level 3: DevTools Geometry & Inspection Detector
+        const detectDevTools = () => {
+            if (autoSubmitted.current || isSubmittingRef.current) return
+            const threshold = 160
+            const widthDiff = window.outerWidth - window.innerWidth > threshold
+            const heightDiff = window.outerHeight - window.innerHeight > threshold
+            if (widthDiff || heightDiff) {
+                setShowDevToolsWarning(true)
+            } else {
+                setShowDevToolsWarning(false)
+            }
+        }
+
+        window.addEventListener("resize", detectDevTools)
+        detectDevTools()
+
+        return () => {
+            clearInterval(monitorInterval)
+            window.removeEventListener("resize", detectDevTools)
+        }
+    }, [phase])
+
+
     // ── Supabase Realtime Channels ──────────────────────────────────────────────
     useEffect(() => {
         if (!attemptInfo || phase !== "active") return
@@ -1525,10 +1597,14 @@ export function AttemptClient({
         const liveChannel = supabase.channel(`pt-test-live-${test.id}`)
         liveChannel.subscribe(async (status) => {
             if (status === "SUBSCRIBED") {
-                await liveChannel.track({
-                    userId: candidateId,
-                    attemptId: attemptInfo.id,
-                })
+                try {
+                    await liveChannel.track({
+                        userId: candidateId,
+                        attemptId: attemptInfo.id,
+                    })
+                } catch (e) {
+                    console.error("[Realtime] Presence track error:", e)
+                }
             }
         })
 
@@ -1570,10 +1646,12 @@ export function AttemptClient({
             .subscribe()
 
         return () => {
-            liveChannel.untrack()
-            supabase.removeChannel(liveChannel)
-            supabase.removeChannel(sessionChannel)
-            supabase.removeChannel(attemptChannel)
+            try {
+                liveChannel.untrack().catch(() => {})
+                supabase.removeChannel(liveChannel).catch(() => {})
+                supabase.removeChannel(sessionChannel).catch(() => {})
+                supabase.removeChannel(attemptChannel).catch(() => {})
+            } catch {}
         }
     }, [attemptInfo?.id, phase, test.id, candidateId])
 
@@ -2131,29 +2209,38 @@ export function AttemptClient({
                 isResuming={isResuming}
                 isStarting={isStarting}
                 onBegin={async () => {
-                    let info = attemptInfo
-                    if (!info) {
-                        setIsStarting(true)
-                        try {
-                            info = await onStartAttempt()
-                            setAttemptInfo(info)
-                            setFocusLostCount(info.tab_switch_count)
-                            focusLostCountRef.current = info.tab_switch_count
-                        } catch (err: any) {
-                            if (isDeploymentError(err)) {
-                                setShowDeploymentError(true)
+                    try {
+                        let info = attemptInfo
+                        if (!info) {
+                            setIsStarting(true)
+                            try {
+                                info = await onStartAttempt()
+                                setAttemptInfo(info)
+                                setFocusLostCount(info.tab_switch_count)
+                                focusLostCountRef.current = info.tab_switch_count
+                            } catch (err: any) {
+                                if (isDeploymentError(err)) {
+                                    setShowDeploymentError(true)
+                                    setIsStarting(false)
+                                    return
+                                }
+                                const userFriendlyMsg = getFriendlyErrorMessage(err, "Failed to start test. Please check your connection and try again.")
+                                toast.error(userFriendlyMsg)
                                 setIsStarting(false)
                                 return
                             }
-                            const userFriendlyMsg = getFriendlyErrorMessage(err, "Failed to start test. Please try again.")
-                            toast.error(userFriendlyMsg)
                             setIsStarting(false)
-                            return
                         }
+                        if (info) {
+                            try {
+                                await enterFullscreen()
+                            } catch {}
+                            setPhase("active")
+                        }
+                    } catch (err: any) {
                         setIsStarting(false)
+                        toast.error("Failed to start test due to a network glitch. Please try again.")
                     }
-                    await enterFullscreen()
-                    setPhase("active")
                 }}
             />
         )
@@ -2163,7 +2250,83 @@ export function AttemptClient({
     // ── Active ─────────────────────────────────────────────────────────────────
 
     return (
-        <div className="flex min-h-screen overflow-hidden bg-background select-none">
+        <div
+            className="relative flex min-h-screen overflow-hidden bg-background select-none"
+            style={{
+                WebkitUserSelect: "none",
+                MozUserSelect: "none",
+                msUserSelect: "none",
+                userSelect: "none",
+            }}
+            onCopy={(e) => e.preventDefault()}
+            onCut={(e) => e.preventDefault()}
+            onPaste={(e) => e.preventDefault()}
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+        >
+
+            {/* ── Level 1: Dynamic Anti-Cheat Screen Watermarking ───────────── */}
+            <ExamWatermark name={candidateName} email={candidateEmail} candidateId={candidateId} />
+
+            {/* ── Level 2: Multi-Monitor Warning Dialog ───────────────────────── */}
+            <AlertDialog open={showMultiMonitorWarning && !showFocusWarning}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                            <MonitorSmartphone className="h-5 w-5 shrink-0" />
+                            Multiple Displays Detected
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 pt-2">
+                                <p className="text-sm text-foreground">
+                                    An extended display or secondary monitor was detected. To preserve exam integrity, please disconnect external displays.
+                                </p>
+                                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
+                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
+                                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                                        Disconnect your secondary display or switch to single-screen mode to continue your test.
+                                    </p>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setShowMultiMonitorWarning(false)}>
+                            I Have Disconnected External Display
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* ── Level 3: DevTools Inspection Warning Dialog ───────────────────── */}
+            <AlertDialog open={showDevToolsWarning && !showFocusWarning}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="h-5 w-5 shrink-0" />
+                            Developer Tools Detected
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 pt-2">
+                                <p className="text-sm text-foreground">
+                                    Browser Developer Tools or an un-docked inspection panel was detected. Inspection during an active test is monitored.
+                                </p>
+                                <div className="flex items-start gap-2.5 rounded-xl border border-destructive bg-destructive/10 p-4">
+                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                                    <p className="text-sm text-destructive">
+                                        Close Developer Tools immediately to resume your test session.
+                                    </p>
+                                </div>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setShowDevToolsWarning(false)}>
+                            I Understand, Close Inspection
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
 
             {/* ── Anti-Cheat: Focus Lost Dialog (highest priority) ─────────────── */}

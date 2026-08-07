@@ -153,6 +153,7 @@ export function LogicLabDashboardClient({
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const isFiltering = useRef(false)
+  const loadMoreAbortRef = useRef<AbortController | null>(null)
 
   const visibleTags = useMemo(() => {
     let list = allTags
@@ -287,6 +288,13 @@ export function LogicLabDashboardClient({
 
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore || isFiltering.current) return
+    // Cancel any in-flight request and start fresh
+    if (loadMoreAbortRef.current) {
+      loadMoreAbortRef.current.abort()
+    }
+    const controller = new AbortController()
+    loadMoreAbortRef.current = controller
+
     setIsLoadingMore(true)
     try {
       const { problems: next, hasMore: more } = await fetchProblemsInfinite({
@@ -299,11 +307,16 @@ export function LogicLabDashboardClient({
         tag: activeTag,
         sortBy: activeSort,
       })
-      setProblems((prev) => [...prev, ...next])
-      setHasMore(more)
-      setOffset((prev) => prev + next.length)
+      // Only apply result if this request wasn't cancelled
+      if (!controller.signal.aborted) {
+        setProblems((prev) => [...prev, ...next])
+        setHasMore(more)
+        setOffset((prev) => prev + next.length)
+      }
     } finally {
-      setIsLoadingMore(false)
+      if (!controller.signal.aborted) {
+        setIsLoadingMore(false)
+      }
     }
   }, [isLoadingMore, hasMore, userId, offset, searchInput, activeTab, activeDifficulty, activeTag, activeSort])
 

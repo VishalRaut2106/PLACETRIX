@@ -148,7 +148,7 @@ export function QRTicketCard({
   useEffect(() => {
     const supabase = createClient()
 
-    // Subscribe to real-time changes on this specific ticket
+    // Subscribe to real-time changes on this specific ticket using pure Supabase Realtime best-practice.
     const channel = supabase
       .channel(`ticket-${ticket.id}`)
       .on(
@@ -163,26 +163,27 @@ export function QRTicketCard({
           }
         }
       )
-      .subscribe()
+      .subscribe(async (status) => {
+        // Pure Realtime best practice: On initial connection or re-connection after temporary network drop,
+        // perform a single one-time sync check to catch any missed updates without running a continuous polling loop.
+        if (status === "SUBSCRIBED" && attendanceStatus !== "Present") {
+          const { data } = await supabase
+            .from("event_tickets")
+            .select("attendance_status")
+            .eq("id", ticket.id)
+            .maybeSingle()
 
-    // Bulletproof Fallback: Poll every 1.5 seconds in case WebSockets are blocked by the server proxy
-    const pollInterval = setInterval(async () => {
-      if (attendanceStatus === "Present") return
-      const { data } = await supabase
-        .from("event_tickets")
-        .select("attendance_status")
-        .eq("id", ticket.id)
-        .maybeSingle()
-
-      if (data && data.attendance_status === "Present") {
-        setAttendanceStatus("Present")
-        toast.success("Attendance marked present! Ticket verified.")
-      }
-    }, 1500)
+          if (data && data.attendance_status === "Present") {
+            setAttendanceStatus("Present")
+            toast.success("Attendance marked present! Ticket verified.")
+          }
+        }
+      })
 
     return () => {
-      supabase.removeChannel(channel)
-      clearInterval(pollInterval)
+      try {
+        supabase.removeChannel(channel).catch(() => {})
+      } catch {}
     }
   }, [ticket.id, attendanceStatus])
 
