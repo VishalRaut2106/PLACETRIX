@@ -15,6 +15,28 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.20",
+    date: "2026-08-07",
+    title: "Leaderboard Badges, Profile Redesign & LogicLab Security",
+    badge: "Patch",
+    categories: [
+      {
+        type: "added",
+        items: [
+          "Latest earned badges display on Logic Lab Leaderboard",
+          "Dedicated error boundaries across dashboard and test attempt pages"
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          "Redesigned Candidate Public Profile header and performance submission grid",
+          "Logic Lab rate limiting, exponential backoff, and security hardening"
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.19",
     date: "2026-08-07",
     title: "AI Model Streaming Fallbacks & What's New Menu",
@@ -92,7 +114,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.19";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.20";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
