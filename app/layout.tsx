@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     "exam preparation",
     "learning platform",
   ],
-  authors: [{ name: "4 Grid Technologies" }],
-  creator: "4 Grid Technologies",
+  authors: [{ name: "Agilique Solutions LLP" }],
+  creator: "Agilique Solutions LLP",
   openGraph: {
     type: "website",
     locale: "en_US",

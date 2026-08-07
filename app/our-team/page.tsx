@@ -665,7 +665,7 @@ function CompanySection() {
 						<div className="relative size-14 md:size-16 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-800 bg-white p-1.5 mt-4 mb-4 flex items-center justify-center shrink-0 shadow-sm">
 							<Image
 								src="https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/4Grid.png"
-								alt="4 Grid Technologies Logo"
+								alt="Agilique Solutions LLP Logo"
 								fill
 								className="object-contain p-1"
 								unoptimized
@@ -675,12 +675,12 @@ function CompanySection() {
 						<h2
 							className="font-cirka mt-2 text-balance text-3xl font-semibold tracking-tight md:text-5xl"
 						>
-							4 Grid Technologies
+							Agilique Solutions LLP
 						</h2>
 
 						<div className="mt-5 space-y-4 text-sm leading-7 text-stone-600 dark:text-stone-300 md:text-base md:leading-8">
 							<p>
-								PlaceTrix is engineered and maintained by 4 Grid Technologies, a technology company focused on creating high-performance and beautifully designed digital platforms.
+								PlaceTrix is engineered and maintained by Agilique Solutions LLP, a technology company focused on creating high-performance and beautifully designed digital platforms.
 							</p>
 							<p>
 								We believe in building robust workflows and refined user experiences that solve real-world problems. By focusing on practical value, reliability, and clean execution, we aim to deliver high-quality digital solutions that make a meaningful difference for users and businesses alike.
@@ -690,7 +690,7 @@ function CompanySection() {
 						<div className="mt-8">
 							<Button className="group rounded-full font-medium" asChild>
 								<a href="https://4grid.tech" target="_blank" rel="noopener noreferrer">
-									Explore 4 Grid
+									Explore Agilique Solutions LLP
 								</a>
 							</Button>
 						</div>
@@ -857,7 +857,7 @@ function Footer() {
 							rel="noopener noreferrer"
 							className="hover:underline font-medium"
 						>
-							4 Grid Technologies
+							Agilique Solutions LLP
 						</a>
 						, All rights reserved
 					</p>

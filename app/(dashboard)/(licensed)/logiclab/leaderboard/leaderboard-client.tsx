@@ -7,8 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Trophy, Medal, ChevronLeft, ChevronRight, Loader2, Target, CheckCircle2, Flame, Star } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Trophy, Medal, ChevronLeft, ChevronRight, Loader2, Target, CheckCircle2, Flame, Star, Award, Zap, Brain } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+function LatestBadgeIcon({ iconName }: { iconName: string }) {
+  const isImage = iconName.endsWith(".png") || iconName.endsWith(".svg") || iconName.endsWith(".webp") || iconName.includes("/");
+  if (isImage) {
+    return <img src={iconName} alt="" className="w-4 h-4 object-contain shrink-0 drop-shadow-sm" />;
+  }
+  let IconComp: any = Award;
+  if (iconName === "Flame") IconComp = Flame;
+  else if (iconName === "Zap") IconComp = Zap;
+  else if (iconName === "Trophy") IconComp = Trophy;
+  else if (iconName === "Brain") IconComp = Brain;
+  else if (iconName === "Target") IconComp = Target;
+
+  return <IconComp className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+}
 
 interface LeaderboardClientProps {
   initialData: LeaderboardEntry[]
@@ -47,96 +63,109 @@ export default function LeaderboardClient({
   // Remove podium separation, map entire data array
 
   return (
-    <div className={cn('flex', 'flex-col', 'relative', 'pb-24')}>
-      {/* List Section */}
-      <div className={cn('flex', 'flex-col', 'border', 'border-border', 'rounded-xl', 'overflow-hidden', 'shadow-sm', 'bg-background/40', 'mt-4')}>
-        <div className={cn('flex', 'flex-col', 'relative', 'min-h-[400px]')}>
-          {isPending && (
-            <div className={cn('absolute', 'inset-0', 'z-10', 'bg-background/50', 'backdrop-blur-[1px]', 'flex', 'items-center', 'justify-center')}>
-              <Loader2 className={cn('h-8', 'w-8', 'text-primary', 'animate-spin')} />
-            </div>
-          )}
-
-          {/* Table Header */}
-          <div className={cn('hidden', 'md:grid', 'md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px]', 'items-center', 'gap-4', 'px-4', 'py-3.5', 'bg-muted/40', 'border-b', 'border-border', 'text-xs', 'font-bold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'select-none')}>
-            <div className="text-center">Rank</div>
-            <div></div>
-            <div>Student</div>
-            <div>Problems Solved</div>
-            <div>Score</div>
-          </div>
-
-          <div className={cn('flex', 'flex-col')}>
-            {data.length === 0 ? (
-              <div className={cn('p-8', 'text-center', 'text-muted-foreground', 'flex', 'flex-col', 'items-center', 'gap-2')}>
-                <Target className={cn('h-10', 'w-10', 'text-muted-foreground/30', 'mb-2')} />
-                <p>No leaderboard data found.</p>
-                <p className="text-sm">Start solving challenges to appear here!</p>
+    <TooltipProvider>
+      <div className={cn('flex', 'flex-col', 'relative', 'pb-24')}>
+        {/* List Section */}
+        <div className={cn('flex', 'flex-col', 'border', 'border-border', 'rounded-xl', 'overflow-hidden', 'shadow-sm', 'bg-background/40', 'mt-4')}>
+          <div className={cn('flex', 'flex-col', 'relative', 'min-h-[400px]')}>
+            {isPending && (
+              <div className={cn('absolute', 'inset-0', 'z-10', 'bg-background/50', 'backdrop-blur-[1px]', 'flex', 'items-center', 'justify-center')}>
+                <Loader2 className={cn('h-8', 'w-8', 'text-primary', 'animate-spin')} />
               </div>
-            ) : (
-              data.map((user, idx) => {
-                const isEven = idx % 2 === 0;
-                const isCurrentUser = user.id === currentUserId;
-                const isRank1 = user.rank === 1;
-                const isRank2 = user.rank === 2;
-                const isRank3 = user.rank === 3;
+            )}
 
-                let premiumText = "text-muted-foreground/80";
+            {/* Table Header */}
+            <div className={cn('hidden', 'md:grid', 'md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px]', 'items-center', 'gap-4', 'px-4', 'py-3.5', 'bg-muted/40', 'border-b', 'border-border', 'text-xs', 'font-bold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'select-none')}>
+              <div className="text-center">Rank</div>
+              <div></div>
+              <div>Student</div>
+              <div>Problems Solved</div>
+              <div>Score</div>
+            </div>
 
-                if (isRank1 || isRank2 || isRank3) {
-                  premiumText = "text-amber-600 dark:text-amber-400 font-bold";
-                }
+            <div className={cn('flex', 'flex-col')}>
+              {data.length === 0 ? (
+                <div className={cn('p-8', 'text-center', 'text-muted-foreground', 'flex', 'flex-col', 'items-center', 'gap-2')}>
+                  <Target className={cn('h-10', 'w-10', 'text-muted-foreground/30', 'mb-2')} />
+                  <p>No leaderboard data found.</p>
+                  <p className="text-sm">Start solving challenges to appear here!</p>
+                </div>
+              ) : (
+                data.map((user, idx) => {
+                  const isEven = idx % 2 === 0;
+                  const isCurrentUser = user.id === currentUserId;
+                  const isRank1 = user.rank === 1;
+                  const isRank2 = user.rank === 2;
+                  const isRank3 = user.rank === 3;
 
-                return (
-                  <div
-                    key={user.id}
-                    className={cn(
-                      "group flex md:grid md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px] items-center gap-3 md:gap-4 px-4 py-3 transition-colors duration-200 hover:bg-muted/40",
-                      isEven ? "bg-transparent" : "bg-zinc-100 dark:bg-white/[0.04]",
-                      isCurrentUser && "bg-primary/5 dark:bg-primary/10",
-                      idx !== data.length - 1 && "border-b border-border"
-                    )}
-                  >
-                    <div className={cn('flex', 'items-center', 'justify-center', 'w-14', 'md:w-full', 'relative')}>
-                      <span className={cn('text-sm', 'font-mono', 'font-semibold', isCurrentUser && !(isRank1 || isRank2 || isRank3) ? 'text-primary' : premiumText)}>
-                        #{user.rank}
-                      </span>
-                    </div>
+                  let premiumText = "text-muted-foreground/80";
 
-                    <div className={cn('flex', 'items-center', 'justify-center', 'w-14', 'md:w-full')}>
-                      {user.username ? (
-                        <Link href={`/u/${user.username}`} target="_blank" rel="noopener noreferrer">
-                          <Avatar className={cn("h-8 w-8 sm:h-9 sm:w-9 border shrink-0 transition-colors hover:ring-2 hover:ring-primary/50 border-border/50")}>
+                  if (isRank1 || isRank2 || isRank3) {
+                    premiumText = "text-amber-600 dark:text-amber-400 font-bold";
+                  }
+
+                  return (
+                    <div
+                      key={user.id}
+                      className={cn(
+                        "group flex md:grid md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px] items-center gap-3 md:gap-4 px-4 py-3 transition-colors duration-200 hover:bg-muted/40",
+                        isEven ? "bg-transparent" : "bg-zinc-100 dark:bg-white/[0.04]",
+                        isCurrentUser && "bg-primary/5 dark:bg-primary/10",
+                        idx !== data.length - 1 && "border-b border-border"
+                      )}
+                    >
+                      <div className={cn('flex', 'items-center', 'justify-center', 'w-14', 'md:w-full', 'relative')}>
+                        <span className={cn('text-sm', 'font-mono', 'font-semibold', isCurrentUser && !(isRank1 || isRank2 || isRank3) ? 'text-primary' : premiumText)}>
+                          #{user.rank}
+                        </span>
+                      </div>
+
+                      <div className={cn('flex', 'items-center', 'justify-center', 'w-14', 'md:w-full')}>
+                        {user.username ? (
+                          <Link href={`/u/${user.username}`} target="_blank" rel="noopener noreferrer">
+                            <Avatar className={cn("h-8 w-8 sm:h-9 sm:w-9 border shrink-0 transition-colors hover:ring-2 hover:ring-primary/50 border-border/50")}>
+                              <AvatarImage src={user.avatar_path || ""} className="object-cover" />
+                              <AvatarFallback className={cn('font-semibold', 'text-xs', 'bg-muted')}>
+                                {user.first_name?.[0]}{user.last_name?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Link>
+                        ) : (
+                          <Avatar className={cn("h-8 w-8 sm:h-9 sm:w-9 border shrink-0 transition-colors border-border/50")}>
                             <AvatarImage src={user.avatar_path || ""} className="object-cover" />
                             <AvatarFallback className={cn('font-semibold', 'text-xs', 'bg-muted')}>
                               {user.first_name?.[0]}{user.last_name?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                        </Link>
-                      ) : (
-                        <Avatar className={cn("h-8 w-8 sm:h-9 sm:w-9 border shrink-0 transition-colors border-border/50")}>
-                          <AvatarImage src={user.avatar_path || ""} className="object-cover" />
-                          <AvatarFallback className={cn('font-semibold', 'text-xs', 'bg-muted')}>
-                            {user.first_name?.[0]}{user.last_name?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    <div className={cn('flex-1', 'md:w-full', 'min-w-0', 'flex', 'items-center', 'gap-2')}>
-                      {user.username ? (
-                        <Link href={`/u/${user.username}`} target="_blank" rel="noopener noreferrer" className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug', 'hover:text-primary', 'transition-colors')}>
-                          {`${user.first_name} ${user.last_name}`.trim() || user.username}
-                        </Link>
-                      ) : (
-                        <span className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug')}>
-                          {`${user.first_name} ${user.last_name}`.trim()}
-                        </span>
-                      )}
-                      {isCurrentUser && (
-                        <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5', 'shrink-0', 'bg-primary/10', 'text-primary', 'uppercase', 'font-bold', 'tracking-wider')}>You</Badge>
-                      )}
-                    </div>
+                      <div className={cn('flex-1', 'md:w-full', 'min-w-0', 'flex', 'items-center', 'gap-2')}>
+                        {user.username ? (
+                          <Link href={`/u/${user.username}`} target="_blank" rel="noopener noreferrer" className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug', 'hover:text-primary', 'transition-colors')}>
+                            {`${user.first_name} ${user.last_name}`.trim() || user.username}
+                          </Link>
+                        ) : (
+                          <span className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug')}>
+                            {`${user.first_name} ${user.last_name}`.trim()}
+                          </span>
+                        )}
+                        {isCurrentUser && (
+                          <Badge variant="secondary" className={cn('text-[10px]', 'h-4', 'px-1.5', 'shrink-0', 'bg-primary/10', 'text-primary', 'uppercase', 'font-bold', 'tracking-wider')}>You</Badge>
+                        )}
+                        {user.latest_badge && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="shrink-0 inline-flex items-center justify-center p-0.5 rounded-full hover:bg-muted/80 transition-colors cursor-pointer" title={user.latest_badge.name}>
+                                <LatestBadgeIcon iconName={user.latest_badge.icon_name} />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs font-semibold px-2 py-1">
+                              {user.latest_badge.name}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
 
                     <div className={cn('hidden', 'md:flex', 'items-center')}>
                       <span className={cn('text-[13px]', 'font-medium', 'text-muted-foreground/90', 'flex', 'items-center', 'gap-1.5')}>
@@ -208,5 +237,6 @@ export default function LeaderboardClient({
         </div>
       )}
     </div>
-  )
+  </TooltipProvider>
+)
 }

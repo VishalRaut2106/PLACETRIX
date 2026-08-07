@@ -15,6 +15,11 @@ export interface LeaderboardEntry {
   difficulty_breakdown?: { easy: number, medium: number, hard: number }
   course_name?: string
   passout_year?: number
+  latest_badge?: {
+    id: string
+    name: string
+    icon_name: string
+  } | null
 }
 
 const PAGE_SIZE = 50
@@ -103,6 +108,33 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
           user.course_name = academicMap[user.id].course_name
           user.passout_year = academicMap[user.id].passout_year
         }
+      }
+    }
+
+    // 4. Fetch latest earned badge for these users
+    const { data: userBadgesData } = await supabase
+      .from('user_badges')
+      .select('user_id, earned_at, logiclab_badges(id, name, icon_name)')
+      .in('user_id', userIds)
+      .order('earned_at', { ascending: false })
+
+    if (userBadgesData) {
+      const latestBadgeMap: Record<string, { id: string; name: string; icon_name: string }> = {}
+      for (const row of userBadgesData) {
+        if (!latestBadgeMap[row.user_id] && row.logiclab_badges) {
+          const badgeObj = Array.isArray(row.logiclab_badges) ? row.logiclab_badges[0] : row.logiclab_badges
+          if (badgeObj && badgeObj.name) {
+            latestBadgeMap[row.user_id] = {
+              id: badgeObj.id,
+              name: badgeObj.name,
+              icon_name: badgeObj.icon_name,
+            }
+          }
+        }
+      }
+
+      for (const user of rankedData) {
+        user.latest_badge = latestBadgeMap[user.id] || null
       }
     }
   }

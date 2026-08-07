@@ -451,7 +451,7 @@ const TERMS_SECTIONS: TermsContentSection[] = [
     id: "intellectual-property",
     title: "Intellectual Property",
     paragraphs: [
-      "PlaceTrix, including its branding, design, software, workflows, text, graphics, and platform content, is owned by 4 Grid Technologies or its licensors unless stated otherwise.",
+      "PlaceTrix, including its branding, design, software, workflows, text, graphics, and platform content, is owned by Agilique Solutions LLP or its licensors unless stated otherwise.",
       "You may not copy, modify, distribute, reproduce, resell, or exploit platform materials except as permitted by law or with prior written permission.",
       "Translation: you can use the platform, but you do not get to walk off with the furniture.",
     ],
@@ -492,7 +492,7 @@ const TERMS_SECTIONS: TermsContentSection[] = [
     id: "limitation-of-liability",
     title: "Limitation of Liability",
     paragraphs: [
-      "To the maximum extent permitted by law, 4 Grid Technologies and its affiliates, team members, partners, and service providers will not be liable for indirect, incidental, special, consequential, or punitive damages arising from your use of, or inability to use, PlaceTrix.",
+      "To the maximum extent permitted by law, Agilique Solutions LLP and its affiliates, team members, partners, and service providers will not be liable for indirect, incidental, special, consequential, or punitive damages arising from your use of, or inability to use, PlaceTrix.",
       "This includes, where applicable, loss of data, loss of opportunity, loss of revenue, interruption of service, or other commercial or personal impacts not directly caused by wilful misconduct or legal obligations that cannot be excluded.",
     ],
   },
@@ -783,7 +783,7 @@ function Footer() {
               rel="noopener noreferrer"
               className="hover:underline font-medium"
             >
-              4 Grid Technologies
+              Agilique Solutions LLP
             </a>
             . All rights reserved.
           </p>

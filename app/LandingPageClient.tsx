@@ -1110,7 +1110,7 @@ function Footer() {
               rel="noopener noreferrer"
               className="hover:underline font-medium"
             >
-              4 Grid Technologies
+              Agilique Solutions LLP
             </a>
             , All rights reserved
           </p>
