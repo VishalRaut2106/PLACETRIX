@@ -26,6 +26,7 @@ import {
   IconChevronUp,
   IconDotsVertical,
   IconLogout,
+  IconHistory,
 } from "@tabler/icons-react"
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -44,7 +45,10 @@ import {
 } from "./ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { hasUnreadChangelog, LATEST_VERSION } from "@/lib/changelog"
+import { WhatsNewModal } from "@/components/changelog/whats-new-modal"
 
 
 import { AccountType, UserProfile } from "@/lib/supabase/profile"
@@ -186,6 +190,12 @@ export function NavUser({ user }: { user: UserProfile | null }) {
     : (user?.email?.trim()[0]?.toUpperCase() ?? "?")
 
   const avatarUrl = buildStorageUrl("avatars", user?.avatar_path ?? null)
+  const [whatsNewOpen, setWhatsNewOpen] = React.useState(false)
+  const [hasUnread, setHasUnread] = React.useState(false)
+
+  React.useEffect(() => {
+    setHasUnread(hasUnreadChangelog())
+  }, [whatsNewOpen])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -218,7 +228,12 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                       <span className="truncate font-semibold text-sm leading-none text-sidebar-foreground group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-colors duration-200">{displayName}</span>
                       <span className="truncate text-[11px] text-muted-foreground leading-none group-hover/user:text-sidebar-accent-foreground/80 group-data-[state=open]/user:text-sidebar-accent-foreground/80 transition-colors duration-200">{sidebarSubtitle}</span>
                     </div>
-                    <IconDotsVertical className="ml-auto shrink-0 size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
+                    <div className="relative ml-auto shrink-0 flex items-center justify-center group-data-[state=collapsed]/sidebar-wrapper:hidden">
+                      <IconDotsVertical className="size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200" />
+                      {hasUnread && (
+                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500" />
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -293,6 +308,28 @@ export function NavUser({ user }: { user: UserProfile | null }) {
 
               <DropdownMenuSeparator />
 
+              {/* ── What's New / Changelog ───────────────────────── */}
+              <DropdownMenuItem
+                onClick={() => setWhatsNewOpen(true)}
+                className="cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <IconHistory className="size-4 shrink-0 text-blue-500 dark:text-blue-400" />
+                  <span>What's New</span>
+                </div>
+                {hasUnread ? (
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30">
+                    New
+                  </Badge>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    v{LATEST_VERSION}
+                  </span>
+                )}
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
               {/* ── Logout ─────────────────────────────────── */}
               <DropdownMenuItem
                 variant="destructive"
@@ -305,6 +342,8 @@ export function NavUser({ user }: { user: UserProfile | null }) {
             </DropdownMenuContent>
           )}
         </DropdownMenu>
+
+        <WhatsNewModal open={whatsNewOpen} onOpenChange={setWhatsNewOpen} />
       </SidebarMenuItem>
     </SidebarMenu>
   )

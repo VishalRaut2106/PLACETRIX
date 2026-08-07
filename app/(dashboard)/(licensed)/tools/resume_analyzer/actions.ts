@@ -314,7 +314,7 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
   const config = {
     systemInstruction: systemPrompt,
     temperature: 0.1,
-    maxOutputTokens: 8192,
+    maxOutputTokens: 6000,
     responseMimeType: "application/json",
     responseSchema: {
       type: "object",
@@ -435,9 +435,8 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
   }
 
   const MODEL_FALLBACK_CHAIN = [
-    "gemini-3.5-flash",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemma-4-31b",
     "gemini-2.0-flash",
     "gemini-1.5-pro",
     "gemini-1.5-flash",
@@ -447,16 +446,21 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
 
   for (const model of MODEL_FALLBACK_CHAIN) {
     try {
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model,
         contents: userPrompt,
         config: config as any,
       })
-      content = response.text ?? ""
+      let raw = ""
+      for await (const chunk of responseStream) {
+        raw += chunk.text ?? ""
+      }
+      content = raw
       if (content) break
     } catch (err) {
       lastError = err
       console.warn(`[analyzeResumeAction] ${model} failed, trying fallback:`, err)
+      await new Promise((r) => setTimeout(r, 500))
     }
   }
 
@@ -600,9 +604,8 @@ Return the new question in JSON.`
   }
 
   const MODEL_FALLBACK_CHAIN = [
-    "gemini-3.5-flash",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemma-4-31b",
     "gemini-2.0-flash",
     "gemini-1.5-pro",
     "gemini-1.5-flash",
@@ -611,12 +614,16 @@ Return the new question in JSON.`
 
   for (const model of MODEL_FALLBACK_CHAIN) {
     try {
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model,
         contents: userPrompt,
         config: config as any,
       })
-      content = response.text ?? ""
+      let raw = ""
+      for await (const chunk of responseStream) {
+        raw += chunk.text ?? ""
+      }
+      content = raw
       if (content) break
     } catch (err) {
       console.warn(`[generateExtraQuestionAction] ${model} failed`, err)

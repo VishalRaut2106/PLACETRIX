@@ -361,11 +361,11 @@ export function ResumeAnalyzerClient() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Resume Analyzer</h1>
-          <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs ml-1">AI-Powered</Badge>
+          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Trixy AI Resume Analyzer</h1>
+          <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 dark:text-violet-400 text-xs ml-1">Trixy AI Powered</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Upload your resume for a deep AI audit — ATS scoring, keyword alignment, and historical progression tracking.
+          Upload your resume for a deep Trixy AI audit — ATS scoring, keyword alignment, and historical progression tracking.
         </p>
       </div>
 
@@ -513,7 +513,7 @@ export function ResumeAnalyzerClient() {
                       <div className="flex flex-col gap-3">
                         <div className="flex items-start gap-3">
                           <div className="flex flex-col gap-1.5 flex-1 font-sans">
-                            <span className="text-xs font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">AI Verdict</span>
+                            <span className="text-xs font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Trixy AI Verdict</span>
                             {verdictHeadline && (
                               <p className="text-sm font-semibold text-foreground">{verdictHeadline}</p>
                             )}

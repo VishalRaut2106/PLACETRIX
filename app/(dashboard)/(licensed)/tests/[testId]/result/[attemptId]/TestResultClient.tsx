@@ -22,6 +22,14 @@ import {
   AlertDescription,
 } from "@/components/ui/alert"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
   EyeOff,
   Clock,
   Check,
@@ -249,7 +257,7 @@ function QuestionReviewItem({
               {qDiagnosis && !isInProgress && (
                 <Badge variant="outline" className="h-4 gap-1 border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 text-[10px] font-normal">
                   <Sparkles className="h-2.5 w-2.5 shrink-0 text-purple-500" />
-                  AI Analysis
+                  Trixy AI Analysis
                 </Badge>
               )}
             </div>
@@ -276,7 +284,7 @@ function QuestionReviewItem({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
                 <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-                <span>AI Conceptual Analysis</span>
+                <span>Trixy AI Conceptual Analysis</span>
               </div>
             </div>
 
@@ -396,21 +404,25 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
         ? "text-amber-600 dark:text-amber-500"
         : "text-destructive"
 
-  // ── Gemini AI Conceptual Diagnostic State ─────────────────────────────────
-  const [diagnostic, setDiagnostic] = useState<DiagnosticResultPayload | null>(null)
+  // ── Trixy AI Conceptual Diagnostic State ─────────────────────────────────
+  const [diagnostic, setDiagnostic] = useState<DiagnosticResultPayload | null>(attempt.ai_diagnosis ?? null)
   const [isGeneratingDiagnostic, setIsGeneratingDiagnostic] = useState(false)
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
+  const [isDepthModalOpen, setIsDepthModalOpen] = useState(false)
 
-  const handleGenerateDiagnostic = useCallback(async () => {
+  const handleGenerateDiagnostic = useCallback(async (analysisType: "deep" | "general" = "deep") => {
     setIsGeneratingDiagnostic(true)
     setDiagnosticError(null)
+    setIsDepthModalOpen(false)
 
     try {
       const res = await generateConceptualFeedbackAction({
+        attemptId: attempt.id,
         testTitle: test.title,
         score: attempt.score,
         totalMarks: attempt.total_marks,
         percentage: pct,
+        analysisType,
         answers: displayAnswers.map((a) => ({
           question_id: a.question_id,
           question_text: a.question_text,
@@ -433,7 +445,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
         setDiagnostic(res)
       }
     } catch (err) {
-      setDiagnosticError(err instanceof Error ? err.message : "Failed to generate AI diagnostic analysis.")
+      setDiagnosticError(err instanceof Error ? err.message : "Failed to generate Trixy AI diagnostic analysis.")
     } finally {
       setIsGeneratingDiagnostic(false)
     }
@@ -714,35 +726,36 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           </div>
 
-          {/* ── AI Conceptual Diagnostic Assistant ─────────────────── */}
+          {/* ── Trixy AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
                 <div className="space-y-1">
-                  <CardTitle className="text-base font-semibold">
-                    AI Conceptual Diagnostic Assistant
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <Sparkles className="size-4 text-purple-500" />
+                    Trixy AI Conceptual Diagnostic Assistant
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps. (May take up to 2 minutes)
+                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps with Trixy AI.
                   </CardDescription>
                 </div>
 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleGenerateDiagnostic}
+                  onClick={() => setIsDepthModalOpen(true)}
                   disabled={isGeneratingDiagnostic}
-                  className="shrink-0"
+                  className="shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
                 >
                   {isGeneratingDiagnostic ? (
                     <>
-                      <Loader2 className="mr-1.5 size-4 animate-spin" />
+                      <Loader2 className="mr-1.5 size-4 animate-spin text-purple-500" />
                       Diagnosing...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-1.5 size-4" />
-                      {diagnostic ? "Re-run AI Diagnosis" : "AI Diagnostic Analysis"}
+                      <Sparkles className="mr-1.5 size-4 text-purple-500" />
+                      {diagnostic ? "Re-run Trixy AI Diagnosis" : "Trixy AI Diagnostic Analysis"}
                     </>
                   )}
                 </Button>
@@ -750,9 +763,9 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
               {isGeneratingDiagnostic && (
                 <CardContent className="pt-0 pb-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse rounded-lg border bg-muted/20 p-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
                     <Loader2 className="h-4 w-4 animate-spin text-purple-500 shrink-0" />
-                    <span>AI diagnostic evaluation is in progress. This process may take up to 2 minutes...</span>
+                    <span>Trixy AI diagnostic evaluation is in progress. This process may take a few moments...</span>
                   </div>
                 </CardContent>
               )}
@@ -866,7 +879,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   {tagPerformanceList.map((tagItem) => {
                     const isStrong = tagItem.status === "Strong"
                     const isModerate = tagItem.status === "Moderate"
-                    
+
                     const statusBadge = isStrong ? (
                       <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                         Strong Mastery
@@ -950,6 +963,67 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
         </>
       )}
 
+      {/* ── Trixy AI Analysis Depth Modal ────────────────────────────── */}
+      <Dialog open={isDepthModalOpen} onOpenChange={setIsDepthModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="size-5 text-purple-500" />
+              Trixy AI Diagnostic Analysis
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Choose the depth of diagnostic analysis for your test attempt.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 py-3">
+            {/* Option 1: General Performance Overview */}
+            <div
+              onClick={() => handleGenerateDiagnostic("general")}
+              className="group flex flex-col gap-1.5 rounded-xl border border-border p-4 transition-all hover:border-purple-500/50 hover:bg-purple-500/5 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-sm text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                  <Target className="size-4 text-purple-500" />
+                  General Performance Overview
+                </div>
+                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-none">
+                  Fast
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Provides a high-level score synthesis, top 2-3 mastered concepts, key focus areas, and quick study takeaways. Suitable for quick reviews.
+              </p>
+            </div>
+
+            {/* Option 2: Deep Per-Question Analysis */}
+            <div
+              onClick={() => handleGenerateDiagnostic("deep")}
+              className="group flex flex-col gap-1.5 rounded-xl border border-border p-4 transition-all hover:border-purple-500/50 hover:bg-purple-500/5 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-sm text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                  <Lightbulb className="size-4 text-purple-500" />
+                  Deep Per-Question Analysis
+                </div>
+                <Badge variant="secondary" className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-none">
+                  Comprehensive Evaluation
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                In-depth breakdown of every incorrect question, identifying cognitive distractor traps, conceptual flaws, and personalized step-by-step remediation.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button variant="ghost" size="sm" onClick={() => setIsDepthModalOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+

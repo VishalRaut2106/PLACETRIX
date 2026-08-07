@@ -34,7 +34,7 @@ async function fetchResultData(
       ),
       test_attempts!inner (
         id, candidate_id, status, submitted_at, score, total_marks, percentage, 
-        time_spent_seconds, tab_switch_count,
+        time_spent_seconds, tab_switch_count, ai_diagnosis,
         student:profiles(full_name),
         test_attempt_answers (
           question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
@@ -61,7 +61,7 @@ async function fetchResultData(
         ),
         test_attempts!inner (
           id, candidate_id, status, submitted_at, score, total_marks, percentage, 
-          time_spent_seconds, tab_switch_count,
+          time_spent_seconds, tab_switch_count, ai_diagnosis,
           student:profiles(full_name),
           test_attempt_answers (
             question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
@@ -135,6 +135,7 @@ async function fetchResultData(
     time_spent_seconds: rawAttempt.time_spent_seconds ?? null,
     tab_switch_count: rawAttempt.tab_switch_count ?? null,
     student_name: studentName,
+    ai_diagnosis: rawAttempt.ai_diagnosis ?? null,
   }
 
   const answerMap: Record<string, any> = {}

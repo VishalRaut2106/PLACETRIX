@@ -177,7 +177,6 @@ export function DashboardShell({
         </SidebarInset>
 
         <MobileHoverGuard suspendHoverRef={suspendHoverRef} />
-        <WhatsNewModal />
       </SidebarProvider>
     </SidebarHoverContext.Provider>
   )

@@ -299,8 +299,8 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
   "gemini-3.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemma-4-31b",
   "gemini-2.0-flash",
   "gemini-1.5-pro",
   "gemini-1.5-flash",
@@ -400,7 +400,7 @@ export async function generateQuestionsAction(
 
   const ai = new GoogleGenAI({ apiKey })
 
-  const systemPrompt = `You are an expert exam question author for educational assessments.
+  const systemPrompt = `You are Trixy AI — an expert exam question author for educational assessments.
 
 STRICT RULES you must follow for every question:
 1. Every question has EXACTLY 4 options — no more, no less.
@@ -448,9 +448,13 @@ It must follow this exact shape:
   const nonce = crypto.randomUUID()
   const randomSeed = Math.floor(Math.random() * 1000000)
 
-  const userPrompt = `[Request ID: ${nonce}]
-[Random Seed: ${randomSeed}]
-Generate exactly ${count} questions on the topic: "${input.topic}".
+  const executeSingleBatch = async (
+    model: string,
+    batchCount: number
+  ): Promise<QuestionForm[]> => {
+    const batchPrompt = `[Request ID: ${crypto.randomUUID()}]
+[Random Seed: ${Math.floor(Math.random() * 1000000)}]
+Generate exactly ${batchCount} questions on the topic: "${input.topic}".
 Difficulty: ${input.difficulty}. Each question carries 1 mark.
 ${typeInstruction}
 Ensure all questions are entirely distinct, unique, use creative scenarios, and are not reused from any prior generation.
@@ -458,15 +462,13 @@ Ensure all questions are entirely distinct, unique, use creative scenarios, and 
 EXISTING TAGS (Use these exactly if they fit):
 ${existingTagsStr}`
 
-  const attemptWithModel = async (
-    model: string
-  ): Promise<GenerateQuestionsResult> => {
-    const response = await ai.models.generateContent({
+    const streamRes = await ai.models.generateContentStream({
       model,
-      contents: userPrompt,
+      contents: batchPrompt,
       config: {
         systemInstruction: systemPrompt,
         temperature: 0.25,
+        maxOutputTokens: 6000,
         responseMimeType: "application/json",
         responseSchema: {
           type: "object",
@@ -505,7 +507,11 @@ ${existingTagsStr}`
       }
     })
 
-    const raw = response.text
+    let raw = ""
+    for await (const chunk of streamRes) {
+      raw += chunk.text ?? ""
+    }
+
     if (!raw) throw new Error("Empty response from AI.")
 
     const text = stripCodeFences(raw)
@@ -524,11 +530,33 @@ ${existingTagsStr}`
         : []
 
     const questions = sanitizeQuestions(rawList, marksDefault)
-
     if (questions.length === 0) {
-      throw new Error("No valid questions returned by the AI. Please try again.")
+      throw new Error("No valid questions returned by the AI.")
+    }
+    return questions
+  }
+
+  const attemptWithModel = async (
+    model: string
+  ): Promise<GenerateQuestionsResult> => {
+    // If requesting > 6 questions, split into parallel sub-batches using Promise.all for >50% speedup
+    if (count > 6) {
+      const count1 = Math.ceil(count / 2)
+      const count2 = count - count1
+
+      const [batch1, batch2] = await Promise.all([
+        executeSingleBatch(model, count1),
+        executeSingleBatch(model, count2),
+      ])
+
+      const combined = [...batch1, ...batch2]
+      return {
+        questions: combined,
+        generatedWith: model,
+      }
     }
 
+    const questions = await executeSingleBatch(model, count)
     return {
       questions,
       generatedWith: model,
@@ -543,6 +571,9 @@ ${existingTagsStr}`
     } catch (err) {
       lastError = err
       console.warn(`[generateQuestionsAction] Model ${model} failed, advancing fallback chain…`)
+      if (isRetryableOnNextModel(err)) {
+        await new Promise((r) => setTimeout(r, 500))
+      }
     }
   }
 

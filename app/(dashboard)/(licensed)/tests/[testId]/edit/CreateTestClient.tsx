@@ -1090,10 +1090,10 @@ function AiGenerateSheet({
         <SheetHeader className="shrink-0 border-b px-6 py-4">
           <SheetTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-purple-500" />
-            Generate with AI
+            Generate with Trixy AI
           </SheetTitle>
           <SheetDescription>
-            Describe a topic, generate questions, then review and add selected ones.
+            Describe a topic, generate questions with Trixy AI, then review and add selected ones.
           </SheetDescription>
 
           {generatedWith && (
@@ -1998,7 +1998,7 @@ function QuestionsPanel({
 
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setAiSheetOpen(true)}>
-                <Sparkles className="mr-1.5 size-4" /> AI Generate
+                <Sparkles className="mr-1.5 size-4 text-purple-500" /> Trixy AI Generate
               </Button>
               <Button size="sm" variant="outline" onClick={() => setImportSheetOpen(true)}>
                 <Upload className="mr-1.5 size-4" /> Import

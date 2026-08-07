@@ -20,11 +20,13 @@ export type AnswerInputForDiagnosis = {
 }
 
 export type ConceptualDiagnosisInput = {
+  attemptId?: string
   testTitle: string
   score: number | null
   totalMarks: number | null
   percentage: number | null
   answers: AnswerInputForDiagnosis[]
+  analysisType?: "deep" | "general"
 }
 
 export type QuestionDiagnosis = {
@@ -47,10 +49,10 @@ export type DiagnosticResultPayload = {
   error?: string
 }
 
+// ── Fallback chain DOES NOT include gemini-3.5-flash to preserve its quota for test generation
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemini-3.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemma-4-31b",
   "gemini-2.0-flash",
   "gemini-1.5-pro",
   "gemini-1.5-flash",
@@ -82,14 +84,16 @@ export async function generateConceptualFeedbackAction(
 
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    return { error: "AI Diagnostic Engine is not configured. Missing GEMINI_API_KEY." }
+    return { error: "Trixy AI Diagnostic Engine is not configured. Missing GEMINI_API_KEY." }
   }
 
   if (!input.answers || input.answers.length === 0) {
     return { error: "No test questions provided for evaluation." }
   }
 
-  // Filter incorrect questions for deep LLM evaluation to save latency and token overhead
+  const isGeneral = input.analysisType === "general"
+
+  // Filter incorrect questions for LLM evaluation
   const incorrectAnswers = input.answers.filter((a) => !a.is_correct)
   
   // Create instant default diagnosis entries for correct answers
@@ -104,8 +108,8 @@ export async function generateConceptualFeedbackAction(
       distractor_analysis: "N/A",
     }))
 
-  // Build readable summary for AI focusing on incorrect questions & high-level performance
-  const formattedIncorrect = (incorrectAnswers.length > 0 ? incorrectAnswers : input.answers).map((a, idx) => {
+  // Build summary for AI
+  const formattedIncorrect = (incorrectAnswers.length > 0 ? incorrectAnswers : input.answers).map((a) => {
     const selectedTexts = a.options
       .filter((o) => a.selected_option_ids.includes(o.id))
       .map((o) => o.option_text)
@@ -135,9 +139,20 @@ ${allOptionsStr}`
 
   const ai = new GoogleGenAI({ apiKey })
 
-  const systemInstruction = `You are Gemini — an advanced educational AI diagnostician for student assessment.
+  const systemInstruction = isGeneral
+    ? `You are Trixy AI — an advanced educational AI diagnostician for student assessment.
+Your mission is to perform a concise, general performance synthesis of a student's test attempt.
+Focus on high-level strengths, key conceptual areas for improvement, and quick study takeaways. Keep token output light and fast.
 
-Your mission is to perform a rapid, deep conceptual evaluation of a student's test performance.
+STRICT INSTRUCTIONS:
+1. "overall_diagnosis": 2-3 sentence overview of candidate's test performance.
+2. "strengths": 2-3 short bullet points celebrating mastered concepts.
+3. "key_misconceptions": 2-3 short bullet points highlighting major areas of improvement.
+4. "recommended_review_topics": 2-4 key topics to review.
+5. "question_diagnoses": Keep this array EMPTY [] for general overview to save token overhead.
+6. LATEX FORMATTING: Use standard single dollar signs ($...$) for inline math. Double-escape backslashes in JSON output ("\\\\frac{a}{b}"). Output raw JSON only.`
+    : `You are Trixy AI — an advanced educational AI diagnostician for student assessment.
+Your mission is to perform a deep conceptual evaluation of a student's test performance.
 Identify cognitive distractor traps they fell into and provide concise, actionable study guidance.
 
 STRICT INSTRUCTIONS:
@@ -150,30 +165,28 @@ STRICT INSTRUCTIONS:
    - "why_choice_was_wrong": Explain why their selected option is wrong and what reasoning flaw led to it.
    - "correct_concept_explanation": Explain the correct concept clearly and concisely.
    - "distractor_analysis": Explain why the wrong option was a tempting distractor trap.
-6. LATEX FORMATTING:
-   - Use standard single dollar signs ($...$) for inline math and double dollar signs ($$...$$) for centered block math.
-   - Double-escape backslashes in JSON output (e.g., "\\\\frac{a}{b}").
-
-Output MUST be a single raw JSON object matching the requested schema.`
+6. LATEX FORMATTING: Use standard single dollar signs ($...$) for inline math. Double-escape backslashes in JSON output ("\\\\frac{a}{b}"). Output raw JSON only.`
 
   const userPrompt = `Test Title: ${input.testTitle}
 Score: ${input.score ?? 0} / ${input.totalMarks ?? 0} (${input.percentage ?? 0}%)
 Total Questions: ${input.answers.length} (Correct: ${input.answers.length - incorrectAnswers.length}, Incorrect: ${incorrectAnswers.length})
+Analysis Mode: ${isGeneral ? "General Performance Overview" : "Deep Per-Question Diagnosis"}
 
-Student Errors to Diagnose:
+Student Performance Data:
 ---
 ${formattedIncorrect}
 ---
 
-Perform a rapid conceptual diagnostic evaluation.`
+Perform a ${isGeneral ? "general lightweight performance synthesis" : "deep conceptual diagnostic evaluation"}.`
 
   const attemptWithModel = async (model: string): Promise<DiagnosticResultPayload> => {
-    const response = await ai.models.generateContent({
+    const streamRes = await ai.models.generateContentStream({
       model,
       contents: userPrompt,
       config: {
         systemInstruction,
         temperature: 0.1,
+        maxOutputTokens: 6000,
         responseMimeType: "application/json",
         responseSchema: {
           type: "object",
@@ -216,8 +229,12 @@ Perform a rapid conceptual diagnostic evaluation.`
       }
     })
 
-    const raw = response.text
-    if (!raw) throw new Error("Empty response from AI engine.")
+    let raw = ""
+    for await (const chunk of streamRes) {
+      raw += chunk.text ?? ""
+    }
+
+    if (!raw) throw new Error("Empty response from Trixy AI engine.")
 
     const cleanJson = stripCodeFences(raw)
     const parsed = JSON.parse(cleanJson)
@@ -229,7 +246,7 @@ Perform a rapid conceptual diagnostic evaluation.`
     // Combine instant correct diagnoses with LLM incorrect diagnoses
     const allDiagnoses = [...correctDiagnoses, ...llmDiagnoses]
 
-    return {
+    const resultPayload: DiagnosticResultPayload = {
       model_used: model,
       overall_diagnosis: String(parsed.overall_diagnosis || ""),
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
@@ -238,6 +255,21 @@ Perform a rapid conceptual diagnostic evaluation.`
       question_diagnoses: allDiagnoses,
       generated_at: new Date().toISOString(),
     }
+
+    // Persist diagnosis in Supabase DB so page refreshes load instantly without re-invoking AI
+    if (input.attemptId) {
+      try {
+        const dbClient = await createClient()
+        await (dbClient as any)
+          .from("test_attempts")
+          .update({ ai_diagnosis: resultPayload })
+          .eq("id", input.attemptId)
+      } catch (dbErr) {
+        console.error("[generateConceptualFeedbackAction] Failed to persist ai_diagnosis in DB:", dbErr)
+      }
+    }
+
+    return resultPayload
   }
 
   let lastError: unknown
@@ -247,11 +279,15 @@ Perform a rapid conceptual diagnostic evaluation.`
     } catch (err) {
       lastError = err
       console.warn(`[generateConceptualFeedbackAction] Model ${model} failed, advancing fallback chain...`)
+      if (isRetryableOnNextModel(err)) {
+        await new Promise((r) => setTimeout(r, 500))
+      }
     }
   }
 
   console.error("[generateConceptualFeedbackAction] All models failed:", lastError)
   return {
-    error: lastError instanceof Error ? lastError.message : "Failed to generate AI diagnostic feedback."
+    error: lastError instanceof Error ? lastError.message : "Failed to generate Trixy AI diagnostic feedback."
   }
 }
+

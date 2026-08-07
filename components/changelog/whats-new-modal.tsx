@@ -18,7 +18,8 @@ import {
   CHANGELOG_DATA,
   LATEST_VERSION,
   STORAGE_KEY_LAST_SEEN_VERSION,
-  ChangelogCategoryType
+  ChangelogCategoryType,
+  markChangelogAsRead
 } from "@/lib/changelog"
 
 function CategoryBadge({ type }: { type: ChangelogCategoryType }) {
@@ -34,23 +35,16 @@ function CategoryBadge({ type }: { type: ChangelogCategoryType }) {
   }
 }
 
-export function WhatsNewModal() {
-  const [open, setOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const lastSeen = localStorage.getItem(STORAGE_KEY_LAST_SEEN_VERSION)
-      if (lastSeen !== LATEST_VERSION) {
-        setOpen(true)
-      }
-    }
-  }, [])
-
+export function WhatsNewModal({
+  open,
+  onOpenChange,
+}: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
   const handleClose = () => {
-    setOpen(false)
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY_LAST_SEEN_VERSION, LATEST_VERSION)
-    }
+    markChangelogAsRead()
+    onOpenChange?.(false)
   }
 
   if (!open) return null

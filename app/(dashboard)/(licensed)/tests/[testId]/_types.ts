@@ -52,8 +52,10 @@ export interface CandidateAttemptDetail
   > {
   status: "in_progress" | "submitted"   // narrow the DB string union
   student_name?: string | null
+  ai_diagnosis?: any | null
   answers: CandidateAnswerDetail[]
 }
+
 
 export interface CandidateTestDetail
   extends Pick<
