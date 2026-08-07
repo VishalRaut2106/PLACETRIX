@@ -58,14 +58,12 @@ export default function LeaderboardClient({
           )}
 
           {/* Table Header */}
-          <div className={cn('hidden', 'md:grid', 'md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px_minmax(150px,2fr)_60px]', 'items-center', 'gap-4', 'px-4', 'py-3.5', 'bg-muted/40', 'border-b', 'border-border', 'text-xs', 'font-bold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'select-none')}>
+          <div className={cn('hidden', 'md:grid', 'md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px]', 'items-center', 'gap-4', 'px-4', 'py-3.5', 'bg-muted/40', 'border-b', 'border-border', 'text-xs', 'font-bold', 'text-muted-foreground', 'uppercase', 'tracking-wider', 'select-none')}>
             <div className="text-center">Rank</div>
             <div></div>
             <div>Student</div>
             <div>Problems Solved</div>
             <div>Score</div>
-            <div className={cn('hidden', 'md:block')}>Course</div>
-            <div className={cn('hidden', 'md:block')}>Year</div>
           </div>
 
           <div className={cn('flex', 'flex-col')}>
@@ -93,7 +91,7 @@ export default function LeaderboardClient({
                   <div
                     key={user.id}
                     className={cn(
-                      "group flex md:grid md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px_minmax(150px,2fr)_60px] items-center gap-3 md:gap-4 px-4 py-3 transition-colors duration-200 hover:bg-muted/40",
+                      "group flex md:grid md:grid-cols-[56px_56px_minmax(150px,1.5fr)_140px_120px] items-center gap-3 md:gap-4 px-4 py-3 transition-colors duration-200 hover:bg-muted/40",
                       isEven ? "bg-transparent" : "bg-zinc-100 dark:bg-white/[0.04]",
                       isCurrentUser && "bg-primary/5 dark:bg-primary/10",
                       idx !== data.length - 1 && "border-b border-border"
@@ -128,11 +126,11 @@ export default function LeaderboardClient({
                     <div className={cn('flex-1', 'md:w-full', 'min-w-0', 'flex', 'items-center', 'gap-2')}>
                       {user.username ? (
                         <Link href={`/u/${user.username}`} target="_blank" rel="noopener noreferrer" className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug', 'hover:text-primary', 'transition-colors')}>
-                          {user.username || `${user.first_name} ${user.last_name}`}
+                          {`${user.first_name} ${user.last_name}`.trim() || user.username}
                         </Link>
                       ) : (
                         <span className={cn('text-sm', 'font-medium', 'text-foreground', 'truncate', 'leading-snug')}>
-                          {user.username || `${user.first_name} ${user.last_name}`}
+                          {`${user.first_name} ${user.last_name}`.trim()}
                         </span>
                       )}
                       {isCurrentUser && (
@@ -153,17 +151,7 @@ export default function LeaderboardClient({
                       <span className={cn('text-[10px]', 'text-muted-foreground/70', 'uppercase', 'tracking-wider', 'hidden', 'sm:block', 'mt-0.5')}>pts</span>
                     </div>
 
-                    <div className={cn('hidden', 'md:flex', 'items-center', 'min-w-0')}>
-                      <span className={cn('text-[13px]', 'font-medium', 'text-muted-foreground/80', 'truncate')} title={user.course_name || ''}>
-                        {user.course_name || '-'}
-                      </span>
-                    </div>
 
-                    <div className={cn('hidden', 'md:flex', 'items-center')}>
-                      <span className={cn('text-[13px]', 'font-mono', 'text-muted-foreground/80')}>
-                        {user.passout_year || '-'}
-                      </span>
-                    </div>
                   </div>
                 )
               })

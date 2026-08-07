@@ -389,7 +389,7 @@ export function CandidateDashboardClient({
 
         {/* Cell 1: Welcome & Streak (col-span-3 - natural height header) */}
         <motion.div variants={itemVariants} className="lg:col-span-3 md:col-span-2 col-span-1">
-          <Card className="relative overflow-hidden bg-card border border-border/40 shadow-sm rounded-2xl group hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0">
+          <Card className="relative overflow-hidden bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0">
             {/* Glowing gradients */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.08] via-purple-500/[0.03] to-sky-500/[0.06] pointer-events-none" />
 
@@ -427,7 +427,7 @@ export function CandidateDashboardClient({
 
         {/* Card 1: Daily Challenge (col-span-1) */}
         <motion.div variants={itemVariants} className="col-span-1">
-          <Card className="group/potd bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+          <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full relative py-0">
             <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
               <div className="flex flex-col gap-4 min-w-0">
                 <div className="flex flex-row items-center justify-between pb-1">
@@ -524,7 +524,7 @@ export function CandidateDashboardClient({
 
         {/* Cell 3: Mock Test Performance (col-span-1) */}
         <motion.div variants={itemVariants} className="col-span-1">
-          <Card className="bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full">
+          <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full">
             <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Mock Test Performance
@@ -591,10 +591,10 @@ export function CandidateDashboardClient({
 
         {/* Practice Activity Calendar -> Heatmap Graph (md:col-span-2 lg:col-span-1) */}
         <motion.div variants={itemVariants} className="md:col-span-2 lg:col-span-1">
-          <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'py-0', 'bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md duration-300 h-full')}>
+          <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'py-0', 'bg-card border border-border/40 shadow-md rounded-2xl h-full')}>
             <CardHeader className={cn('pt-4', 'pb-1')}>
               <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
-                Activity Graph
+                Logic Lab Activity Graph
               </CardTitle>
             </CardHeader>
 
@@ -721,7 +721,7 @@ export function CandidateDashboardClient({
 
         {/* Card 1: Active & Upcoming Tests */}
         <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
-          <Card className="group/test bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+          <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full relative py-0">
             <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
               {(() => {
                 const displayTest = liveTests.length > 0
@@ -805,7 +805,7 @@ export function CandidateDashboardClient({
 
         {/* Card 2: Active & Upcoming Events */}
         <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
-          <Card className="group/event bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+          <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full relative py-0">
             <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
               <div className="flex flex-col gap-4 min-w-0">
                 <div className="flex flex-row items-center justify-between pb-1">
@@ -878,7 +878,7 @@ export function CandidateDashboardClient({
 
         {/* Card 3: Active & Upcoming Opportunities */}
         <motion.div variants={itemVariants} className="lg:col-span-1 md:col-span-2 col-span-1">
-          <Card className="group/opp bg-card border border-border/40 shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col p-0 gap-0 h-full relative py-0">
+          <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full relative py-0">
             <CardContent className="p-5 flex flex-col flex-1 justify-between gap-5 h-full">
               {(() => {
                 const opp = opportunities.length > 0 ? opportunities[0] : null

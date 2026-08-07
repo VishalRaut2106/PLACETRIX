@@ -79,10 +79,10 @@ function StatCard({
           : "bg-muted/40 text-muted-foreground";
 
   return (
-    <div className="group rounded-2xl border border-border/40 bg-card p-5 flex flex-col gap-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+    <div className="rounded-2xl border border-border/40 bg-card p-5 flex flex-col gap-4 shadow-md">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-        <span className={`p-2 rounded-xl transition-all duration-300 group-hover:scale-110 ${accentBg}`}>
+        <span className={`p-2 rounded-xl ${accentBg}`}>
           {icon}
         </span>
       </div>
@@ -709,7 +709,7 @@ export default async function HomePage() {
           </div>
 
           {/* Column 2 & 3: Support Queue Bento Card */}
-          <Card className="lg:col-span-2 bg-card border border-border/40 shadow-sm rounded-2xl p-0 gap-0 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex flex-col animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:350ms]">
+          <Card className="lg:col-span-2 bg-card border border-border/40 shadow-lg rounded-2xl p-0 gap-0 flex flex-col animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:350ms]">
             <CardContent className="p-5 flex flex-col gap-3 flex-1 justify-start">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
