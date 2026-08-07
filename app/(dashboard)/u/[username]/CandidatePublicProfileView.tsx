@@ -270,216 +270,53 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
           </div>
         </div>
 
-        {/* ── LogicLab Stats Cards (difficulty rings + heatmap) ── */}
+        {/* ── LogicLab Stats Cards (difficulty rings + heatmap + recent submissions) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <LogicLabStatsCards globalStats={globalStats} activityCalendar={activityCalendar} streakStats={streakStats} />
 
-          {/* Badges card */}
-          <Dialog>
-            <Card className="flex flex-col py-0 h-full">
-              <CardHeader className="flex flex-row items-center justify-between pt-4 pb-1">
-                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Badges
-                </CardTitle>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-              </CardHeader>
-              <CardContent className="flex flex-col flex-1 justify-between pb-4 pt-0 min-h-[180px]">
-                <div className="mb-2">
-                  <p className="text-3xl font-bold tracking-tight leading-none">{data.badges?.length || 0}</p>
+          {/* Recent Submissions Card */}
+          <Card className="flex flex-col py-0 h-full">
+            <CardHeader className="flex flex-row items-center justify-between pt-4 pb-1">
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Recent Submissions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col flex-1 justify-between pb-4 pt-0 min-h-[180px]">
+              {recentSolved.length > 0 ? (
+                <div className="divide-y divide-border/40 my-auto">
+                  {recentSolved.slice(0, 4).map((problem, idx) => (
+                    <div key={`${problem.id}-${idx}`} className="flex items-center justify-between py-2 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <span className="text-xs font-medium truncate">{problem.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] h-4 px-1 font-medium border-transparent",
+                            problem.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                            problem.difficulty === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                            "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          )}
+                        >
+                          {problem.difficulty}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground tabular-nums w-12 text-right">
+                          {getRelativeTime(problem.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <DialogTrigger asChild>
-                  <div className="flex-1 flex items-center justify-center py-2 cursor-pointer rounded-md hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center -space-x-4 px-2">
-                      {(() => {
-                        const allBadges = data.allBadges || [];
-                        const earnedBadgeIds = new Map(data.badges?.map(b => [b.id, b]) || []);
-                        const earnedBadgesOnly = allBadges.filter((b: any) => earnedBadgeIds.has(b.id));
-                        const previewBadges = [...earnedBadgesOnly]
-                          .sort((a, b) => {
-                            const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
-                            const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
-                            return bDate - aDate;
-                          })
-                          .slice(0, 4);
-
-                        if (previewBadges.length === 0) {
-                          return <p className="text-xs text-muted-foreground italic">No badges yet.</p>;
-                        }
-
-                        return previewBadges.map((badge: any, idx: number) => {
-                          const isImage = badge.icon_name.endsWith(".png") || badge.icon_name.endsWith(".svg") || badge.icon_name.endsWith(".webp") || badge.icon_name.includes("/");
-                          let IconComp: any = Award;
-                          if (!isImage) {
-                            if (badge.icon_name === "Flame") IconComp = Flame;
-                            else if (badge.icon_name === "Zap") IconComp = Zap;
-                            else if (badge.icon_name === "Trophy") IconComp = Trophy;
-                            else if (badge.icon_name === "Brain") IconComp = Brain;
-                            else if (badge.icon_name === "Target") IconComp = Target;
-                          }
-                          const earnedData = earnedBadgeIds.get(badge.id);
-                          const earnedDateStr = earnedData?.earned_at
-                            ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(earnedData.earned_at))
-                            : null;
-
-                          return (
-                            <Tooltip key={idx}>
-                              <TooltipTrigger asChild>
-                                <div className={cn("relative transition-transform hover:scale-110 flex-shrink-0 cursor-pointer hover:z-20", `z-[${4 - idx}]`)}>
-                                  <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center">
-                                    {isImage ? (
-                                      <img src={badge.icon_name} alt={badge.name} className="w-full h-full object-contain drop-shadow-md" />
-                                    ) : (
-                                      <div className="w-full h-full rounded-full flex items-center justify-center border bg-muted">
-                                        <IconComp className="w-5 h-5 text-muted-foreground" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-[220px] text-center p-3" sideOffset={10}>
-                                <p className="font-bold text-sm mb-1">{badge.name}</p>
-                                {earnedDateStr && <p className="text-xs text-muted-foreground">Earned {earnedDateStr}</p>}
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                </DialogTrigger>
-
-                {data.badges && data.badges.length > 0 && (
-                  <div className="mt-auto pt-2">
-                    <p className="text-xs text-muted-foreground mb-0.5">Most Recent</p>
-                    <p className="text-sm font-semibold leading-tight truncate">{data.badges[0].name}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>All Badges</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 mt-6 place-items-center pb-8">
-                {(() => {
-                  const allBadges = data.allBadges || [];
-                  const earnedBadgeIds = new Map(data.badges?.map(b => [b.id, b]) || []);
-
-                  if (allBadges.length === 0) {
-                    return <p className="text-sm text-muted-foreground italic col-span-full text-center py-8">No badges available yet.</p>;
-                  }
-
-                  const sortedAllBadges = [...allBadges].sort((a: any, b: any) => {
-                    const aEarned = earnedBadgeIds.has(a.id);
-                    const bEarned = earnedBadgeIds.has(b.id);
-                    if (aEarned && !bEarned) return -1;
-                    if (!aEarned && bEarned) return 1;
-                    if (aEarned && bEarned) {
-                      const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
-                      const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
-                      return bDate - aDate;
-                    }
-                    return 0;
-                  });
-
-                  return sortedAllBadges.map((badge: any, idx: number) => {
-                    const earnedData = earnedBadgeIds.get(badge.id);
-                    const isEarned = !!earnedData;
-                    const earnedDateStr = isEarned && earnedData.earned_at
-                      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(earnedData.earned_at))
-                      : null;
-                    const isImage = badge.icon_name.endsWith(".png") || badge.icon_name.endsWith(".svg") || badge.icon_name.endsWith(".webp") || badge.icon_name.includes("/");
-                    let IconComp: any = Award;
-                    if (!isImage) {
-                      if (badge.icon_name === "Flame") IconComp = Flame;
-                      else if (badge.icon_name === "Zap") IconComp = Zap;
-                      else if (badge.icon_name === "Trophy") IconComp = Trophy;
-                      else if (badge.icon_name === "Brain") IconComp = Brain;
-                      else if (badge.icon_name === "Target") IconComp = Target;
-                    }
-
-                    return (
-                      <Tooltip key={idx}>
-                        <TooltipTrigger asChild>
-                          <div className={cn("flex flex-col items-center gap-3 text-center", !isEarned && "opacity-40 grayscale")}>
-                            <div className={cn("w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center transition-transform", isEarned && "hover:scale-110 cursor-pointer")}>
-                              {isImage ? (
-                                <img src={badge.icon_name} alt={badge.name} className="w-full h-full object-contain drop-shadow-md" />
-                              ) : (
-                                <div className="w-full h-full rounded-full flex items-center justify-center border bg-muted">
-                                  <IconComp className="w-6 h-6 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-center">
-                              <p className="font-semibold text-sm leading-tight mb-1">{badge.name}</p>
-                              {isEarned ? (
-                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{earnedDateStr}</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Locked</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[220px] text-center p-3" sideOffset={10}>
-                          <p className="font-bold text-sm mb-1">{badge.name}</p>
-                          <p className="text-xs text-muted-foreground leading-snug mb-2">{badge.description}</p>
-                          {isEarned
-                            ? <Badge variant="secondary" className="text-[10px]">Earned {earnedDateStr}</Badge>
-                            : <Badge variant="outline" className="text-[10px] text-muted-foreground">Locked</Badge>
-                          }
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  });
-                })()}
-              </div>
-            </DialogContent>
-          </Dialog>
+              ) : (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-xs text-muted-foreground italic">No recent submissions</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-
-        {/* ── Recent Submissions ── */}
-        {recentSolved.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Recent Submissions
-            </p>
-            <div className="rounded-lg border overflow-hidden">
-              <div className="divide-y divide-border/40">
-                {recentSolved.map((problem, idx) => (
-                  <div key={`${problem.id}-${idx}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                      <span className="text-sm font-medium truncate">{problem.title}</span>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-4">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] h-5 px-1.5 font-medium border-transparent",
-                          problem.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
-                          problem.difficulty === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
-                          "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                        )}
-                      >
-                        {problem.difficulty}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground tabular-nums w-16 text-right">
-                        {getRelativeTime(problem.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -564,7 +401,7 @@ export function CandidatePublicProfileView({
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="flex-1 min-w-0 text-center sm:text-left space-y-1">
+                <div className="flex-1 min-w-0 text-center sm:text-left space-y-1.5">
                   <h2 className="text-2xl font-bold tracking-tight">{publicData.full_name || "—"}</h2>
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-0.5">
                     {publicData.username && (
@@ -576,6 +413,156 @@ export function CandidatePublicProfileView({
                       </Badge>
                     )}
                   </div>
+
+                  {/* ── Badges small row below username ── */}
+                  {logicLabData && (logicLabData.badges?.length > 0 || logicLabData.allBadges?.length > 0) && (
+                    <Dialog>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1.5">
+                        <DialogTrigger asChild>
+                          <div className="flex items-center gap-1 cursor-pointer">
+                            {(() => {
+                              const allBadges = logicLabData.allBadges || [];
+                              const earnedBadgeIds = new Map(logicLabData.badges?.map(b => [b.id, b]) || []);
+                              const earnedBadgesOnly = allBadges.filter((b: any) => earnedBadgeIds.has(b.id));
+
+                              if (earnedBadgesOnly.length === 0) {
+                                return (
+                                  <span className="text-xs text-muted-foreground hover:underline">
+                                    No badges earned yet
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  {earnedBadgesOnly.slice(0, 5).map((badge: any, idx: number) => {
+                                    const isImage = badge.icon_name.endsWith(".png") || badge.icon_name.endsWith(".svg") || badge.icon_name.endsWith(".webp") || badge.icon_name.includes("/");
+                                    let IconComp: any = Award;
+                                    if (!isImage) {
+                                      if (badge.icon_name === "Flame") IconComp = Flame;
+                                      else if (badge.icon_name === "Zap") IconComp = Zap;
+                                      else if (badge.icon_name === "Trophy") IconComp = Trophy;
+                                      else if (badge.icon_name === "Brain") IconComp = Brain;
+                                      else if (badge.icon_name === "Target") IconComp = Target;
+                                    }
+                                    const earnedData = earnedBadgeIds.get(badge.id);
+                                    const earnedDateStr = earnedData?.earned_at
+                                      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(earnedData.earned_at))
+                                      : null;
+
+                                    return (
+                                      <Tooltip key={idx}>
+                                        <TooltipTrigger asChild>
+                                          <div className="w-7 h-7 rounded-full border bg-muted/40 p-1 flex items-center justify-center transition-transform hover:scale-110">
+                                            {isImage ? (
+                                              <img src={badge.icon_name} alt={badge.name} className="w-full h-full object-contain drop-shadow-sm" />
+                                            ) : (
+                                              <IconComp className="w-3.5 h-3.5 text-primary" />
+                                            )}
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-[200px] text-center p-2 text-xs">
+                                          <p className="font-bold">{badge.name}</p>
+                                          {earnedDateStr && <p className="text-[10px] text-muted-foreground">Earned {earnedDateStr}</p>}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </DialogTrigger>
+
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
+                            View all ({logicLabData.badges?.length || 0})
+                          </Button>
+                        </DialogTrigger>
+                      </div>
+
+                      {/* All Badges Dialog Modal */}
+                      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>All Badges</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 mt-6 place-items-center pb-8">
+                          {(() => {
+                            const allBadges = logicLabData.allBadges || [];
+                            const earnedBadgeIds = new Map(logicLabData.badges?.map(b => [b.id, b]) || []);
+
+                            if (allBadges.length === 0) {
+                              return <p className="text-sm text-muted-foreground italic col-span-full text-center py-8">No badges available yet.</p>;
+                            }
+
+                            const sortedAllBadges = [...allBadges].sort((a: any, b: any) => {
+                              const aEarned = earnedBadgeIds.has(a.id);
+                              const bEarned = earnedBadgeIds.has(b.id);
+                              if (aEarned && !bEarned) return -1;
+                              if (!aEarned && bEarned) return 1;
+                              if (aEarned && bEarned) {
+                                const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
+                                const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
+                                return bDate - aDate;
+                              }
+                              return 0;
+                            });
+
+                            return sortedAllBadges.map((badge: any, idx: number) => {
+                              const earnedData = earnedBadgeIds.get(badge.id);
+                              const isEarned = !!earnedData;
+                              const earnedDateStr = isEarned && earnedData.earned_at
+                                ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(earnedData.earned_at))
+                                : null;
+                              const isImage = badge.icon_name.endsWith(".png") || badge.icon_name.endsWith(".svg") || badge.icon_name.endsWith(".webp") || badge.icon_name.includes("/");
+                              let IconComp: any = Award;
+                              if (!isImage) {
+                                if (badge.icon_name === "Flame") IconComp = Flame;
+                                else if (badge.icon_name === "Zap") IconComp = Zap;
+                                else if (badge.icon_name === "Trophy") IconComp = Trophy;
+                                else if (badge.icon_name === "Brain") IconComp = Brain;
+                                else if (badge.icon_name === "Target") IconComp = Target;
+                              }
+
+                              return (
+                                <Tooltip key={idx}>
+                                  <TooltipTrigger asChild>
+                                    <div className={cn("flex flex-col items-center gap-3 text-center", !isEarned && "opacity-40 grayscale")}>
+                                      <div className={cn("w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center transition-transform", isEarned && "hover:scale-110 cursor-pointer")}>
+                                        {isImage ? (
+                                          <img src={badge.icon_name} alt={badge.name} className="w-full h-full object-contain drop-shadow-md" />
+                                        ) : (
+                                          <div className="w-full h-full rounded-full flex items-center justify-center border bg-muted">
+                                            <IconComp className="w-6 h-6 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-col items-center">
+                                        <p className="font-semibold text-sm leading-tight mb-1">{badge.name}</p>
+                                        {isEarned ? (
+                                          <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{earnedDateStr}</Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-muted-foreground">Locked</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-[220px] text-center p-3" sideOffset={10}>
+                                    <p className="font-bold text-sm mb-1">{badge.name}</p>
+                                    <p className="text-xs text-muted-foreground leading-snug mb-2">{badge.description}</p>
+                                    {isEarned
+                                      ? <Badge variant="secondary" className="text-[10px]">Earned {earnedDateStr}</Badge>
+                                      : <Badge variant="outline" className="text-[10px] text-muted-foreground">Locked</Badge>
+                                    }
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </div>
             </CardContent>
