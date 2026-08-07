@@ -35,7 +35,7 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
     .from("profiles")
     .select("id, first_name, last_name, username, avatar_path, logiclab_points, logiclab_solved_count, current_streak", { count: "exact" })
     .eq("institute_id", instituteId)
-    .neq("id", "a69f3a2d-0016-44e9-8b4c-4dd60c55cd49") // Hide test account
+  
     .gt("logiclab_points", 0) // Only users with a score
     .order("logiclab_points", { ascending: false })
     .order("logiclab_solved_count", { ascending: false })
@@ -151,7 +151,7 @@ export async function getCurrentUserRankAction(instituteId: string, userId: stri
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("institute_id", instituteId)
-    .neq("id", "a69f3a2d-0016-44e9-8b4c-4dd60c55cd49") // Hide test account
+   
     .gt("logiclab_points", userPoints)
 
   if (error) {
