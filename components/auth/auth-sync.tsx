@@ -87,10 +87,9 @@ function AuthSyncContent() {
         return;
       }
 
-      // Switched user account or token refreshed
+      // Switched user account or user profile updated
       if (
         (prevUserId !== newUserId && prevUserId !== undefined) ||
-        event === "TOKEN_REFRESHED" ||
         event === "USER_UPDATED"
       ) {
         router.refresh();

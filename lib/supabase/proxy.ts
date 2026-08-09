@@ -127,12 +127,33 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
 
     if (hasAuthCookie) {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          user = { ...authUser, sub: authUser.id } as any;
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authData?.user) {
+          user = { ...authData.user, sub: authData.user.id } as any;
+        } else if (authError) {
+          if (
+            (authError as any).code === "refresh_token_not_found" ||
+            authError.status === 400
+          ) {
+            console.warn("[Middleware] Invalid/revoked refresh token detected. Clearing auth cookies.");
+            request.cookies.getAll().forEach((c) => {
+              if (c.name.includes("auth-token")) {
+                supabaseResponse.cookies.delete(c.name);
+              }
+            });
+          }
         }
-      } catch (e) {
-        console.error("[Middleware] Refresh exception:", e);
+      } catch (e: any) {
+        if (e?.code === "refresh_token_not_found" || e?.status === 400) {
+          console.warn("[Middleware] Refresh token exception caught. Clearing auth cookies.");
+          request.cookies.getAll().forEach((c) => {
+            if (c.name.includes("auth-token")) {
+              supabaseResponse.cookies.delete(c.name);
+            }
+          });
+        } else {
+          console.error("[Middleware] Refresh exception:", e);
+        }
       }
     }
   }
