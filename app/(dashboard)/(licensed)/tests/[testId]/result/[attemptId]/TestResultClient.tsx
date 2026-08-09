@@ -523,37 +523,37 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 pb-12 animate-in fade-in duration-500">
 
       {/* ── Page Header ────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 min-w-0">
         {test.institute_name && (
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground break-words leading-snug">
             {test.institute_name}
           </p>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold font-cirka tracking-tight text-foreground break-words leading-tight">
             {test.title}
           </h1>
           {isInProgress ? (
-            <Badge variant="secondary" className="h-5 gap-1 border border-blue-200/60 bg-blue-50 px-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400">
+            <Badge variant="secondary" className="h-5 gap-1 border border-blue-200/60 bg-blue-50 px-2 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 shrink-0">
               <Clock className="h-3 w-3 animate-spin" />
               In Progress
             </Badge>
           ) : (
             <>
               {isExpired && (
-                <Badge variant="secondary" className="h-5 gap-1 border bg-muted/30 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Badge variant="secondary" className="h-5 gap-1 border bg-muted/30 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   <CalendarX className="h-3 w-3" />
                   Closed
                 </Badge>
               )}
               {isLive && (
-                <Badge variant="secondary" className="h-5 gap-1 border border-emerald-200/50 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <Badge variant="secondary" className="h-5 gap-1 border border-emerald-200/50 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 shrink-0">
                   <Clock className="h-3 w-3" />
                   Live
                 </Badge>
               )}
               {isNotYetOpen && (
-                <Badge variant="secondary" className="h-5 gap-1 border border-amber-200/50 bg-amber-50 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+                <Badge variant="secondary" className="h-5 gap-1 border border-amber-200/50 bg-amber-50 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300 shrink-0">
                   <CalendarClock className="h-3 w-3" />
                   Upcoming
                 </Badge>
@@ -624,17 +624,17 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
           )}
 
           {/* ── Score card ──────────────────────────────────────────────── */}
-          <div className="rounded-xl border bg-card p-5 space-y-4">
+          <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-4 min-w-0 overflow-hidden">
 
             {/* Top row: percentage / in progress + time badge */}
-            <div className="flex items-start justify-between gap-4">
-              <div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+              <div className="min-w-0">
                 <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   Score
                 </p>
                 {isInProgress ? (
                   <>
-                    <p className="mt-1 text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                    <p className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-blue-600 dark:text-blue-400 break-words">
                       In Progress
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
@@ -643,11 +643,11 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   </>
                 ) : (
                   <>
-                    <p className={cn("mt-1 text-4xl font-bold tabular-nums tracking-tight", pctColorClass)}>
+                    <p className={cn("mt-1 text-3xl sm:text-4xl font-bold tabular-nums tracking-tight break-words", pctColorClass)}>
                       {pct.toFixed(2)}%
                     </p>
                     {attempt.score != null && attempt.total_marks != null && (
-                      <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+                      <p className="mt-0.5 text-xs sm:text-sm tabular-nums text-muted-foreground">
                         {attempt.score} / {attempt.total_marks} pts
                       </p>
                     )}
@@ -656,7 +656,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
               </div>
 
               {(attempt.time_spent_seconds != null || attempt.tab_switch_count != null) && (
-                <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="flex flex-wrap items-center sm:items-end gap-2 shrink-0">
                   {attempt.time_spent_seconds != null && (
                     <div className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
                       <Timer className="h-3.5 w-3.5 shrink-0" />
@@ -677,14 +677,14 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
             {/* Bottom row: recorded / skipped OR correct · partial · incorrect · skipped */}
             {isInProgress ? (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm">
                 <span>
                   <span className="font-semibold tabular-nums text-blue-600 dark:text-blue-400">
                     {recordedCount}
                   </span>
                   <span className="ml-1 text-muted-foreground">recorded</span>
                 </span>
-                <Separator orientation="vertical" className="h-3.5" />
+                <Separator orientation="vertical" className="h-3.5 hidden sm:inline-block" />
                 <span>
                   <span className="font-semibold tabular-nums text-muted-foreground">
                     {skippedCount}
@@ -693,29 +693,29 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                 </span>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
-                <span>
+              <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2 text-xs sm:text-sm">
+                <span className="whitespace-nowrap">
                   <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-500">
                     {correctCount}
                   </span>
                   <span className="ml-1 text-muted-foreground">correct</span>
                 </span>
-                <Separator orientation="vertical" className="h-3.5" />
-                <span>
+                <Separator orientation="vertical" className="h-3.5 hidden sm:inline-block" />
+                <span className="whitespace-nowrap">
                   <span className="font-semibold tabular-nums text-amber-600 dark:text-amber-500">
                     {partialCount}
                   </span>
                   <span className="ml-1 text-muted-foreground">partial</span>
                 </span>
-                <Separator orientation="vertical" className="h-3.5" />
-                <span>
+                <Separator orientation="vertical" className="h-3.5 hidden sm:inline-block" />
+                <span className="whitespace-nowrap">
                   <span className="font-semibold tabular-nums text-destructive">
                     {incorrectCount}
                   </span>
                   <span className="ml-1 text-muted-foreground">incorrect</span>
                 </span>
-                <Separator orientation="vertical" className="h-3.5" />
-                <span>
+                <Separator orientation="vertical" className="h-3.5 hidden sm:inline-block" />
+                <span className="whitespace-nowrap">
                   <span className="font-semibold tabular-nums text-muted-foreground">
                     {skippedCount}
                   </span>
@@ -728,12 +728,12 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           {/* ── Trixy AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <div className="space-y-1">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
+                <div className="space-y-1 min-w-0">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Sparkles className="size-4 text-purple-500" />
-                    Trixy AI Conceptual Diagnostic Assistant
+                    <Sparkles className="size-4 text-purple-500 shrink-0" />
+                    <span className="break-words">Trixy AI Conceptual Diagnostic Assistant</span>
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Analyzes candidate conceptual gaps, misconceptions, and distractor traps with Trixy AI.
@@ -745,7 +745,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   variant="outline"
                   onClick={() => setIsDepthModalOpen(true)}
                   disabled={isGeneratingDiagnostic}
-                  className="shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
+                  className="w-full sm:w-auto shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
                 >
                   {isGeneratingDiagnostic ? (
                     <>
@@ -849,9 +849,9 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
           {/* ── Topic & Tag Performance Analytics Card ─────────────────── */}
           {!isInProgress && tagPerformanceList.length > 0 && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <div className="space-y-1">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
+                <div className="space-y-1 min-w-0">
                   <CardTitle className="text-base font-semibold">
                     Topic & Skill Mastery Breakdown
                   </CardTitle>
@@ -860,7 +860,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   </CardDescription>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs shrink-0">
+                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
                   <Badge variant="outline" className="font-normal text-[11px]">
                     {tagPerformanceList.filter((t) => t.status === "Strong").length} Mastered
                   </Badge>

@@ -352,7 +352,7 @@ async function fetchCandidateTests(
         new Date(now)
       ) as CandidateTest["derived_status"],
       results_available: t.results_available,
-      marks_available: t.marks_available ?? false,
+      marks_available: t.marks_available ?? true,
       attempt,
     }
   })
@@ -470,7 +470,7 @@ async function fetchInstituteTests(
     ),
     status: (t.status as "draft" | "published") ?? "draft",
     results_available: t.results_available ?? false,
-    marks_available: t.marks_available ?? false,
+    marks_available: t.marks_available ?? true,
     question_count: t.question_count ?? 0,
     attempt_count: t.total_attempts ?? 0,
   }))

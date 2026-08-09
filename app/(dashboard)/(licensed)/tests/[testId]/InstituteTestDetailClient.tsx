@@ -1779,9 +1779,9 @@ export function InstituteTestDetailClient({
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex items-center justify-between gap-2">
-          <div className="overflow-x-auto">
-            <TabsList className={cn('inline-flex', 'h-9', 'gap-0.5', 'rounded-lg', 'bg-muted', 'p-1')}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-1">
+          <div className="w-full sm:w-auto overflow-x-auto min-w-0 pb-1 sm:pb-0">
+            <TabsList className={cn('inline-flex', 'h-9', 'gap-0.5', 'rounded-lg', 'bg-muted', 'p-1', 'border', 'shrink-0')}>
               {[
                 { value: "overview", label: "Overview", icon: <Info className={cn('h-3.5', 'w-3.5')} />, count: null },
                 { value: "questions", label: "Questions", icon: <ListChecks className={cn('h-3.5', 'w-3.5')} />, count: test.questions.length },
@@ -1792,7 +1792,7 @@ export function InstituteTestDetailClient({
                 <TabsTrigger
                   key={value}
                   value={value}
-                  className={cn('gap-1.5', 'rounded-md', 'px-3', 'text-xs', 'font-medium', 'data-[state=active]:bg-background', 'data-[state=active]:shadow-sm')}
+                  className={cn('gap-1.5', 'rounded-md', 'px-3', 'text-xs', 'font-medium', 'data-[state=active]:bg-background', 'data-[state=active]:shadow-sm', 'cursor-pointer')}
                 >
                   {icon}
                   <span>{label}</span>
@@ -1813,8 +1813,8 @@ export function InstituteTestDetailClient({
             </TabsList>
           </div>
 
-          {/* Refresh + Export — visible in the tab bar row */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Refresh + Export — visible in action buttons row */}
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"

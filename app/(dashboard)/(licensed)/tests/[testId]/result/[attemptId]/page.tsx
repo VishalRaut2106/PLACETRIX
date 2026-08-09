@@ -113,7 +113,7 @@ async function fetchResultData(
     available_until: raw.available_until ?? null,
     status: raw.status as any,
     results_available: raw.results_available,
-    marks_available: raw.marks_available ?? false,
+    marks_available: raw.marks_available ?? true,
     shuffle_questions: raw.shuffle_questions,
     shuffle_options: raw.shuffle_options,
     institute_name: (raw.institute as any)?.institute_name ?? null,
