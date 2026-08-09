@@ -15,6 +15,36 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.21",
+    date: "2026-08-10",
+    title: "Candidate Dashboard, Event Attendees & Session Fixes",
+    badge: "Patch",
+    categories: [
+      {
+        type: "added",
+        items: [
+          "Attempted tests tab filter on Candidate Assessment Dashboard",
+          "Excel export functionality for event attendees with customizable field selection"
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          "Event attendee management UI with real-time sorting and filtering",
+          "Redesigned modular Date & Time picker components",
+          "Mobile UI layout and responsiveness on test result pages"
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          "False-positive anti-cheat violations on option selection during test attempts",
+          "Auth session token refresh race conditions and invalid cookie cleanup"
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.20",
     date: "2026-08-07",
     title: "Leaderboard Badges, Profile Redesign & LogicLab Security",
@@ -114,7 +144,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.20";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.21";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
