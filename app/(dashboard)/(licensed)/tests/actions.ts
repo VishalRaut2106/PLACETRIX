@@ -27,7 +27,7 @@ export async function getCandidateTestsAction({
 }): Promise<{
   tests: CandidateTest[]
   count: number
-  tabCounts: { all: number; live: number; upcoming: number; past: number }
+  tabCounts: { all: number; live: number; upcoming: number; past: number; attempted: number }
 }> {
   const profile = await getUserProfile()
   if (!profile || profile.account_type !== "institute_candidate") {
@@ -76,7 +76,7 @@ async function fetchCandidateTests(
 ): Promise<{
   tests: CandidateTest[]
   count: number
-  tabCounts: { all: number; live: number; upcoming: number; past: number }
+  tabCounts: { all: number; live: number; upcoming: number; past: number; attempted: number }
 }> {
   const supabase = await createClient()
 
@@ -88,7 +88,7 @@ async function fetchCandidateTests(
     .maybeSingle()
 
   if (!profile?.institute_id) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0 } }
+    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
   }
 
   // 2a. Find candidate's cohorts and eligible test IDs
@@ -100,7 +100,7 @@ async function fetchCandidateTests(
   const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
 
   if (cohortIds.length === 0) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0 } }
+    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
   }
 
   const { data: testCohortRows } = await (supabase as any)
@@ -111,7 +111,7 @@ async function fetchCandidateTests(
   const eligibleTestIds = [...new Set((testCohortRows ?? []).map((r: any) => r.test_id))]
 
   if (eligibleTestIds.length === 0) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0 } }
+    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
   }
 
   // 2. Fetch candidate's attempts to identify submitted vs in-progress tests
@@ -183,11 +183,28 @@ async function fetchCandidateTests(
   }
   pastCountQuery = searchFilter(pastCountQuery)
 
-  const [countAllRes, countLiveRes, countUpcomingRes, countPastRes] = await Promise.all([
+  const attemptedTestIds = [...new Set((attempts ?? []).map((a: any) => a.test_id))]
+
+  let attemptedCountQuery
+  if (attemptedTestIds.length > 0) {
+    attemptedCountQuery = cohortFilter(searchFilter(
+      (supabase as any)
+        .from("tests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "published")
+        .eq("institute_id", profile.institute_id)
+        .in("id", attemptedTestIds)
+    ))
+  } else {
+    attemptedCountQuery = Promise.resolve({ count: 0 })
+  }
+
+  const [countAllRes, countLiveRes, countUpcomingRes, countPastRes, countAttemptedRes] = await Promise.all([
     allCountQuery,
     liveCountQuery,
     upcomingCountQuery,
     pastCountQuery,
+    attemptedCountQuery,
   ])
 
   const tabCounts = {
@@ -195,10 +212,11 @@ async function fetchCandidateTests(
     live: countLiveRes.count ?? 0,
     upcoming: countUpcomingRes.count ?? 0,
     past: countPastRes.count ?? 0,
+    attempted: countAttemptedRes.count ?? 0,
   }
 
   // 4. Main Paginated query
-  const activeTab = ["all", "live", "upcoming", "past"].includes(tab) ? tab : "all"
+  const activeTab = ["all", "live", "upcoming", "past", "attempted"].includes(tab) ? tab : "all"
 
   let query = (supabase as any)
     .from("tests")
@@ -231,6 +249,12 @@ async function fetchCandidateTests(
       query = query.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
     } else {
       query = query.lt("available_until", now)
+    }
+  } else if (activeTab === "attempted") {
+    if (attemptedTestIds.length > 0) {
+      query = query.in("id", attemptedTestIds)
+    } else {
+      query = query.in("id", ["00000000-0000-0000-0000-000000000000"])
     }
   }
 
@@ -292,6 +316,12 @@ async function fetchCandidateTests(
         fallbackQuery = fallbackQuery.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
       } else {
         fallbackQuery = fallbackQuery.lt("available_until", now)
+      }
+    } else if (activeTab === "attempted") {
+      if (attemptedTestIds.length > 0) {
+        fallbackQuery = fallbackQuery.in("id", attemptedTestIds)
+      } else {
+        fallbackQuery = fallbackQuery.in("id", ["00000000-0000-0000-0000-000000000000"])
       }
     }
 

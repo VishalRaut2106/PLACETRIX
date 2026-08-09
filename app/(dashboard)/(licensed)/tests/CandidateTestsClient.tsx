@@ -57,7 +57,7 @@ import { getCandidateTestsAction } from "./actions"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = "all" | "live" | "upcoming" | "past"
+type Tab = "all" | "live" | "upcoming" | "past" | "attempted"
 
 interface TabConfig {
   value: Tab
@@ -275,7 +275,7 @@ interface Props {
   initialSearch: string
   initialTab: string
   totalCount: number
-  tabCounts: { all: number; live: number; upcoming: number; past: number }
+  tabCounts: { all: number; live: number; upcoming: number; past: number; attempted: number }
 }
 
 export function CandidateTestsClient({
@@ -436,6 +436,7 @@ export function CandidateTestsClient({
     { value: "live", label: "Live", icon: <PlayCircle className="h-3.5 w-3.5" />, count: tabCounts.live },
     { value: "upcoming", label: "Upcoming", icon: <CalendarClock className="h-3.5 w-3.5" />, count: tabCounts.upcoming },
     { value: "past", label: "Past", icon: <FileText className="h-3.5 w-3.5" />, count: tabCounts.past },
+    { value: "attempted", label: "Attempted", icon: <CheckCircle2 className="h-3.5 w-3.5" />, count: tabCounts.attempted },
   ]
 
 
