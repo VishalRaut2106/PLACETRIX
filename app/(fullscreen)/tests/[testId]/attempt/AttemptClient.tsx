@@ -422,7 +422,7 @@ function OptionButton({
     return (
         <button
             onClick={onClick}
-            disabled={isSaving || disabled}
+            disabled={disabled}
             className={cn(
                 "group relative flex w-full min-h-[3.25rem] items-center gap-3.5 rounded-xl border p-4 sm:p-5 text-left text-sm transition-all duration-150",
                 "hover:border-primary/50 hover:bg-primary/5 active:scale-[0.995]",
@@ -430,7 +430,7 @@ function OptionButton({
                 isSelected
                     ? "border-primary border-l-4 border-l-primary bg-primary/10 text-foreground font-semibold shadow-sm dark:bg-primary/15"
                     : "border-border bg-background text-foreground/90 hover:text-foreground",
-                (isSaving || disabled) && "cursor-wait opacity-70"
+                disabled && "cursor-not-allowed opacity-70"
             )}
         >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border bg-muted/40 text-[11px] font-bold text-muted-foreground group-hover:border-primary/40 group-hover:text-primary">
@@ -1384,15 +1384,23 @@ export function AttemptClient({
                     }
                     awayStartRef.current = null
                 }
+                focusGuardRef.current = false
             }
         }
 
         const handleBlur = () => {
             setTimeout(() => {
-                if (!document.hasFocus() && !showFocusWarningRef.current) {
+                // Ensure document visibility is hidden (tab switch/minimize) or genuinely lost focus without active warning
+                if (!document.hasFocus() && document.visibilityState === "hidden" && !showFocusWarningRef.current) {
                     triggerFocusLoss()
                 }
-            }, 200)
+            }, 300)
+        }
+
+        const handleWindowFocus = () => {
+            if (document.hasFocus()) {
+                focusGuardRef.current = false
+            }
         }
 
         // 3. Copy / keyboard blocking / Navigation ──────────────────────────
@@ -1523,6 +1531,7 @@ export function AttemptClient({
         document.addEventListener("contextmenu", handleContextMenu)
         document.addEventListener("dragstart", handleDragStart)
         window.addEventListener("blur", handleBlur)
+        window.addEventListener("focus", handleWindowFocus)
         window.addEventListener("beforeunload", handleBeforeUnload)
 
         return () => {
@@ -1535,6 +1544,7 @@ export function AttemptClient({
             document.removeEventListener("contextmenu", handleContextMenu)
             document.removeEventListener("dragstart", handleDragStart)
             window.removeEventListener("blur", handleBlur)
+            window.removeEventListener("focus", handleWindowFocus)
             window.removeEventListener("beforeunload", handleBeforeUnload)
         }
     }, [phase, attemptInfo, getNowOnServer, onViolation, test.strict_mode])
