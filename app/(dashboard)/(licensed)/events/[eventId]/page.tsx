@@ -53,10 +53,10 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
   // ─── Staff View ────────────────────────────────────────────────────────────
   if (profile.account_type !== "institute_candidate") {
     // Fetch tickets with candidate info
-    const { data: tickets } = await (supabase as any)
+    let { data: tickets, error: fetchErr } = await (supabase as any)
       .from("event_tickets")
       .select(`
-        id, status, attendance_status, candidate_id, created_at,
+        id, status, attendance_status, candidate_id, created_at, updated_at, rsvp_at, marked_present_at,
         profile:profiles!candidate_id(
           full_name,
           email,
@@ -68,6 +68,25 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
       `)
       .eq("event_id", eventId)
       .order("created_at", { ascending: true })
+
+    if (fetchErr && (fetchErr.message?.includes("rsvp_at") || fetchErr.message?.includes("marked_present_at"))) {
+      const { data: fallbackData } = await (supabase as any)
+        .from("event_tickets")
+        .select(`
+          id, status, attendance_status, candidate_id, created_at, updated_at,
+          profile:profiles!candidate_id(
+            full_name,
+            email,
+            candidate_academic_details(
+              passout_year,
+              course:institute_courses(course_name)
+            )
+          )
+        `)
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: true })
+      tickets = fallbackData
+    }
 
     const formattedTickets = (tickets ?? []).map((t: any) => {
       const cad = Array.isArray(t.profile?.candidate_academic_details)
@@ -84,6 +103,9 @@ export default async function EventDetailPage({ params }: { params: Promise<Para
         status: t.status,
         attendance_status: t.attendance_status,
         created_at: t.created_at,
+        updated_at: t.updated_at,
+        rsvp_at: t.rsvp_at ?? t.created_at,
+        marked_present_at: t.marked_present_at ?? (t.attendance_status === "Present" ? (t.updated_at ?? t.created_at) : null),
         candidate_name: t.profile?.full_name ?? "Unknown",
         candidate_email: t.profile?.email ?? "",
         candidate_course: courseName ?? null,

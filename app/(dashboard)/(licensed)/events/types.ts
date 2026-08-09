@@ -48,6 +48,9 @@ export interface EventTicket {
   status: TicketStatus
   attendance_status: AttendanceStatus
   created_at: string
+  updated_at?: string
+  rsvp_at?: string | null
+  marked_present_at?: string | null
   // Joined
   candidate_name?: string
   candidate_email?: string

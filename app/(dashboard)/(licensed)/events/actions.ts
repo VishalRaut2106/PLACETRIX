@@ -296,7 +296,10 @@ export async function markAttendanceAction(scannedPayload: string, eventId: stri
 
   const { error } = await (supabase as any)
     .from("event_tickets")
-    .update({ attendance_status: "Present" })
+    .update({ 
+      attendance_status: "Present",
+      marked_present_at: new Date().toISOString()
+    })
     .eq("id", targetTicketId)
 
   if (error) {
@@ -315,7 +318,10 @@ export async function removeAttendanceAction(ticketId: string, eventId: string) 
 
   const { error } = await (supabase as any)
     .from("event_tickets")
-    .update({ attendance_status: "Absent" })
+    .update({ 
+      attendance_status: "Pending",
+      marked_present_at: null
+    })
     .eq("id", ticketId)
     .eq("event_id", eventId)
 
@@ -409,7 +415,10 @@ export async function rsvpEventAction(eventId: string) {
     // Reactivate existing ticket
     const { error: updateError } = await (supabase as any)
       .from("event_tickets")
-      .update({ status: ticketStatus })
+      .update({ 
+        status: ticketStatus,
+        rsvp_at: new Date().toISOString()
+      })
       .eq("id", existingTicket.id)
 
     if (updateError) {
@@ -425,6 +434,7 @@ export async function rsvpEventAction(eventId: string) {
         event_id: eventId,
         candidate_id: profile.id,
         status: ticketStatus,
+        rsvp_at: new Date().toISOString(),
       })
       .select("id")
       .single()

@@ -662,12 +662,11 @@ export function EventDetailStaffClient({ event, agenda, tickets: initialTickets 
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="font-semibold text-xs text-muted-foreground pl-6">Candidate</TableHead>
-                      <TableHead className="font-semibold text-xs text-muted-foreground">Course / Branch</TableHead>
-                      <TableHead className="font-semibold text-xs text-muted-foreground text-center">Passout Year</TableHead>
-                      <TableHead className="font-semibold text-xs text-muted-foreground text-center">RSVP Status</TableHead>
-                      <TableHead className="font-semibold text-xs text-muted-foreground text-center">Attendance</TableHead>
-                      <TableHead className="font-semibold text-xs text-muted-foreground text-right pr-6">Action</TableHead>
+                      <TableHead className="font-semibold text-xs text-muted-foreground pl-6">Candidate Name</TableHead>
+                      <TableHead className="font-semibold text-xs text-muted-foreground">Course / Branch Passout Year</TableHead>
+                      <TableHead className="font-semibold text-xs text-muted-foreground text-center">Attendance Status</TableHead>
+                      <TableHead className="font-semibold text-xs text-muted-foreground text-center">Attendance Status Time</TableHead>
+                      <TableHead className="font-semibold text-xs text-muted-foreground text-right pr-6">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -795,6 +794,9 @@ function AttendeeRow({
   ticket: EventTicket
   onCheckIn: () => void
 }) {
+  const isPresent = ticket.attendance_status === "Present"
+  const statusTime = isPresent ? (ticket.marked_present_at || ticket.updated_at || ticket.created_at) : (ticket.rsvp_at || ticket.created_at)
+
   return (
     <TableRow className="hover:bg-muted/20">
       <TableCell className="pl-6 py-3.5">
@@ -812,10 +814,33 @@ function AttendeeRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-sm font-medium text-foreground">{ticket.candidate_course ?? "—"}</TableCell>
-      <TableCell className="text-center text-sm font-medium text-muted-foreground tabular-nums">{ticket.candidate_passout_year ?? "—"}</TableCell>
-      <TableCell className="text-center"><TicketStatusBadge status={ticket.status} /></TableCell>
-      <TableCell className="text-center"><AttendanceBadge status={ticket.attendance_status} /></TableCell>
+      <TableCell className="text-sm font-medium text-foreground">
+        {ticket.candidate_course ?? "—"}
+        {ticket.candidate_passout_year && (
+          <span className="text-xs text-muted-foreground ml-1.5 font-mono">({ticket.candidate_passout_year})</span>
+        )}
+      </TableCell>
+      <TableCell className="text-center">
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+          <TicketStatusBadge status={ticket.status} />
+          <AttendanceBadge status={ticket.attendance_status} />
+        </div>
+      </TableCell>
+      <TableCell className="text-center">
+        <div className="flex items-center justify-center gap-1.5 text-xs">
+          {isPresent ? (
+            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md">
+              <CheckCircle2 className="h-3 w-3" />
+              {formatDateTime(statusTime)}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded-md">
+              <Clock className="h-3 w-3" />
+              {formatDateTime(statusTime)}
+            </span>
+          )}
+        </div>
+      </TableCell>
       <TableCell className="text-right pr-6">
         <AttendeeActionsDropdown ticket={ticket} onUpdate={onCheckIn} />
       </TableCell>
@@ -832,6 +857,9 @@ function AttendeeCard({
   ticket: EventTicket
   onCheckIn: () => void
 }) {
+  const isPresent = ticket.attendance_status === "Present"
+  const statusTime = isPresent ? (ticket.marked_present_at || ticket.updated_at || ticket.created_at) : (ticket.rsvp_at || ticket.created_at)
+
   return (
     <Card className="rounded-xl border bg-card p-4 space-y-3 shadow-xs">
       <div className="flex items-start justify-between gap-3">
@@ -850,12 +878,20 @@ function AttendeeCard({
         <AttendeeActionsDropdown ticket={ticket} onUpdate={onCheckIn} />
       </div>
 
-      <div className="flex items-center justify-between border-t pt-3 text-xs">
-        <div className="flex items-center gap-2">
-          <TicketStatusBadge status={ticket.status} />
-          <AttendanceBadge status={ticket.attendance_status} />
+      <div className="flex flex-col gap-2 border-t pt-3 text-xs">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <TicketStatusBadge status={ticket.status} />
+            <AttendanceBadge status={ticket.attendance_status} />
+          </div>
+          <span className="text-muted-foreground text-xs font-medium">
+            {ticket.candidate_course ?? "—"} {ticket.candidate_passout_year ? `(${ticket.candidate_passout_year})` : ""}
+          </span>
         </div>
-        <span className="text-muted-foreground text-xs">{ticket.candidate_course ?? "—"} ({ticket.candidate_passout_year ?? "—"})</span>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed">
+          <span>{isPresent ? "Marked Present At:" : "RSVP'd At:"}</span>
+          <span className="font-semibold text-foreground">{formatDateTime(statusTime)}</span>
+        </div>
       </div>
     </Card>
   )

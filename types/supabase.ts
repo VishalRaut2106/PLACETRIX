@@ -618,6 +618,8 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          marked_present_at: string | null
+          rsvp_at: string
           status: string
           updated_at: string
         }
@@ -627,6 +629,8 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          marked_present_at?: string | null
+          rsvp_at?: string
           status?: string
           updated_at?: string
         }
@@ -636,6 +640,8 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          marked_present_at?: string | null
+          rsvp_at?: string
           status?: string
           updated_at?: string
         }

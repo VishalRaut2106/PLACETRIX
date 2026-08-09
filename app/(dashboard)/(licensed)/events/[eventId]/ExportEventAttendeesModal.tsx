@@ -29,6 +29,8 @@ const AVAILABLE_FIELDS = [
   { id: "passoutYear", label: "Passout Year" },
   { id: "status", label: "RSVP Status" },
   { id: "attendance", label: "Attendance Status" },
+  { id: "rsvpTime", label: "RSVP Time" },
+  { id: "markedPresentTime", label: "Marked Present Time" },
   { id: "date", label: "Registration Date" },
 ]
 
@@ -63,6 +65,15 @@ export function ExportEventAttendeesModal({ tickets, eventName, trigger }: Expor
         if (selectedFields.includes("passoutYear")) row["Passout Year"] = t.candidate_passout_year || "N/A"
         if (selectedFields.includes("status")) row["RSVP Status"] = t.status || "N/A"
         if (selectedFields.includes("attendance")) row["Attendance Status"] = t.attendance_status === "Present" ? "Present" : "Pending"
+        if (selectedFields.includes("rsvpTime")) {
+          const rsvpTs = t.rsvp_at || t.created_at
+          row["RSVP Time"] = rsvpTs ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(rsvpTs)) : "N/A"
+        }
+        if (selectedFields.includes("markedPresentTime")) {
+          const isPresent = t.attendance_status === "Present"
+          const markedTs = isPresent ? (t.marked_present_at || t.updated_at || t.created_at) : null
+          row["Marked Present Time"] = markedTs ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(markedTs)) : "N/A"
+        }
         if (selectedFields.includes("date")) row["Registration Date"] = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(t.created_at))
         return row
       })
