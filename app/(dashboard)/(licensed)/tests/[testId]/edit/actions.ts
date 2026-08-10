@@ -28,6 +28,18 @@ export type OptionForm = {
   is_correct: boolean
 }
 
+export type LocalSection = {
+  id: string
+  name: string
+  description: string
+  order_index: number
+}
+
+export type SectionForm = {
+  name: string
+  description: string
+}
+
 export type LocalQuestion = {
   id: string
   question_text: string
@@ -37,6 +49,7 @@ export type LocalQuestion = {
   tag_names: string[]
   options: OptionForm[]
   explanation: string
+  section_id: string | null
 }
 
 export type QuestionForm = {
@@ -58,6 +71,7 @@ export type AiGenerateForm = {
 export type InitialTestData = {
   settings: SettingsForm
   questions: LocalQuestion[]
+  sections: LocalSection[]
   status: "draft" | "published"
 }
 
@@ -73,6 +87,7 @@ async function saveTestToDb(
   userId: string,
   settings: SettingsForm,
   questions: LocalQuestion[],
+  sections: LocalSection[],
   status: "draft" | "published"
 ): Promise<void> {
   const supabase = await createClient()
@@ -100,6 +115,7 @@ async function saveTestToDb(
       marks: q.marks,
       explanation: q.explanation?.trim() || null,
       tag_names: q.tag_names,
+      section_id: q.section_id || null,
       options: q.options.map((opt) => ({
         id: opt._key,
         option_text: opt.option_text,
@@ -107,6 +123,13 @@ async function saveTestToDb(
       })),
     })),
     p_status: status,
+    p_sections: sections.length > 0
+      ? sections.map((s) => ({
+          id: s.id,
+          name: s.name.trim(),
+          description: s.description?.trim() || null,
+        }))
+      : null,
   })
 
   if (error) {
@@ -131,7 +154,7 @@ export async function loadTestAction(
   }
   const supabase = await createClient()
 
-  const [{ data: test }, { data: cohorts }] = await Promise.all([
+  const [{ data: test }, { data: cohorts }, { data: rawSections }] = await Promise.all([
     (supabase as any)
       .from("tests")
       .select(`
@@ -139,7 +162,7 @@ export async function loadTestAction(
         time_limit_seconds, available_from, available_until, status,
         shuffle_questions, shuffle_options, strict_mode, pass_percentage,
         test_questions (
-          id, question_text, question_type, marks, order_index, explanation,
+          id, question_text, question_type, marks, order_index, explanation, section_id,
           test_question_options ( id, option_text, is_correct, order_index ),
           question_tags ( test_question_tags ( id, name ) )
         )
@@ -151,6 +174,11 @@ export async function loadTestAction(
       .from("test_cohorts")
       .select("cohort_id")
       .eq("test_id", testId),
+    (supabase as any)
+      .from("test_sections")
+      .select("id, name, description, order_index")
+      .eq("test_id", testId)
+      .order("order_index"),
   ])
 
   if (!test) return null
@@ -174,6 +202,12 @@ export async function loadTestAction(
       cohort_ids: cohortIds,
     },
     status: test.status as "draft" | "published",
+    sections: (rawSections ?? []).map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? "",
+      order_index: s.order_index,
+    })),
     questions: (test.test_questions ?? [])
       .sort((a: any, b: any) => a.order_index - b.order_index)
       .map((q: any) => ({
@@ -183,6 +217,7 @@ export async function loadTestAction(
         marks: q.marks,
         order_index: q.order_index,
         explanation: q.explanation ?? "",
+        section_id: q.section_id ?? null,
         tag_names: (q.question_tags ?? [])
           .map((qt: any) => qt.test_question_tags?.name)
           .filter(Boolean),
@@ -214,7 +249,8 @@ async function requireTestManager() {
 export async function saveDraftAction(
   testId: string,
   settings: SettingsForm,
-  questions: LocalQuestion[]
+  questions: LocalQuestion[],
+  sections: LocalSection[]
 ): Promise<void> {
   const profile = await requireTestManager()
   const supabase = await createClient()
@@ -232,7 +268,7 @@ export async function saveDraftAction(
     }
   }
 
-  await saveTestToDb(testId, profile.id, settings, questions, "draft")
+  await saveTestToDb(testId, profile.id, settings, questions, sections, "draft")
   // Save cohort mappings for draft too (optional, replaces)
   await (supabase as any).from("test_cohorts").delete().eq("test_id", testId)
   if (settings.cohort_ids && settings.cohort_ids.length > 0) {
@@ -246,7 +282,8 @@ export async function saveDraftAction(
 export async function publishTestAction(
   testId: string,
   settings: SettingsForm,
-  questions: LocalQuestion[]
+  questions: LocalQuestion[],
+  sections: LocalSection[]
 ): Promise<void> {
   const profile = await requireTestManager()
   if (!settings.title.trim()) throw new Error("Title is required.")
@@ -277,7 +314,7 @@ export async function publishTestAction(
     }
   }
 
-  await saveTestToDb(testId, profile.id, settings, questions, "published")
+  await saveTestToDb(testId, profile.id, settings, questions, sections, "published")
 
   // Replace test cohort mappings
   await (supabase as any).from("test_cohorts").delete().eq("test_id", testId)

@@ -2,6 +2,13 @@
 // app/(fullscreen)/tests/[testId]/attempt/_types.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface AttemptSection {
+  id: string
+  name: string
+  description: string | null
+  order_index: number
+}
+
 export interface AttemptTest {
   id: string
   title: string
@@ -12,10 +19,12 @@ export interface AttemptTest {
   strict_mode: boolean
   shuffle_questions: boolean
   shuffle_options: boolean
+  sections?: AttemptSection[]
 }
 
 export interface AttemptQuestion {
   id: string
+  section_id: string | null
   question_text: string
   question_type: "single_correct" | "multiple_correct"
   marks: number

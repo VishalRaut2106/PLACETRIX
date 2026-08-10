@@ -13,7 +13,7 @@ import {
   startAttemptAction,
   submitFeedbackAction,
 } from "./actions"
-import { getTestQuestions } from "@/lib/test-data"
+import { getTestQuestions, getTestSections } from "@/lib/test-data"
 import type { AttemptQuestion, AttemptTest, AttemptInfo, SavedAnswer } from "./_types"
 
 
@@ -94,9 +94,10 @@ export default async function AttemptPage({
     savedAnswers = initResult.saved_answers ?? []
   }
 
-  // ── 3. Fetch questions + test details in parallel ───────────────────────────
-  const [questions, testDetailRes] = await Promise.all([
+  // ── 3. Fetch questions + test sections + test details in parallel ──────────
+  const [questions, sections, testDetailRes] = await Promise.all([
     getTestQuestions(testId),
+    getTestSections(testId),
     (supabase as any)
       .from("tests")
       .select(
@@ -129,6 +130,7 @@ export default async function AttemptPage({
     strict_mode: testDetail?.strict_mode ?? false,
     shuffle_questions: testDetail?.shuffle_questions ?? false,
     shuffle_options: testDetail?.shuffle_options ?? false,
+    sections,
   }
 
   return (

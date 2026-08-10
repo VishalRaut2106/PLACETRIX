@@ -264,15 +264,16 @@ async function fetchInstituteView(
 ): Promise<InstituteTestDetail> {
   const supabase = await createClient()
 
-  // 1. Core test data + questions — no attempts in this query
+  // 1. Core test data + sections + questions — no attempts in this query
   let { data: raw, error } = await (supabase as any)
     .from("tests")
     .select(`
       id, title, description, instructions, time_limit_seconds, 
       available_from, available_until, status, results_available, marks_available, institute_id,
       institute:institutes(institute_name),
+      test_sections (id, name, description, order_index),
       test_questions (
-        id, question_text, question_type, marks, order_index, explanation,
+        id, section_id, question_text, question_type, marks, order_index, explanation,
         test_question_options (id, option_text, is_correct, order_index),
         question_tags (test_question_tags (id, name))
       )
@@ -289,8 +290,9 @@ async function fetchInstituteView(
         id, title, description, instructions, time_limit_seconds, 
         available_from, available_until, status, results_available, institute_id,
         institute:institutes(institute_name),
+        test_sections (id, name, description, order_index),
         test_questions (
-          id, question_text, question_type, marks, order_index, explanation,
+          id, section_id, question_text, question_type, marks, order_index, explanation,
           test_question_options (id, option_text, is_correct, order_index),
           question_tags (test_question_tags (id, name))
         )
@@ -372,8 +374,18 @@ async function fetchInstituteView(
     student_name: f.candidate?.full_name ?? "Candidate",
   }))
 
+  const sections = ((raw.test_sections as any[]) ?? [])
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? null,
+      order_index: s.order_index,
+    }))
+
   const questions: InstituteQuestion[] = (raw.test_questions ?? []).map((q: any) => ({
     id: q.id,
+    section_id: q.section_id ?? null,
     question_text: q.question_text,
     question_type: q.question_type as "single_correct" | "multiple_correct",
     marks: q.marks,
@@ -396,6 +408,7 @@ async function fetchInstituteView(
     title: raw.title,
     description: raw.description ?? null,
     instructions: raw.instructions ?? null,
+    sections,
     time_limit_seconds: raw.time_limit_seconds ?? null,
     available_from: raw.available_from ?? null,
     available_until: raw.available_until ?? null,

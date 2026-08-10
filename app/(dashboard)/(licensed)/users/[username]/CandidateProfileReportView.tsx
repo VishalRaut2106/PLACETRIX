@@ -16,7 +16,7 @@ import {
   Award, Globe, Linkedin, Github, Tag,
   CheckCircle2, Flame, Target, Zap, Trophy, Brain,
   Youtube, Instagram, Figma, Codepen, Code2,
-  Printer, ArrowLeft, Building2, Calendar, FileText
+  ArrowLeft, Building2, Calendar, FileText
 } from "lucide-react";
 import type {
   CandidateEducation, CandidateExperience, CandidateProject,
@@ -295,12 +295,6 @@ export function CandidateProfileReportView({
     }
   };
 
-  const handlePrint = () => {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
-  };
-
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-6 px-4 py-8 md:px-8 w-full print:p-0 print:m-0 print:max-w-none">
@@ -328,10 +322,6 @@ export function CandidateProfileReportView({
               <Button onClick={handleExportPdf} disabled={isExporting} className="gap-2 bg-primary text-primary-foreground">
                 <FileText className="size-4" />
                 {isExporting ? "Generating PDF..." : "Export PDF Report"}
-              </Button>
-              <Button onClick={handlePrint} variant="outline" className="gap-2">
-                <Printer className="size-4" />
-                Print Page
               </Button>
             </div>
           </div>

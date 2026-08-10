@@ -67,7 +67,7 @@ import { MathText } from "@/components/others/latex-renderer"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
 import { isDeploymentError, getFriendlyErrorMessage } from "@/lib/errors"
-import type { AttemptTest, AttemptQuestion, AttemptInfo, SavedAnswer } from "./_types"
+import type { AttemptTest, AttemptQuestion, AttemptSection, AttemptInfo, SavedAnswer } from "./_types"
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -277,6 +277,7 @@ function KeyboardShortcutsDialog({
 
 function QuestionNavigator({
     questions: displayQuestions,
+    sections,
     currentIndex,
     answers,
     syncedAnswers = {},
@@ -285,6 +286,7 @@ function QuestionNavigator({
     onJump,
 }: {
     questions: AttemptQuestion[]
+    sections?: AttemptSection[]
     currentIndex: number
     answers: Record<string, string[]>
     syncedAnswers?: Record<string, string[]>
@@ -312,6 +314,8 @@ function QuestionNavigator({
         return Object.values(flagged).filter(Boolean).length
     }, [flagged])
 
+    const hasSections = sections && sections.length > 0
+
     return (
         <div className="space-y-6">
             <div className="space-y-2">
@@ -327,11 +331,76 @@ function QuestionNavigator({
                 />
             </div>
 
-            <div>
-                <p className="mb-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="space-y-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Question Palette
                 </p>
-                <div className="grid grid-cols-5 gap-2">
+
+                {hasSections ? (
+                  <div className="space-y-4">
+                    {sections.map((sec) => {
+                      const secQuestions = displayQuestions.filter((q) => q.section_id === sec.id)
+                      if (secQuestions.length === 0) return null
+                      const secSaved = secQuestions.filter((q) => {
+                        const local = answers[q.id] ?? []
+                        const synced = syncedAnswers[q.id] ?? []
+                        return local.length > 0 && JSON.stringify([...local].sort()) === JSON.stringify([...synced].sort())
+                      }).length
+
+                      return (
+                        <div key={sec.id} className="space-y-2 border-t pt-2 first:border-t-0 first:pt-0">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-foreground uppercase tracking-wider">
+                            <span>{sec.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              {secSaved} / {secQuestions.length}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-5 gap-2">
+                            {secQuestions.map((q) => {
+                              const globalIndex = displayQuestions.findIndex((dq) => dq.id === q.id)
+                              const localAns = answers[q.id] ?? []
+                              const syncedAns = syncedAnswers[q.id] ?? []
+                              const hasLocal = localAns.length > 0
+                              const isSaved = hasLocal && JSON.stringify([...localAns].sort()) === JSON.stringify([...syncedAns].sort())
+                              const isPending = hasLocal && !isSaved
+                              const isFlagged = flagged[q.id] ?? false
+                              const isCurrent = globalIndex === currentIndex
+
+                              return (
+                                <button
+                                  key={q.id}
+                                  onClick={() => !disabled && onJump(globalIndex)}
+                                  disabled={disabled}
+                                  className={cn(
+                                    "relative aspect-square w-full rounded-xl border text-xs font-bold transition-all duration-150",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                                    isCurrent && "ring-2 ring-primary ring-offset-2 z-10 scale-105 shadow-sm",
+                                    isSaved
+                                      ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                      : isPending
+                                        ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300"
+                                        : isFlagged
+                                          ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
+                                          : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground",
+                                    disabled && "cursor-not-allowed opacity-60"
+                                  )}
+                                >
+                                  {globalIndex + 1}
+                                  {isFlagged && (
+                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-sm dark:border-indigo-900">
+                                      <Flag className="h-2 w-2 fill-white text-white" />
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-5 gap-2">
                     {displayQuestions.map((q, i) => {
                         const localAns = answers[q.id] ?? []
                         const syncedAns = syncedAnswers[q.id] ?? []
@@ -369,7 +438,8 @@ function QuestionNavigator({
                             </button>
                         )
                     })}
-                </div>
+                  </div>
+                )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t">
@@ -464,6 +534,7 @@ function OptionButton({
 
 function QuestionView({
     question,
+    sections,
     index,
     total,
     selectedIds,
@@ -478,6 +549,7 @@ function QuestionView({
     onClearResponse,
 }: {
     question: AttemptQuestion
+    sections?: AttemptSection[]
     index: number
     total: number
     selectedIds: string[]
@@ -2519,6 +2591,7 @@ export function AttemptClient({
                     {currentQuestion && (
                         <QuestionView
                             question={currentQuestion}
+                            sections={test.sections}
                             index={currentIndex}
                             total={displayQuestions.length}
                             selectedIds={currentAnswers}
@@ -2592,6 +2665,7 @@ export function AttemptClient({
                         <div className="px-1">
                             <QuestionNavigator
                                 questions={displayQuestions}
+                                sections={test.sections}
                                 currentIndex={currentIndex}
                                 answers={answers}
                                 syncedAnswers={syncedAnswers}
@@ -2724,6 +2798,7 @@ export function AttemptClient({
                     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
                         <QuestionNavigator
                             questions={displayQuestions}
+                            sections={test.sections}
                             currentIndex={currentIndex}
                             answers={answers}
                             syncedAnswers={syncedAnswers}

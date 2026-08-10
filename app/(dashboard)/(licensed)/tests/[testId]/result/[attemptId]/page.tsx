@@ -27,8 +27,9 @@ async function fetchResultData(
       available_from, available_until, results_available, marks_available, status, institute_id,
       shuffle_questions, shuffle_options,
       institute:institutes(institute_name, logo_path),
+      test_sections (id, name, description, order_index),
       test_questions (
-        id, question_text, marks, explanation, order_index,
+        id, section_id, question_text, marks, explanation, order_index,
         test_question_options (id, option_text, is_correct, order_index),
         question_tags (test_question_tags (id, name))
       ),
@@ -54,8 +55,9 @@ async function fetchResultData(
         available_from, available_until, results_available, status, institute_id,
         shuffle_questions, shuffle_options,
         institute:institutes(institute_name, logo_path),
+        test_sections (id, name, description, order_index),
         test_questions (
-          id, question_text, marks, explanation, order_index,
+          id, section_id, question_text, marks, explanation, order_index,
           test_question_options (id, option_text, is_correct, order_index),
           question_tags (test_question_tags (id, name))
         ),
@@ -103,6 +105,15 @@ async function fetchResultData(
     : null
 
   // 3. Map Data
+  const sections = ((raw.test_sections as any[]) ?? [])
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description ?? null,
+      order_index: s.order_index,
+    }))
+
   const test: CandidateTestDetail = {
     id: raw.id,
     title: raw.title,
@@ -118,6 +129,7 @@ async function fetchResultData(
     shuffle_options: raw.shuffle_options,
     institute_name: (raw.institute as any)?.institute_name ?? null,
     institute_logo_url: instituteLogoUrl,
+    sections,
     questions: (raw.test_questions ?? []).map((q: any) => ({ marks: q.marks })),
   }
 
@@ -156,6 +168,7 @@ async function fetchResultData(
 
     return {
       question_id: q.id,
+      section_id: q.section_id ?? null,
       question_text: q.question_text,
       marks: q.marks,
       is_correct: ans?.is_correct ?? null,

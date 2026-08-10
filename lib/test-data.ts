@@ -10,7 +10,7 @@ export async function getTestQuestions(testId: string): Promise<AttemptQuestion[
   const { data: rawQuestions, error: qError } = await (supabase as any)
     .from("test_questions")
     .select(
-      `id, question_text, question_type, marks, order_index,
+      `id, section_id, question_text, question_type, marks, order_index,
        test_question_options (id, option_text, order_index),
        question_tags (
          test_question_tags (id, name)
@@ -26,6 +26,7 @@ export async function getTestQuestions(testId: string): Promise<AttemptQuestion[
   // Shape the results for the client
   return rawQuestions.map((q: any) => ({
     id: q.id,
+    section_id: q.section_id ?? null,
     question_text: q.question_text,
     question_type: q.question_type as "single_correct" | "multiple_correct",
     marks: q.marks,
@@ -40,4 +41,20 @@ export async function getTestQuestions(testId: string): Promise<AttemptQuestion[
     tags: (((q as any).question_tags as any[]) ?? [])
       .flatMap((qt: any) => qt.test_question_tags ? [qt.test_question_tags] : []),
   }))
+}
+
+export async function getTestSections(testId: string) {
+  const supabase = await createClient()
+  const { data: sections } = await (supabase as any)
+    .from("test_sections")
+    .select("id, name, description, order_index")
+    .eq("test_id", testId)
+    .order("order_index")
+
+  return (sections ?? []) as Array<{
+    id: string
+    name: string
+    description: string | null
+    order_index: number
+  }>
 }

@@ -97,7 +97,7 @@ import { toast } from "sonner"
 import { getFriendlyErrorMessage } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { MathText } from "@/components/others/latex-renderer"
-import type { InstituteTestDetail, InstituteQuestion, InstituteAttemptRow } from "./_types"
+import type { InstituteTestDetail, InstituteQuestion, InstituteSection, InstituteAttemptRow } from "./_types"
 import { formatDuration, formatDateTime, formatSeconds, resolvePct } from "./_types"
 import { ExportTestParticipantsModal } from "./ExportTestParticipantsModal"
 
@@ -340,8 +340,9 @@ function QuestionCard({
 
 // ─── Questions Tab (Answer Key) ───────────────────────────────────────────────
 
-function QuestionsTab({ questions }: { questions: InstituteQuestion[] }) {
+function QuestionsTab({ questions, sections }: { questions: InstituteQuestion[]; sections?: InstituteSection[] }) {
   const totalMarks = questions.reduce((s, q) => s + q.marks, 0)
+  const hasSections = sections && sections.length > 0
 
   return (
     <div className="space-y-4">
@@ -372,6 +373,41 @@ function QuestionsTab({ questions }: { questions: InstituteQuestion[] }) {
             <p className={cn('text-sm', 'text-muted-foreground')}>No questions available</p>
           </CardContent>
         </Card>
+      ) : hasSections ? (
+        <div className="space-y-6">
+          {sections.map((sec, secIdx) => {
+            const secQuestions = questions.filter((q) => q.section_id === sec.id)
+            if (secQuestions.length === 0) return null
+            const secMarks = secQuestions.reduce((s, q) => s + q.marks, 0)
+
+            return (
+              <Card key={sec.id} className="overflow-hidden">
+                <CardHeader className="bg-muted/30 border-b py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                        {secIdx + 1}
+                      </span>
+                      <CardTitle className="text-sm font-bold">{sec.name}</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {secQuestions.length} Qs · {secMarks} Marks
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <Accordion type="multiple" className="space-y-2">
+                    {secQuestions
+                      .sort((a, b) => a.order_index - b.order_index)
+                      .map((q, i) => (
+                        <QuestionCard key={q.id} question={q} index={i} />
+                      ))}
+                  </Accordion>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
       ) : (
         <Accordion type="multiple" className="space-y-2">
           {[...questions]
@@ -1851,7 +1887,7 @@ export function InstituteTestDetailClient({
         </TabsContent>
 
         <TabsContent value="questions" className="m-0">
-          <QuestionsTab questions={test.questions} />
+          <QuestionsTab questions={test.questions} sections={test.sections} />
         </TabsContent>
 
         <TabsContent value="attempts" className="m-0">

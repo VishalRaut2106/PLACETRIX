@@ -184,11 +184,13 @@ function OptionItem({
 
 function QuestionReviewItem({
   answer,
+  sections,
   index,
   isInProgress = false,
   qDiagnosis,
 }: {
   answer: CandidateAnswerDetail
+  sections?: Array<{ id: string; name: string }>
   index: number
   isInProgress?: boolean
   qDiagnosis?: QuestionDiagnosis
@@ -201,6 +203,9 @@ function QuestionReviewItem({
     return correctOptionIds.length > 0 && JSON.stringify(correctOptionIds) === JSON.stringify(selectedOptionIds)
   })()
   const isCorrect = answer.is_correct === true || isOptionMatchCorrect
+  const sectionName = sections && answer.section_id
+    ? sections.find((s) => s.id === answer.section_id)?.name
+    : null
 
   return (
     <AccordionItem
@@ -217,6 +222,11 @@ function QuestionReviewItem({
               <MathText>{answer.question_text}</MathText>
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {sectionName && (
+                <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium bg-primary/10 text-primary border-primary/20">
+                  {sectionName}
+                </Badge>
+              )}
               {isSkipped ? (
                 <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground">
                   Skipped
@@ -952,6 +962,7 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                   <QuestionReviewItem
                     key={a.question_id}
                     answer={a}
+                    sections={test.sections}
                     index={i}
                     isInProgress={isInProgress}
                     qDiagnosis={questionDiagnosisMap.get(a.question_id)}

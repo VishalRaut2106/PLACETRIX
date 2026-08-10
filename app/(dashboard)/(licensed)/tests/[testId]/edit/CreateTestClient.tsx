@@ -27,7 +27,8 @@ import { MathText } from "@/components/others/latex-renderer"
 import { cn } from "@/lib/utils"
 import {
   Loader2, Save, Send, AlertCircle, AlertTriangle, BookOpen, CheckCircle2, Circle, Plus, Tag, X,
-  PlusCircle, Sparkles, Upload, Trash2, Pencil, ChevronDown, ChevronUp, Info, FileJson, Image
+  PlusCircle, Sparkles, Upload, Trash2, Pencil, ChevronDown, ChevronUp, Info, FileJson, Image,
+  GripVertical, Layers
 } from "lucide-react"
 import {
   Combobox,
@@ -44,9 +45,32 @@ import { UsersRound } from "lucide-react"
 import type { CohortOption } from "@/app/(dashboard)/(licensed)/cohorts/types"
 import { GenerateButton } from "@/components/others/generate-button"
 
+// @dnd-kit imports for drag and drop
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverlay,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+
 import type {
   SettingsForm,
   LocalQuestion,
+  LocalSection,
+  SectionForm,
   QuestionForm,
   OptionForm,
   AiGenerateForm,
@@ -59,8 +83,8 @@ interface Props {
   initialData?: InitialTestData
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
-  onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
-  onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[]) => Promise<void>
+  onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[]) => Promise<void>
+  onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[]) => Promise<void>
   cohortOptions?: CohortOption[]
 }
 
@@ -80,11 +104,6 @@ const EMPTY_SETTINGS: SettingsForm = {
 
 // ── Timezone helpers ──────────────────────────────────────────────────────────
 
-/**
- * Converts a UTC ISO string from Supabase (e.g. "2024-01-15T04:30:00+00:00")
- * to the "YYYY-MM-DDTHH:mm" format expected by <input type="datetime-local">,
- * expressed in the user's LOCAL timezone.
- */
 export function toLocalDateTimeInput(isoString: string): string {
   if (!isoString) return ""
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(isoString)) return isoString
@@ -95,10 +114,6 @@ export function toLocalDateTimeInput(isoString: string): string {
   return localDate.toISOString().slice(0, 16)
 }
 
-/**
- * Converts the "YYYY-MM-DDTHH:mm" value from <input type="datetime-local">
- * back to a UTC ISO string for DB storage.
- */
 export function toUTCISOString(localDT: string): string {
   if (!localDT) return ""
   const d = new Date(localDT)
@@ -114,7 +129,6 @@ export function normalizeDefaults(values: SettingsForm): SettingsForm {
   }
 }
 
-/** Convert local datetime-local values to UTC ISO strings for DB storage */
 function settingsForDb(settings: SettingsForm): SettingsForm {
   return {
     ...settings,
@@ -135,25 +149,50 @@ export function CreateTestClient({
   cohortOptions,
 }: Props) {
   const isEditMode = propTestId !== undefined
-  const cohortsAnchor = useComboboxAnchor()
-
-  // Stable ID: use prop when editing, generate once when creating
   const [testId] = useState<string>(() => propTestId ?? crypto.randomUUID())
 
-  // Settings state lives here so both SettingsForm and the header buttons
-  // always see the latest values. Dates are kept in local "YYYY-MM-DDTHH:mm"
-  // format for the inputs; they are converted to UTC just before saving.
   const [settings, setSettings] = useState<SettingsForm>(() =>
     normalizeDefaults(initialData?.settings ?? EMPTY_SETTINGS)
   )
-  const [questions, setQuestions] = useState<LocalQuestion[]>(
-    initialData?.questions ?? []
-  )
+  
+  // Ensure default Section A exists if test has no sections
+  const [sections, setSections] = useState<LocalSection[]>(() => {
+    if (initialData?.sections && initialData.sections.length > 0) {
+      return initialData.sections
+    }
+    return [{ id: crypto.randomUUID(), name: "Section A", description: "", order_index: 1 }]
+  })
+
+  const [questions, setQuestions] = useState<LocalQuestion[]>(() => {
+    const rawQuestions = initialData?.questions ?? []
+    return rawQuestions
+  })
+
+  // Mandatory Section constraint guard: Ensure at least 1 section exists, and all questions belong to a valid section
+  useEffect(() => {
+    if (sections.length === 0) {
+      const defaultSecId = crypto.randomUUID()
+      const defaultSec: LocalSection = { id: defaultSecId, name: "Section A", description: "", order_index: 1 }
+      setSections([defaultSec])
+      setQuestions((prev) => prev.map((q) => ({ ...q, section_id: defaultSecId })))
+    } else {
+      const validSecIds = new Set(sections.map((s) => s.id))
+      const fallbackSecId = sections[0].id
+      let changed = false
+      const fixedQuestions = questions.map((q) => {
+        if (!q.section_id || !validSecIds.has(q.section_id)) {
+          changed = true
+          return { ...q, section_id: fallbackSecId }
+        }
+        return q
+      })
+      if (changed) setQuestions(fixedQuestions)
+    }
+  }, [sections, questions])
 
   const [isSaving, setIsSaving] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
 
-  // Validation helpers
   const titleValid = settings.title.trim().length > 0
   const dateRangeValid =
     !settings.available_from ||
@@ -162,7 +201,6 @@ export function CreateTestClient({
 
   const canSave = titleValid && dateRangeValid
 
-  // ── Draft save ──────────────────────────────────────────────────────────────
   const handleSaveDraft = useCallback(async () => {
     if (!canSave) {
       if (!titleValid) toast.error("Title is required to save.")
@@ -170,16 +208,15 @@ export function CreateTestClient({
     }
     setIsSaving(true)
     try {
-      await onSaveDraft(testId, settingsForDb(settings), questions)
+      await onSaveDraft(testId, settingsForDb(settings), questions, sections)
       toast.success("Draft saved.")
     } catch (err: any) {
       toast.error(getFriendlyErrorMessage(err, "Failed to save draft. Please try again."))
     } finally {
       setIsSaving(false)
     }
-  }, [testId, settings, questions, onSaveDraft, canSave, titleValid])
+  }, [testId, settings, questions, sections, onSaveDraft, canSave, titleValid])
 
-  // ── Publish ─────────────────────────────────────────────────────────────────
   const handlePublish = useCallback(async () => {
     if (!canSave) {
       if (!titleValid) toast.error("Title is required to publish.")
@@ -187,13 +224,13 @@ export function CreateTestClient({
     }
     setIsPublishing(true)
     try {
-      await onPublish(testId, settingsForDb(settings), questions)
+      await onPublish(testId, settingsForDb(settings), questions, sections)
     } catch (err: any) {
       if (err?.message === "NEXT_REDIRECT") throw err
       toast.error(getFriendlyErrorMessage(err, "Failed to publish. Please try again."))
       setIsPublishing(false)
     }
-  }, [testId, settings, questions, onPublish, canSave, titleValid])
+  }, [testId, settings, questions, sections, onPublish, canSave, titleValid])
 
   return (
     <div className="min-h-screen w-full">
@@ -207,8 +244,8 @@ export function CreateTestClient({
             </h1>
             <p className="text-sm text-muted-foreground">
               {isEditMode
-                ? "Update settings and questions, then republish."
-                : "Fill in settings, add questions, then publish."}
+                ? "Update settings, sections, and questions, then republish."
+                : "Fill in settings, organize sections and questions, then publish."}
             </p>
           </div>
 
@@ -249,8 +286,10 @@ export function CreateTestClient({
           cohortOptions={cohortOptions}
         />
 
-        {/* ── Questions ── */}
-        <QuestionsPanel
+        {/* ── Unified Test Content Panel (Sections + Questions with Drag and Drop) ── */}
+        <TestContentPanel
+          sections={sections}
+          setSections={setSections}
           questions={questions}
           setQuestions={setQuestions}
           availableTags={availableTags}
@@ -372,7 +411,6 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
                 />
               </div>
             </div>
-            {/* Date range validation warning */}
             {dateRangeInvalid && (
               <p className="flex items-center gap-1.5 text-xs text-destructive">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -509,7 +547,664 @@ function SettingsFormComponent({ values, onChange, cohortOptions }: SettingsForm
   )
 }
 
-// ─── Sub-Component: OptionsBuilder ─────────────────────────────────────────────
+// ─── Sub-Component: TestContentPanel (Unified Sections & Questions with Drag and Drop) ───
+
+interface TestContentPanelProps {
+  sections: LocalSection[]
+  setSections: React.Dispatch<React.SetStateAction<LocalSection[]>>
+  questions: LocalQuestion[]
+  setQuestions: React.Dispatch<React.SetStateAction<LocalQuestion[]>>
+  availableTags: { id: string; name: string }[]
+  generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
+}
+
+function TestContentPanel({
+  sections,
+  setSections,
+  questions,
+  setQuestions,
+  availableTags,
+  generateQuestionsAction,
+}: TestContentPanelProps) {
+  const [questionSheetOpen, setQuestionSheetOpen] = useState(false)
+  const [editingQuestion, setEditingQuestion] = useState<LocalQuestion | null>(null)
+  const [targetSectionId, setTargetSectionId] = useState<string | null>(null)
+  
+  const [aiSheetOpen, setAiSheetOpen] = useState(false)
+  const [importSheetOpen, setImportSheetOpen] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  function openAddQuestion(secId?: string) {
+    setEditingQuestion(null)
+    setTargetSectionId(secId ?? sections[0]?.id ?? null)
+    setQuestionSheetOpen(true)
+  }
+
+  function openEditQuestion(q: LocalQuestion) {
+    setEditingQuestion(q)
+    setTargetSectionId(q.section_id)
+    setQuestionSheetOpen(true)
+  }
+
+  function openAiGenerate(secId?: string) {
+    setTargetSectionId(secId ?? sections[0]?.id ?? null)
+    setAiSheetOpen(true)
+  }
+
+  function openImportJson(secId?: string) {
+    setTargetSectionId(secId ?? sections[0]?.id ?? null)
+    setImportSheetOpen(true)
+  }
+
+  function handleQuestionSave(form: QuestionForm, sectionId: string) {
+    const finalSecId = sectionId || sections[0]?.id || crypto.randomUUID()
+
+    const asLocal: LocalQuestion = {
+      id: editingQuestion?.id ?? crypto.randomUUID(),
+      question_text: form.question_text,
+      question_type: form.question_type,
+      marks: form.marks || 1,
+      order_index: editingQuestion?.order_index ?? questions.length + 1,
+      explanation: form.explanation,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
+      options: form.options,
+      section_id: finalSecId,
+    }
+
+    setQuestions((prev) =>
+      editingQuestion
+        ? prev.map((q) => (q.id === editingQuestion.id ? asLocal : q))
+        : [...prev, asLocal]
+    )
+    setQuestionSheetOpen(false)
+  }
+
+  function handleAiImport(forms: QuestionForm[], sectionId: string) {
+    const finalSecId = sectionId || sections[0]?.id || crypto.randomUUID()
+
+    const newLocals: LocalQuestion[] = forms.map((form, i) => ({
+      id: crypto.randomUUID(),
+      question_text: form.question_text,
+      question_type: form.question_type,
+      marks: form.marks || 1,
+      order_index: questions.length + i + 1,
+      explanation: form.explanation,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
+      options: form.options,
+      section_id: finalSecId,
+    }))
+    setQuestions((prev) => [...prev, ...newLocals])
+    setAiSheetOpen(false)
+  }
+
+  function handleJsonImport(forms: QuestionForm[], sectionId: string) {
+    const finalSecId = sectionId || sections[0]?.id || crypto.randomUUID()
+
+    const newLocals: LocalQuestion[] = forms.map((form, i) => ({
+      id: crypto.randomUUID(),
+      question_text: form.question_text,
+      question_type: form.question_type,
+      marks: form.marks || 1,
+      order_index: questions.length + i + 1,
+      explanation: form.explanation,
+      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
+      options: form.options,
+      section_id: finalSecId,
+    }))
+    setQuestions((prev) => [...prev, ...newLocals])
+    setImportSheetOpen(false)
+  }
+
+  function handleDeleteQuestion(id: string) {
+    setQuestions((prev) =>
+      prev
+        .filter((q) => q.id !== id)
+        .map((q, i) => ({ ...q, order_index: i + 1 }))
+    )
+  }
+
+  function handleAddSection() {
+    const nextChar = String.fromCharCode(65 + sections.length)
+    const newName = `Section ${nextChar}`
+    const newSec: LocalSection = {
+      id: crypto.randomUUID(),
+      name: newName,
+      description: "",
+      order_index: sections.length + 1,
+    }
+    setSections((prev) => [...prev, newSec])
+    toast.success(`Created "${newName}"`)
+  }
+
+  function handleRenameSection(sectionId: string, newName: string) {
+    const trimmed = newName.trim()
+    if (!trimmed) return
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, name: trimmed } : s))
+    )
+  }
+
+  function handleDeleteSection(sectionId: string) {
+    if (sections.length <= 1) {
+      toast.error("A test must have at least one section.")
+      return
+    }
+    const remainingSections = sections.filter((s) => s.id !== sectionId)
+    const fallbackSecId = remainingSections[0].id
+    setSections(remainingSections)
+    setQuestions((prev) =>
+      prev.map((q) => (q.section_id === sectionId ? { ...q, section_id: fallbackSecId } : q))
+    )
+    toast.success("Section removed. Questions moved to " + remainingSections[0].name)
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id))
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    setActiveId(null)
+    if (!over) return
+
+    const activeStr = String(active.id)
+    const overStr = String(over.id)
+
+    if (activeStr === overStr) return
+
+    if (activeStr.startsWith("sec-")) {
+      const activeSecId = activeStr.replace("sec-", "")
+      const overSecId = overStr.startsWith("sec-") ? overStr.replace("sec-", "") : null
+      if (overSecId && activeSecId !== overSecId) {
+        const oldIndex = sections.findIndex((s) => s.id === activeSecId)
+        const newIndex = sections.findIndex((s) => s.id === overSecId)
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newSections = arrayMove(sections, oldIndex, newIndex).map((s, idx) => ({
+            ...s,
+            order_index: idx + 1,
+          }))
+          setSections(newSections)
+        }
+      }
+      return
+    }
+
+    const activeQId = activeStr.replace("q-", "")
+    const activeQIndex = questions.findIndex((q) => q.id === activeQId)
+    if (activeQIndex === -1) return
+
+    const activeQ = questions[activeQIndex]
+
+    if (overStr.startsWith("q-")) {
+      const overQId = overStr.replace("q-", "")
+      const overQIndex = questions.findIndex((q) => q.id === overQId)
+      if (overQIndex !== -1 && overQIndex !== activeQIndex) {
+        const overQ = questions[overQIndex]
+        let newQuestions = [...questions]
+        if (activeQ.section_id !== overQ.section_id) {
+          newQuestions[activeQIndex] = { ...activeQ, section_id: overQ.section_id }
+        }
+        newQuestions = arrayMove(newQuestions, activeQIndex, overQIndex).map((q, idx) => ({
+          ...q,
+          order_index: idx + 1,
+        }))
+        setQuestions(newQuestions)
+      }
+      return
+    }
+
+    if (overStr.startsWith("sec-")) {
+      const targetSecId = overStr.replace("sec-", "")
+      if (activeQ.section_id !== targetSecId) {
+        const updatedQuestions = questions.map((q) =>
+          q.id === activeQId ? { ...q, section_id: targetSecId } : q
+        )
+        setQuestions(updatedQuestions)
+      }
+    }
+  }
+
+  const activeQuestion = activeId && activeId.startsWith("q-")
+    ? questions.find((q) => q.id === activeId.replace("q-", ""))
+    : null
+
+  const activeSection = activeId && activeId.startsWith("sec-")
+    ? sections.find((s) => s.id === activeId.replace("sec-", ""))
+    : null
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-0.5">
+              <CardTitle className="text-base flex items-center gap-2">
+                Test Content & Sections
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {sections.length} section{sections.length !== 1 ? "s" : ""} · {questions.length} Qs · {totalMarks} marks
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Organize your test into sections. Drag and drop sections or questions to reorder.
+              </CardDescription>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => openAiGenerate()}>
+                <Sparkles className="mr-1.5 size-4" /> Trixy AI Generate
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => openImportJson()}>
+                <Upload className="mr-1.5 size-4" /> Import JSON
+              </Button>
+              <Button size="sm" onClick={handleAddSection}>
+                <Plus className="mr-1.5 size-4" /> Add Section
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sections.map((s) => "sec-" + s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-6">
+                {sections.map((sec, idx) => {
+                  const secQuestions = questions.filter((q) => q.section_id === sec.id)
+                  return (
+                    <SortableSectionCard
+                      key={sec.id}
+                      section={sec}
+                      sectionIndex={idx + 1}
+                      questions={secQuestions}
+                      canDelete={sections.length > 1}
+                      availableTags={availableTags}
+                      onRename={(newName) => handleRenameSection(sec.id, newName)}
+                      onDelete={() => handleDeleteSection(sec.id)}
+                      onAddQuestion={() => openAddQuestion(sec.id)}
+                      onAiGenerate={() => openAiGenerate(sec.id)}
+                      onEditQuestion={openEditQuestion}
+                      onDeleteQuestion={handleDeleteQuestion}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+
+            <DragOverlay>
+              {activeSection ? (
+                <div className="rounded-lg border border-primary bg-background p-4 shadow-xl opacity-95">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <GripVertical className="size-4 text-muted-foreground" />
+                    {activeSection.name}
+                  </div>
+                </div>
+              ) : activeQuestion ? (
+                <div className="rounded-lg border border-primary bg-background p-3 shadow-xl opacity-95 text-xs font-medium max-w-md">
+                  <MathText>{activeQuestion.question_text}</MathText>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+
+          <div className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-dashed py-5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              onClick={handleAddSection}
+            >
+              <Plus className="mr-1.5 size-4" /> Add Another Section
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <QuestionSheet
+        open={questionSheetOpen}
+        onOpenChange={setQuestionSheetOpen}
+        mode={editingQuestion ? "edit" : "add"}
+        defaultValues={
+          editingQuestion
+            ? {
+                question_text: editingQuestion.question_text,
+                question_type: editingQuestion.question_type,
+                marks: editingQuestion.marks,
+                explanation: editingQuestion.explanation,
+                options: editingQuestion.options,
+                tag_names: editingQuestion.tag_names,
+              }
+            : undefined
+        }
+        defaultSectionId={editingQuestion ? editingQuestion.section_id : targetSectionId}
+        availableTags={availableTags}
+        sections={sections}
+        onSave={handleQuestionSave}
+      />
+
+      <AiGenerateSheet
+        open={aiSheetOpen}
+        onOpenChange={setAiSheetOpen}
+        sections={sections}
+        defaultSectionId={targetSectionId}
+        generateQuestionsAction={generateQuestionsAction}
+        onImport={handleAiImport}
+      />
+
+      <ImportSheet
+        open={importSheetOpen}
+        onOpenChange={setImportSheetOpen}
+        sections={sections}
+        defaultSectionId={targetSectionId}
+        onImport={handleJsonImport}
+      />
+    </>
+  )
+}
+
+// ─── Sub-Component: SortableSectionCard ───────────────────────────────────────
+
+interface SortableSectionCardProps {
+  section: LocalSection
+  sectionIndex: number
+  questions: LocalQuestion[]
+  canDelete: boolean
+  availableTags: { id: string; name: string }[]
+  onRename: (newName: string) => void
+  onDelete: () => void
+  onAddQuestion: () => void
+  onAiGenerate: () => void
+  onEditQuestion: (q: LocalQuestion) => void
+  onDeleteQuestion: (id: string) => void
+}
+
+function SortableSectionCard({
+  section,
+  sectionIndex,
+  questions,
+  canDelete,
+  availableTags,
+  onRename,
+  onDelete,
+  onAddQuestion,
+  onAiGenerate,
+  onEditQuestion,
+  onDeleteQuestion,
+}: SortableSectionCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: "sec-" + section.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState(section.name)
+
+  const sectionMarks = questions.reduce((sum, q) => sum + q.marks, 0)
+
+  function handleNameCommit() {
+    setIsEditingName(false)
+    if (nameInput.trim() && nameInput.trim() !== section.name) {
+      onRename(nameInput.trim())
+    } else {
+      setNameInput(section.name)
+    }
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "rounded-xl border bg-card/60 shadow-xs transition-shadow",
+        isDragging && "opacity-40 border-primary shadow-lg"
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3 rounded-t-xl">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <button
+            type="button"
+            className="cursor-grab text-muted-foreground/60 hover:text-foreground touch-none p-1 rounded hover:bg-background/80"
+            {...attributes}
+            {...listeners}
+            title="Drag to reorder section"
+          >
+            <GripVertical className="size-4" />
+          </button>
+
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+            {sectionIndex}
+          </span>
+
+          {isEditingName ? (
+            <input
+              autoFocus
+              className="rounded border bg-background px-2 py-0.5 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-ring"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={handleNameCommit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleNameCommit()
+                if (e.key === "Escape") {
+                  setNameInput(section.name)
+                  setIsEditingName(false)
+                }
+              }}
+            />
+          ) : (
+            <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingName(true)}>
+              <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
+                {section.name}
+              </h3>
+              <Pencil className="size-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+
+          <Badge variant="secondary" className="ml-1 text-[11px] font-normal shrink-0">
+            {questions.length} Q{questions.length !== 1 ? "s" : ""} · {sectionMarks} M
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs px-2"
+            onClick={onAiGenerate}
+            title="Generate AI questions for this section"
+          >
+            <Sparkles className="mr-1 size-3.5" />
+            AI Gen
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs px-2.5"
+            onClick={onAddQuestion}
+          >
+            <Plus className="mr-1 size-3.5" />
+            Add Question
+          </Button>
+
+          {canDelete && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+              title="Delete section"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="p-3 sm:p-4 space-y-2">
+        <SortableContext
+          items={questions.map((q) => "q-" + q.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {questions.length === 0 ? (
+            <div
+              onClick={onAddQuestion}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed py-8 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-primary/5"
+            >
+              <PlusCircle className="size-6 text-muted-foreground/40" />
+              <p className="text-xs font-medium text-muted-foreground">
+                No questions in {section.name} yet.
+              </p>
+              <span className="text-[11px] font-semibold text-primary">
+                + Add Question to {section.name}
+              </span>
+            </div>
+          ) : (
+            <ol className="space-y-2">
+              {questions.map((q, qIdx) => (
+                <SortableQuestionRow
+                  key={q.id}
+                  question={q}
+                  displayIndex={qIdx + 1}
+                  availableTags={availableTags}
+                  onEdit={() => onEditQuestion(q)}
+                  onDelete={() => onDeleteQuestion(q.id)}
+                />
+              ))}
+            </ol>
+          )}
+        </SortableContext>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sub-Component: SortableQuestionRow ───────────────────────────────────────
+
+interface SortableQuestionRowProps {
+  question: LocalQuestion
+  displayIndex: number
+  availableTags: { id: string; name: string }[]
+  onEdit: () => void
+  onDelete: () => void
+}
+
+function SortableQuestionRow({
+  question,
+  displayIndex,
+  availableTags,
+  onEdit,
+  onDelete,
+}: SortableQuestionRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: "q-" + question.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-start gap-3 rounded-lg border bg-background p-3 transition-colors hover:border-primary/30",
+        isDragging && "opacity-40 border-primary shadow-md"
+      )}
+    >
+      <button
+        type="button"
+        className="mt-0.5 cursor-grab text-muted-foreground/50 hover:text-foreground touch-none p-0.5 rounded"
+        {...attributes}
+        {...listeners}
+        title="Drag to move question"
+      >
+        <GripVertical className="size-4" />
+      </button>
+
+      <span className="mt-0.5 w-5 shrink-0 text-center text-xs font-semibold text-muted-foreground">
+        {displayIndex}.
+      </span>
+
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <p className="truncate text-sm font-medium leading-snug">
+          <MathText>{question.question_text}</MathText>
+        </p>
+
+        <div className="flex flex-wrap gap-1">
+          <Badge variant="outline" className="text-[11px] h-4 px-1.5 py-0">
+            {question.question_type === "single_correct" ? "Single" : "Multiple"}
+          </Badge>
+
+          <Badge variant="outline" className="text-[11px] h-4 px-1.5 py-0">
+            {question.marks} {question.marks === 1 ? "mark" : "marks"}
+          </Badge>
+
+          {question.tag_names.map((t) => (
+            <Badge key={t} variant="secondary" className="text-[11px] h-4 px-1.5 py-0 font-normal">
+              {normalizeTag(t, availableTags)}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-7"
+          onClick={onEdit}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-7 text-destructive hover:text-destructive"
+          onClick={onDelete}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </li>
+  )
+}
+
+// ─── OptionsBuilder ────────────────────────────────────────────────────────────
 
 function OptionsBuilder({
   options,
@@ -535,8 +1230,6 @@ function OptionsBuilder({
     if (options.length <= 2) return
     onChange(options.filter((o) => o._key !== key))
   }
-
-
 
   return (
     <div className="space-y-3">
@@ -582,7 +1275,6 @@ function OptionsBuilder({
               <X className="h-4 w-4" />
             </button>
           </div>
-
         </div>
       ))}
       {options.length < 6 && (
@@ -603,8 +1295,6 @@ function OptionsBuilder({
   )
 }
 
-// ─── Tag Normalizer Helpers ───────────────────────────────────────────────────
-
 export function toTitleCase(str: string): string {
   return str
     .trim()
@@ -615,18 +1305,12 @@ export function toTitleCase(str: string): string {
 export function normalizeTag(rawTag: string, availableTags: { name: string }[] = []): string {
   const clean = rawTag.trim().replace(/\s+/g, " ")
   if (!clean) return ""
-  
-  // Look for exact case-insensitive match in available tags
   const existing = availableTags.find((t) => t.name.toLowerCase() === clean.toLowerCase())
   if (existing) {
     return existing.name
   }
-  
-  // Otherwise format as Title Case
   return toTitleCase(clean)
 }
-
-// ─── Sub-Component: TagInput ──────────────────────────────────────────────────
 
 function TagInput({
   selected,
@@ -643,7 +1327,6 @@ function TagInput({
 
   const cleanInput = input.trim().toLowerCase()
 
-  // Filter available tags that match input & are not already selected
   const matchingSuggestions = available.filter(
     (t) =>
       (!cleanInput || t.name.toLowerCase().includes(cleanInput)) &&
@@ -663,7 +1346,6 @@ function TagInput({
     setIsOpen(false)
   }
 
-  // Handle outside clicks to close dropdown
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -749,8 +1431,10 @@ interface QuestionSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultValues?: QuestionForm
+  defaultSectionId?: string | null
   availableTags: { id: string; name: string }[]
-  onSave: (form: QuestionForm) => void
+  sections: LocalSection[]
+  onSave: (form: QuestionForm, sectionId: string) => void
   mode?: "add" | "edit"
 }
 
@@ -774,28 +1458,33 @@ function QuestionSheet({
   open,
   onOpenChange,
   defaultValues,
+  defaultSectionId,
   availableTags,
+  sections,
   onSave,
   mode = "add",
 }: QuestionSheetProps) {
   const [form, setForm] = useState<QuestionForm>(defaultValues ?? { ...EMPTY_FORM, options: makeOptions() })
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(
+    defaultSectionId || sections[0]?.id || ""
+  )
   const [errors, setErrors] = useState<string[]>([])
 
   useEffect(() => {
     if (open) {
       setForm(defaultValues ?? { ...EMPTY_FORM, options: makeOptions() })
+      setSelectedSectionId(defaultSectionId || sections[0]?.id || "")
       setErrors([])
     }
-  }, [open, defaultValues])
+  }, [open, defaultValues, defaultSectionId, sections])
 
   const set = <K extends keyof QuestionForm>(k: K, v: QuestionForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
 
-
-
   const validate = (): string[] => {
     const e: string[] = []
     if (!form.question_text.trim()) e.push("Question text is required.")
+    if (!selectedSectionId) e.push("Select a section for this question.")
     if (form.options.some((o) => !o.option_text.trim())) e.push("All options must have text.")
     if (!form.options.some((o) => o.is_correct)) e.push("Mark at least one correct answer.")
     if (form.question_type === "single_correct" && form.options.filter((o) => o.is_correct).length > 1)
@@ -808,7 +1497,7 @@ function QuestionSheet({
   const handleSave = () => {
     const e = validate()
     if (e.length) { setErrors(e); return }
-    onSave(form)
+    onSave(form, selectedSectionId || sections[0]?.id || "")
     setErrors([])
   }
 
@@ -823,7 +1512,7 @@ function QuestionSheet({
           <SheetDescription>
             {mode === "edit"
               ? "Make changes, then save."
-              : "Enter the question, mark correct answer(s), then save."}
+              : "Enter the question, pick section, mark correct answer(s), then save."}
           </SheetDescription>
         </SheetHeader>
 
@@ -851,8 +1540,6 @@ function QuestionSheet({
               className="resize-none text-sm"
             />
           </div>
-
-
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -885,6 +1572,22 @@ function QuestionSheet({
                 className="text-sm"
               />
             </div>
+          </div>
+
+          {/* Section dropdown */}
+          <div className="space-y-1.5">
+            <Label>Section <span className="text-destructive">*</span></Label>
+            <Select
+              value={selectedSectionId}
+              onValueChange={setSelectedSectionId}
+            >
+              <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {sections.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -933,9 +1636,11 @@ function QuestionSheet({
         </div>
 
         <SheetFooter className="shrink-0 flex-row justify-end gap-2 border-t px-6 py-4">
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
           <Button onClick={handleSave}>
-            {mode === "edit" ? "Save Changes" : "Save Question"}
+            {mode === "edit" ? "Save Changes" : "Add Question"}
           </Button>
         </SheetFooter>
 
@@ -949,10 +1654,12 @@ function QuestionSheet({
 interface AiGenerateSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  sections: LocalSection[]
+  defaultSectionId?: string | null
   generateQuestionsAction?: (
     input: AiGenerateForm
   ) => Promise<GenerateQuestionsResult>
-  onImport: (questions: QuestionForm[]) => void
+  onImport: (questions: QuestionForm[], sectionId: string) => void
 }
 
 type AiPreviewQuestion = QuestionForm & {
@@ -974,14 +1681,25 @@ const AI_DEFAULT_COUNT = "5"
 function AiGenerateSheet({
   open,
   onOpenChange,
+  sections,
+  defaultSectionId,
   generateQuestionsAction,
   onImport,
 }: AiGenerateSheetProps) {
   const [form, setForm] = useState<AiGenerateForm>(AI_EMPTY)
+  const [targetSectionId, setTargetSectionId] = useState<string>(
+    defaultSectionId || sections[0]?.id || ""
+  )
   const [generated, setGenerated] = useState<AiPreviewQuestion[]>([])
   const [generatedWith, setGeneratedWith] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (open) {
+      setTargetSectionId(defaultSectionId || sections[0]?.id || "")
+    }
+  }, [open, defaultSectionId, sections])
 
   const countFieldError =
     form.count !== "" && (Number(form.count) < 1 || Number(form.count) > 60)
@@ -1013,9 +1731,17 @@ function AiGenerateSheet({
     setGenerated([])
     setGeneratedWith(null)
 
+    const currentSection = sections.find((s) => s.id === targetSectionId)
+    const topicWithSectionContext = currentSection && currentSection.name
+      ? `${form.topic.trim()} (Section context: ${currentSection.name})`
+      : form.topic.trim()
+
     startTransition(async () => {
       try {
-        const result = await generateQuestionsAction(form)
+        const result = await generateQuestionsAction({
+          ...form,
+          topic: topicWithSectionContext,
+        })
 
         if (result.error) {
           setGeneratedWith(null)
@@ -1048,8 +1774,11 @@ function AiGenerateSheet({
       return
     }
 
+    const finalSecId = targetSectionId || sections[0]?.id || ""
+
     onImport(
-      selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => q)
+      selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => q),
+      finalSecId
     )
 
     handleClose()
@@ -1088,12 +1817,11 @@ function AiGenerateSheet({
     >
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="shrink-0 border-b px-6 py-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-500" />
+          <SheetTitle>
             Generate with Trixy AI
           </SheetTitle>
           <SheetDescription>
-            Describe a topic, generate questions with Trixy AI, then review and add selected ones.
+            Describe a topic, generate questions with Trixy AI, then review and add to chosen section.
           </SheetDescription>
 
           {generatedWith && (
@@ -1106,10 +1834,10 @@ function AiGenerateSheet({
         </SheetHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-400">
+          <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
-              AI-generated questions may occasionally be inaccurate or misleading.
+              AI-generated questions will be assigned to your target section.
               Always review the content carefully before adding questions to your test.
             </span>
           </div>
@@ -1120,6 +1848,23 @@ function AiGenerateSheet({
               {error}
             </div>
           )}
+
+          {/* Section dropdown */}
+          <div className="space-y-1.5">
+            <Label>Target Section</Label>
+            <Select
+              value={targetSectionId}
+              onValueChange={setTargetSectionId}
+              disabled={isPending}
+            >
+              <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {sections.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-1.5">
             <Label>
@@ -1402,7 +2147,9 @@ function AiGenerateSheet({
 interface ImportSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onImport: (questions: QuestionForm[]) => void
+  sections: LocalSection[]
+  defaultSectionId?: string | null
+  onImport: (questions: QuestionForm[], sectionId: string) => void
 }
 
 type ImportPreviewQuestion = QuestionForm & {
@@ -1502,190 +2249,179 @@ function validateItem(item: any, idx: number): ImportPreviewQuestion {
   }
 }
 
-function ImportSheet({ open, onOpenChange, onImport }: ImportSheetProps) {
-  const [tab, setTab] = useState<"paste" | "file">("paste")
+function ImportSheet({
+  open,
+  onOpenChange,
+  sections,
+  defaultSectionId,
+  onImport,
+}: ImportSheetProps) {
   const [jsonText, setJsonText] = useState("")
-  const [parsed, setParsed] = useState<ImportPreviewQuestion[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [targetSectionId, setTargetSectionId] = useState<string>(
+    defaultSectionId || sections[0]?.id || ""
+  )
+  const [preview, setPreview] = useState<ImportPreviewQuestion[]>([])
+  const [jsonError, setJsonError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const parseJson = (text: string) => {
-    setError(null)
-    setParsed([])
-    let data: any
+  useEffect(() => {
+    if (open) {
+      setTargetSectionId(defaultSectionId || sections[0]?.id || "")
+    }
+  }, [open, defaultSectionId, sections])
+
+  const parseAndValidate = (rawText: string) => {
+    setJsonText(rawText)
+    setJsonError(null)
+    setPreview([])
+
+    if (!rawText.trim()) return
+
+    let parsed: any
     try {
-      data = JSON.parse(text)
+      parsed = JSON.parse(rawText)
     } catch {
-      setError("Invalid JSON syntax — check for missing brackets, quotes, or trailing commas.")
+      setJsonError("Invalid JSON syntax. Check for missing quotes or trailing commas.")
       return
     }
-    if (!Array.isArray(data)) {
-      setError("JSON must be an array [ ... ] of question objects at the top level.")
+
+    if (!Array.isArray(parsed)) {
+      setJsonError("JSON root must be an array of question objects.")
       return
     }
-    if (data.length === 0) {
-      setError("JSON array is empty — no questions to import.")
+
+    if (parsed.length === 0) {
+      setJsonError("The array is empty.")
       return
     }
-    const questions = data.map((item, i) => validateItem(item, i))
-    setParsed(questions)
-    const badCount = questions.filter((q) => q._errors.length > 0).length
-    if (badCount === questions.length) {
-      setError(`All ${questions.length} question${questions.length > 1 ? "s" : ""} failed validation.`)
-    }
+
+    setPreview(parsed.map((item, idx) => validateItem(item, idx)))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const text = ev.target?.result as string
-      setJsonText(text)
-      parseJson(text)
+      parseAndValidate(ev.target?.result as string)
     }
     reader.readAsText(file)
     e.target.value = ""
   }
 
-  const handleImport = () => {
-    const selected = parsed.filter((q) => q._selected && q._errors.length === 0)
-    if (!selected.length) { setError("Select at least one valid question."); return }
-    onImport(selected.map(({ _selected, _previewId, _errors, _warnings, ...q }) => q))
+  const handleImportClick = () => {
+    const validSelected = preview.filter((q) => q._selected && q._errors.length === 0)
+    if (validSelected.length === 0) return
+    const finalSecId = targetSectionId || sections[0]?.id || ""
+    onImport(
+      validSelected.map(({ _selected, _previewId, _errors, _warnings, ...q }) => q),
+      finalSecId
+    )
     handleClose()
   }
 
   const handleClose = () => {
-    setTab("paste")
     setJsonText("")
-    setParsed([])
-    setError(null)
+    setPreview([])
+    setJsonError(null)
     onOpenChange(false)
   }
 
-  const toggle = (id: string) =>
-    setParsed((p) =>
-      p.map((q) =>
-        q._previewId === id && q._errors.length === 0 ? { ...q, _selected: !q._selected } : q
-      )
-    )
-
-  const errorCount = parsed.filter((q) => q._errors.length > 0).length
-  const selectableCount = parsed.filter((q) => q._selected && q._errors.length === 0).length
+  const validSelectedCount = preview.filter((q) => q._selected && q._errors.length === 0).length
+  const totalValid = preview.filter((q) => q._errors.length === 0).length
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
 
         <SheetHeader className="shrink-0 border-b px-6 py-4">
-          <SheetTitle className="flex items-center gap-2">
-            <FileJson className="h-4 w-4 text-blue-500" />
-            Import Questions
+          <SheetTitle>
+            Import Questions from JSON
           </SheetTitle>
           <SheetDescription>
-            Paste JSON or upload a{" "}
-            <code className="rounded bg-muted px-1 text-xs">.json</code> file.
-            Invalid questions are skipped.
+            Upload a JSON file or paste formatted JSON to add questions directly to your section.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-
-          {/* Tabs */}
-          <div className="flex w-fit gap-1 rounded-md bg-muted p-1">
-            {(["paste", "file"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setTab(t); setParsed([]); setError(null) }}
-                className={cn(
-                  "rounded-sm px-3 py-1 text-xs font-medium transition-colors",
-                  tab === t
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t === "paste" ? "Paste JSON" : "Upload File"}
-              </button>
-            ))}
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {/* Target Section Selection */}
+          <div className="space-y-1.5">
+            <Label>Target Section</Label>
+            <Select
+              value={targetSectionId}
+              onValueChange={setTargetSectionId}
+            >
+              <SelectTrigger className="w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {sections.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              {error}
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              <FileJson className="h-4 w-4" />
+              Upload .json file
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => parseAndValidate(IMPORT_SAMPLE)}
+              className="gap-1.5 text-xs text-muted-foreground"
+            >
+              Load Sample JSON
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>JSON Data</Label>
+            <Textarea
+              placeholder="Paste JSON array here…"
+              value={jsonText}
+              onChange={(e) => parseAndValidate(e.target.value)}
+              rows={6}
+              className="font-mono text-xs leading-relaxed"
+            />
+          </div>
+
+          {jsonError && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              {jsonError}
             </div>
           )}
 
-          {tab === "paste" ? (
-            <div className="space-y-2">
+          {preview.length > 0 && (
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>JSON</Label>
-                <button
-                  type="button"
-                  onClick={() => { setJsonText(IMPORT_SAMPLE); setParsed([]); setError(null) }}
-                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                >
-                  Load sample
-                </button>
-              </div>
-              <Textarea
-                placeholder={`[\n  {\n    "question_text": "...",\n    ...\n  }\n]`}
-                value={jsonText}
-                onChange={(e) => { setJsonText(e.target.value); setParsed([]); setError(null) }}
-                rows={12}
-                className="resize-none font-mono text-xs"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="w-full"
-                onClick={() => parseJson(jsonText)}
-                disabled={!jsonText.trim()}
-              >
-                Parse &amp; Preview
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Label>Upload .json file</Label>
-              <div
-                className="flex cursor-pointer flex-col items-center gap-3 rounded-md border-2 border-dashed p-10 transition-colors hover:bg-muted/40"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-8 w-8 text-muted-foreground/40" />
-                <div className="text-center">
-                  <p className="text-sm font-medium">Click to upload</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">JSON files only</p>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json,application/json"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </div>
-            </div>
-          )}
-
-          {parsed.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">
-                    {parsed.length} question{parsed.length !== 1 ? "s" : ""} found
-                  </p>
-                  {errorCount > 0 && (
-                    <Badge variant="destructive" className="text-xs">{errorCount} invalid</Badge>
-                  )}
-                </div>
+                <p className="text-sm font-medium">
+                  Preview ({totalValid} valid question{totalValid !== 1 ? "s" : ""})
+                </p>
                 <div className="flex gap-2 text-xs text-muted-foreground">
                   <button
                     type="button"
                     className="hover:text-foreground"
-                    onClick={() => setParsed((p) => p.map((q) => ({ ...q, _selected: q._errors.length === 0 })))}
+                    onClick={() =>
+                      setPreview((p) =>
+                        p.map((q) => (q._errors.length === 0 ? { ...q, _selected: true } : q))
+                      )
+                    }
                   >
                     Select all valid
                   </button>
@@ -1693,103 +2429,78 @@ function ImportSheet({ open, onOpenChange, onImport }: ImportSheetProps) {
                   <button
                     type="button"
                     className="hover:text-foreground"
-                    onClick={() => setParsed((p) => p.map((q) => ({ ...q, _selected: false })))}
+                    onClick={() => setPreview((p) => p.map((q) => ({ ...q, _selected: false })))}
                   >
                     Deselect all
                   </button>
                 </div>
               </div>
 
-              {parsed.map((q, idx) => {
-                const hasErrors = q._errors.length > 0
-                const hasWarnings = q._warnings.length > 0
-
+              {preview.map((q, idx) => {
+                const hasError = q._errors.length > 0
                 return (
                   <div
                     key={q._previewId}
-                    onClick={() => { if (!hasErrors) toggle(q._previewId) }}
                     className={cn(
-                      "space-y-2 rounded-md border p-3 transition-colors",
-                      hasErrors
-                        ? "cursor-not-allowed border-destructive/40 bg-destructive/5"
+                      "space-y-2 rounded-md border p-3 text-xs transition-colors",
+                      hasError
+                        ? "border-destructive/40 bg-destructive/5 opacity-75"
                         : q._selected
-                          ? "cursor-pointer border-primary/40 bg-primary/5"
-                          : "cursor-pointer opacity-50 hover:opacity-80"
+                        ? "border-primary/40 bg-primary/5"
+                        : "opacity-50"
                     )}
                   >
                     <div className="flex items-start gap-2">
-                      <Checkbox
-                        checked={q._selected}
-                        disabled={hasErrors}
-                        onCheckedChange={() => { if (!hasErrors) toggle(q._previewId) }}
-                        className="mt-0.5 shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <p className={cn("flex-1 text-sm font-medium leading-snug", hasErrors && "text-muted-foreground")}>
-                        {idx + 1}. {q.question_text ? <MathText>{q.question_text}</MathText> : <span className="italic">(no question text)</span>}
-                      </p>
-                      {hasErrors && <Badge variant="destructive" className="shrink-0 text-xs">Invalid</Badge>}
-                      {!hasErrors && hasWarnings && (
-                        <Badge className="shrink-0 border-amber-300 bg-amber-100 text-xs text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400">
-                          Auto-fixed
-                        </Badge>
+                      {!hasError && (
+                        <Checkbox
+                          checked={q._selected}
+                          onCheckedChange={() =>
+                            setPreview((p) =>
+                              p.map((x) =>
+                                x._previewId === q._previewId ? { ...x, _selected: !x._selected } : x
+                              )
+                            )
+                          }
+                          className="mt-0.5 shrink-0"
+                        />
                       )}
+                      <p className="flex-1 font-medium leading-snug">
+                        {idx + 1}. <MathText>{q.question_text}</MathText>
+                      </p>
                     </div>
 
-                    {hasErrors && (
-                      <div className="space-y-1 pl-6">
-                        {q._errors.map((e) => (
-                          <p key={e} className="flex items-center gap-1.5 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3 shrink-0" /> {e}
+                    {hasError && (
+                      <div className="space-y-1 pl-5 text-destructive">
+                        {q._errors.map((err) => (
+                          <p key={err} className="flex items-center gap-1.5">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            {err}
                           </p>
                         ))}
                       </div>
                     )}
 
-                    {!hasErrors && hasWarnings && (
-                      <div className="space-y-1 pl-6">
-                        {q._warnings.map((w) => (
-                          <p key={w} className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                            <AlertTriangle className="h-3 w-3 shrink-0" /> {w}
+                    {!hasError && q.options.length > 0 && (
+                      <div className="space-y-0.5 pl-5">
+                        {q.options.map((opt, oi) => (
+                          <p
+                            key={opt._key}
+                            className={cn(
+                              "flex items-center gap-1.5",
+                              opt.is_correct
+                                ? "font-medium text-emerald-600 dark:text-emerald-400"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {opt.is_correct ? (
+                              <CheckCircle2 className="h-3 w-3 shrink-0" />
+                            ) : (
+                              <Circle className="h-3 w-3 shrink-0" />
+                            )}
+                            {String.fromCharCode(65 + oi)}. <MathText>{opt.option_text}</MathText>
                           </p>
                         ))}
                       </div>
-                    )}
-
-                    {!hasErrors && (
-                      <>
-                        <div className="space-y-1 pl-6">
-                          {q.options.map((opt, oi) => (
-                            <div
-                              key={opt._key}
-                              className={cn(
-                                "flex items-center gap-1.5 text-xs",
-                                opt.is_correct
-                                  ? "font-medium text-emerald-600 dark:text-emerald-400"
-                                  : "text-muted-foreground"
-                              )}
-                            >
-                              {opt.is_correct ? (
-                                <CheckCircle2 className="h-3 w-3 shrink-0" />
-                              ) : (
-                                <Circle className="h-3 w-3 shrink-0" />
-                              )}
-                              {String.fromCharCode(65 + oi)}. <MathText>{opt.option_text}</MathText>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2 pl-6">
-                          <Badge variant="outline" className="h-4 px-1.5 py-0 text-xs">
-                            {q.question_type === "single_correct" ? "Single" : "Multiple"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">{q.marks} pt</span>
-                          {q.tag_names.length > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              · {q.tag_names.join(", ")}
-                            </span>
-                          )}
-                        </div>
-                      </>
                     )}
                   </div>
                 )
@@ -1799,381 +2510,18 @@ function ImportSheet({ open, onOpenChange, onImport }: ImportSheetProps) {
         </div>
 
         <SheetFooter className="shrink-0 flex-row justify-end gap-2 border-t px-6 py-4">
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
-          {parsed.length > 0 && (
-            <Button onClick={handleImport} disabled={selectableCount === 0}>
-              Import {selectableCount} Question{selectableCount !== 1 ? "s" : ""}
-            </Button>
-          )}
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleImportClick}
+            disabled={validSelectedCount === 0}
+          >
+            Import {validSelectedCount} Question{validSelectedCount !== 1 ? "s" : ""}
+          </Button>
         </SheetFooter>
 
       </SheetContent>
     </Sheet>
-  )
-}
-
-function QuestionListItem({
-  question,
-  availableTags,
-  onEdit,
-  onDelete,
-}: {
-  question: LocalQuestion
-  availableTags: { id: string; name: string }[]
-  onEdit: () => void
-  onDelete: () => void
-}) {
-  return (
-    <li className="flex items-start gap-3 rounded-lg border bg-card p-3">
-      <span className="mt-0.5 w-5 shrink-0 text-center text-xs font-medium text-muted-foreground">
-        {question.order_index}.
-      </span>
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate text-sm"><MathText>{question.question_text}</MathText></p>
-        <div className="flex flex-wrap gap-1">
-          <Badge variant="outline" className="text-xs">
-            {question.question_type === "single_correct" ? "Single" : "Multiple"}
-          </Badge>
-          <Badge variant="outline" className="text-xs">
-            {question.marks} {question.marks === 1 ? "mark" : "marks"}
-          </Badge>
-          {question.tag_names.map((t) => (
-            <Badge key={t} variant="secondary" className="text-xs">
-              {normalizeTag(t, availableTags)}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7"
-          onClick={onEdit}
-        >
-          <Pencil className="size-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-7 text-destructive hover:text-destructive"
-          onClick={onDelete}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
-      </div>
-    </li>
-  )
-}
-
-// ─── Sub-Component: QuestionsPanel ────────────────────────────────────────────
-
-interface QuestionsPanelProps {
-  questions: LocalQuestion[]
-  setQuestions: React.Dispatch<React.SetStateAction<LocalQuestion[]>>
-  availableTags: { id: string; name: string }[]
-  generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
-}
-
-function QuestionsPanel({
-  questions,
-  setQuestions,
-  availableTags,
-  generateQuestionsAction,
-}: QuestionsPanelProps) {
-  const [questionSheetOpen, setQuestionSheetOpen] = useState(false)
-  const [aiSheetOpen, setAiSheetOpen] = useState(false)
-  const [importSheetOpen, setImportSheetOpen] = useState(false)
-  const [editingQuestion, setEditingQuestion] = useState<LocalQuestion | null>(null)
-
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("all")
-  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat")
-
-  const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0)
-
-  // Compute all unique tags present in the current test's questions
-  const presentTags = Array.from(
-    new Set(questions.flatMap((q) => q.tag_names.map((t) => normalizeTag(t, availableTags))))
-  ).filter(Boolean).sort()
-
-  const tagCounts: Record<string, number> = {}
-  questions.forEach((q) => {
-    q.tag_names.forEach((t) => {
-      const norm = normalizeTag(t, availableTags)
-      if (norm) tagCounts[norm] = (tagCounts[norm] || 0) + 1
-    })
-  })
-
-  // Filtered questions based on selectedTagFilter
-  const filteredQuestions = selectedTagFilter === "all"
-    ? questions
-    : questions.filter((q) =>
-        q.tag_names.some((t) => normalizeTag(t, availableTags).toLowerCase() === selectedTagFilter.toLowerCase())
-      )
-
-  function openAdd() {
-    setEditingQuestion(null)
-    setQuestionSheetOpen(true)
-  }
-
-  function openEdit(q: LocalQuestion) {
-    setEditingQuestion(q)
-    setQuestionSheetOpen(true)
-  }
-
-  function handleQuestionSave(form: QuestionForm) {
-    const asLocal: LocalQuestion = {
-      id: editingQuestion?.id ?? crypto.randomUUID(),
-      question_text: form.question_text,
-      question_type: form.question_type,
-      marks: form.marks || 1,
-      order_index: editingQuestion?.order_index ?? questions.length + 1,
-      explanation: form.explanation,
-      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
-      options: form.options,
-    }
-
-    setQuestions((prev) =>
-      editingQuestion
-        ? prev.map((q) => (q.id === editingQuestion.id ? asLocal : q))
-        : [...prev, asLocal]
-    )
-    setQuestionSheetOpen(false)
-  }
-
-  function handleAiImport(forms: QuestionForm[]) {
-    const newLocals: LocalQuestion[] = forms.map((form, i) => ({
-      id: crypto.randomUUID(),
-      question_text: form.question_text,
-      question_type: form.question_type,
-      marks: form.marks || 1,
-      order_index: questions.length + i + 1,
-      explanation: form.explanation,
-      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
-      options: form.options,
-    }))
-    setQuestions((prev) => [...prev, ...newLocals])
-    setAiSheetOpen(false)
-  }
-
-  function handleJsonImport(forms: QuestionForm[]) {
-    const newLocals: LocalQuestion[] = forms.map((form, i) => ({
-      id: crypto.randomUUID(),
-      question_text: form.question_text,
-      question_type: form.question_type,
-      marks: form.marks || 1,
-      order_index: questions.length + i + 1,
-      explanation: form.explanation,
-      tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
-      options: form.options,
-    }))
-    setQuestions((prev) => [...prev, ...newLocals])
-    setImportSheetOpen(false)
-  }
-
-  function handleDelete(id: string) {
-    setQuestions((prev) =>
-      prev
-        .filter((q) => q.id !== id)
-        .map((q, i) => ({ ...q, order_index: i + 1 }))
-    )
-  }
-
-  return (
-    <>
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-0.5">
-              <CardTitle className="text-base">
-                Questions
-                {questions.length > 0 && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {questions.length} · {totalMarks} marks
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription>Add, edit, or reorder questions.</CardDescription>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setAiSheetOpen(true)}>
-                <Sparkles className="mr-1.5 size-4 text-purple-500" /> Trixy AI Generate
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setImportSheetOpen(true)}>
-                <Upload className="mr-1.5 size-4" /> Import
-              </Button>
-              <Button size="sm" onClick={openAdd}>
-                <PlusCircle className="mr-1.5 size-4" /> Add Question
-              </Button>
-            </div>
-          </div>
-
-          {/* ── Tag Filter Bar & View Mode Toggle ── */}
-          {questions.length > 0 && (
-            <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mr-1">
-                  <Tag className="h-3 w-3" /> Filter by Tag:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTagFilter("all")}
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-                    selectedTagFilter === "all"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground border hover:bg-muted"
-                  )}
-                >
-                  All ({questions.length})
-                </button>
-                {presentTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => setSelectedTagFilter(tag)}
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-                      selectedTagFilter.toLowerCase() === tag.toLowerCase()
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-background text-muted-foreground border hover:bg-muted"
-                    )}
-                  >
-                    {tag} ({tagCounts[tag] || 0})
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
-                <Button
-                  variant={viewMode === "flat" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 text-xs px-2.5"
-                  onClick={() => setViewMode("flat")}
-                >
-                  Flat List
-                </Button>
-                <Button
-                  variant={viewMode === "grouped" ? "secondary" : "ghost"}
-                  size="sm"
-                  className="h-7 text-xs px-2.5"
-                  onClick={() => setViewMode("grouped")}
-                >
-                  Group by Tag
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardHeader>
-
-        <CardContent>
-          {questions.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <PlusCircle className="size-9 text-muted-foreground/50" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">No questions yet</p>
-                <p className="text-xs text-muted-foreground">
-                  Add manually, generate with AI, or import a file.
-                </p>
-              </div>
-            </div>
-          ) : filteredQuestions.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <AlertCircle className="size-6 text-muted-foreground/50" />
-              <p className="text-xs text-muted-foreground">
-                No questions found with tag &quot;{selectedTagFilter}&quot;.
-              </p>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedTagFilter("all")}>
-                Reset Filter
-              </Button>
-            </div>
-          ) : viewMode === "grouped" ? (
-            /* ── Grouped by Tag View ── */
-            <div className="space-y-6">
-              {(selectedTagFilter === "all" ? [...presentTags, "Untagged"] : [selectedTagFilter]).map((groupTag) => {
-                const groupQuestions = questions.filter((q) => {
-                  if (groupTag === "Untagged") return q.tag_names.length === 0
-                  return q.tag_names.some((t) => normalizeTag(t, availableTags).toLowerCase() === groupTag.toLowerCase())
-                })
-
-                if (groupQuestions.length === 0) return null
-
-                return (
-                  <div key={groupTag} className="space-y-3">
-                    <div className="flex items-center gap-2 border-b pb-1.5">
-                      <Tag className="h-3.5 w-3.5 text-primary" />
-                      <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                        {groupTag}
-                      </h4>
-                      <Badge variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
-                        {groupQuestions.length}
-                      </Badge>
-                    </div>
-                    <ol className="space-y-2">
-                      {groupQuestions.map((q) => (
-                        <QuestionListItem
-                          key={q.id}
-                          question={q}
-                          availableTags={availableTags}
-                          onEdit={() => openEdit(q)}
-                          onDelete={() => handleDelete(q.id)}
-                        />
-                      ))}
-                    </ol>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            /* ── Flat List View ── */
-            <ol className="space-y-2">
-              {filteredQuestions.map((q) => (
-                <QuestionListItem
-                  key={q.id}
-                  question={q}
-                  availableTags={availableTags}
-                  onEdit={() => openEdit(q)}
-                  onDelete={() => handleDelete(q.id)}
-                />
-              ))}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-
-      <QuestionSheet
-        open={questionSheetOpen}
-        onOpenChange={setQuestionSheetOpen}
-        mode={editingQuestion ? "edit" : "add"}
-        defaultValues={
-          editingQuestion
-            ? {
-              question_text: editingQuestion.question_text,
-              question_type: editingQuestion.question_type,
-              marks: editingQuestion.marks,
-              explanation: editingQuestion.explanation,
-              options: editingQuestion.options,
-              tag_names: editingQuestion.tag_names,
-            }
-            : undefined
-        }
-        availableTags={availableTags}
-        onSave={handleQuestionSave}
-      />
-
-      <AiGenerateSheet
-        open={aiSheetOpen}
-        onOpenChange={setAiSheetOpen}
-        generateQuestionsAction={generateQuestionsAction}
-        onImport={handleAiImport}
-      />
-
-      <ImportSheet
-        open={importSheetOpen}
-        onOpenChange={setImportSheetOpen}
-        onImport={handleJsonImport}
-      />
-    </>
   )
 }

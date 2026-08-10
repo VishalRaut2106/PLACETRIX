@@ -34,6 +34,7 @@ export type CandidateOption = Pick<
 
 export interface CandidateAnswerDetail {
   question_id: string
+  section_id?: string | null
   question_text: string
   marks: number
   is_correct: boolean | null
@@ -75,6 +76,7 @@ export interface CandidateTestDetail
   status: "draft" | "published" | "archived" | null
   institute_name: string | null
   institute_logo_url: string | null
+  sections?: Array<{ id: string; name: string; description: string | null; order_index: number }>
   max_attempts?: number | null
   completed_count?: number
   pastAttempts?: {
@@ -98,11 +100,19 @@ export type InstituteOption = Pick<
   "id" | "option_text" | "is_correct" | "order_index"
 >
 
+export interface InstituteSection {
+  id: string
+  name: string
+  description: string | null
+  order_index: number
+}
+
 export interface InstituteQuestion
   extends Pick<
     QuestionRow,
     "id" | "question_text" | "question_type" | "marks" | "order_index" | "explanation"
   > {
+  section_id: string | null
   question_type: "single_correct" | "multiple_correct"  // narrow
   options: InstituteOption[]
   tags: Pick<TagRow, "id" | "name">[]
@@ -157,6 +167,7 @@ export interface InstituteTestDetail
   > {
   status: "draft" | "published" | "archived"  // narrow the DB string
   institute_name: string | null
+  sections?: InstituteSection[]
   questions: InstituteQuestion[]
   /** First page of attempts (20 rows) — SSR seed for the client. */
   attempts: InstituteAttemptRow[]

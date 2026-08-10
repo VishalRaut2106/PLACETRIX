@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,9 +48,6 @@ import {
   UserPlus,
   Loader2,
   Mail,
-  GraduationCap,
-  Briefcase,
-  UserCheck,
   Building2,
   ArrowUpDown,
   ArrowUp,
@@ -596,25 +592,14 @@ export function UsersListClient({
                           </div>
                         </TableCell>
 
-                        <TableCell className="overflow-hidden text-ellipsis">
-                          {user.account_type === "institute_candidate" && (
-                            <Badge variant="outline" className="gap-1 text-[10px] font-normal text-sky-600 bg-sky-50 dark:bg-sky-950/20 dark:text-sky-400 border-sky-200/50 dark:border-sky-800/30">
-                              <GraduationCap className="size-3" />
-                              Student
-                            </Badge>
-                          )}
-                          {user.account_type === "institute_staff" && (
-                            <Badge variant="outline" className="gap-1 text-[10px] font-normal text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30">
-                              <Briefcase className="size-3" />
-                              Staff
-                            </Badge>
-                          )}
-                          {user.account_type === "institute_placement_officer" && (
-                            <Badge variant="outline" className="gap-1 text-[10px] font-normal text-violet-600 bg-violet-50 dark:bg-violet-950/20 dark:text-violet-400 border-violet-200/50 dark:border-violet-800/30">
-                              <UserCheck className="size-3" />
-                              TPO
-                            </Badge>
-                          )}
+                        <TableCell className="overflow-hidden text-ellipsis text-xs font-medium text-foreground">
+                          {user.account_type === "institute_candidate"
+                            ? "Student"
+                            : user.account_type === "institute_staff"
+                            ? "Staff"
+                            : user.account_type === "institute_placement_officer"
+                            ? "TPO"
+                            : ROLE_LABELS[user.account_type] || "User"}
                         </TableCell>
 
                         <TableCell className="overflow-hidden text-ellipsis">
