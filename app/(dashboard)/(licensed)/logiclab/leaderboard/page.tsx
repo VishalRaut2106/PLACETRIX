@@ -5,7 +5,7 @@ import LeaderboardClient from "./leaderboard-client"
 import { getLeaderboardAction, getCurrentUserRankAction } from "./actions"
 
 export const metadata = {
-  title: "LogicLab Leaderboard - Placetrix",
+  title: "LogicLab Leaderboard - PlaceTrix",
   description: "See how you stack up against your peers.",
 }
 
@@ -40,9 +40,9 @@ export default async function LeaderboardPage() {
         <p className="text-sm text-muted-foreground">See how you stack up against your peers in LogicLab.</p>
       </div>
 
-      <LeaderboardClient 
-        initialData={initialData} 
-        totalCount={totalCount} 
+      <LeaderboardClient
+        initialData={initialData}
+        totalCount={totalCount}
         instituteId={profile.institute_id}
         currentUserId={profile.id}
         currentUserRank={currentUserRank ?? null}

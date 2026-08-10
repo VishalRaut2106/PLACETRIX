@@ -28,11 +28,11 @@ const fontMono = Source_Code_Pro({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://placetrix.app"),
   title: {
-    default: "Placetrix - Educational Assessment Platform",
-    template: "%s | Placetrix",
+    default: "PlaceTrix - Educational Assessment Platform",
+    template: "%s | PlaceTrix",
   },
   description:
-    "Practice mock tests, join study groups, track your progress, and excel in your exams with Placetrix's advanced educational tools.",
+    "Practice mock tests, join study groups, track your progress, and excel in your exams with PlaceTrix's advanced educational tools.",
   keywords: [
     "education",
     "assessment",
@@ -47,14 +47,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "Placetrix - Educational Assessment Platform",
-    description: "Practice mock tests, join study groups, and track your progress with Placetrix.",
-    siteName: "Placetrix",
+    title: "PlaceTrix - Educational Assessment Platform",
+    description: "Practice mock tests, join study groups, and track your progress with PlaceTrix.",
+    siteName: "PlaceTrix",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Placetrix - Educational Assessment Platform",
-    description: "Practice mock tests, join study groups, and track your progress with Placetrix.",
+    title: "PlaceTrix - Educational Assessment Platform",
+    description: "Practice mock tests, join study groups, and track your progress with PlaceTrix.",
   },
   robots: {
     index: true,
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   appleWebApp: {
-    title: "Placetrix",
+    title: "PlaceTrix",
     statusBarStyle: "black-translucent",
   },
 };

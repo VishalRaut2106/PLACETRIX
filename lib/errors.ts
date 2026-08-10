@@ -39,7 +39,7 @@ export function showDeploymentErrorToast() {
     id: "deployment-error",           // deduplicate: only one toast shown
     duration: Infinity,               // stays until the user acts
     description:
-      "A new version of Placetrix was deployed while you were using the app. " +
+      "A new version of PlaceTrix was deployed while you were using the app. " +
       "Refresh the page to reconnect. Your data is safe.",
     action: {
       label: "Refresh Now",

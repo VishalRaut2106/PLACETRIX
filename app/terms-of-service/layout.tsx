@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Placetrix",
+  title: "Terms of Service | PlaceTrix",
   description: "Read the Terms and Conditions for using PlaceTrix. A few ground rules, minus the dramatic legal fog.",
 };
 

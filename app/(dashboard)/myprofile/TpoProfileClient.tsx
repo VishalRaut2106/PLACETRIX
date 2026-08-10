@@ -113,7 +113,7 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
   useEffect(() => {
     if (searchParams.get("incomplete") === "true") {
       toast.error("Profile Incomplete", {
-        description: "Please fill in all mandatory fields to unlock all features of Placetrix.",
+        description: "Please fill in all mandatory fields to unlock all features of PlaceTrix.",
         id: "profile-incomplete-toast",
       })
     }
@@ -152,7 +152,7 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
 
   // Profile Form State
   const [displayName, setDisplayName] = useState(userProfile.full_name ?? "")
-  
+
   // Professional Info Form State
   const [designation, setDesignation] = useState(initialData?.designation ?? "")
   const [department, setDepartment] = useState(initialData?.department ?? "")
@@ -450,11 +450,11 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
 
         {/* Account Settings */}
         <Card className={cn("transition-all duration-200", editing("account") && "border-primary/50 shadow-md ring-1 ring-primary/10")}>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 space-y-0">
-              <div>
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>Your unique username is used to identify you on the platform</CardDescription>
-              </div>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>Account Settings</CardTitle>
+              <CardDescription>Your unique username is used to identify you on the platform</CardDescription>
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {!editing("account") && <SectionIncomplete />}
               {!editing("account") && (
@@ -464,67 +464,67 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
                 </Button>
               )}
             </div>
-            </CardHeader>
-            <CardContent>
-              {editing("account") ? (
-                <div className="max-w-sm space-y-2">
-                  <Label htmlFor="username">Username <span className="text-destructive font-bold">*</span></Label>
-                  <div className="relative">
-                    <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="username"
-                      placeholder="yourusername"
-                      className={cn(
-                        "pl-9 pr-9",
-                        errors.username && "border-destructive focus-visible:ring-destructive"
-                      )}
-                      value={username}
-                      maxLength={20}
-                      onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
-                      autoComplete="username"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <UsernameStatusIcon status={usernameStatus} />
-                    </span>
+          </CardHeader>
+          <CardContent>
+            {editing("account") ? (
+              <div className="max-w-sm space-y-2">
+                <Label htmlFor="username">Username <span className="text-destructive font-bold">*</span></Label>
+                <div className="relative">
+                  <AtSign className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="username"
+                    placeholder="yourusername"
+                    className={cn(
+                      "pl-9 pr-9",
+                      errors.username && "border-destructive focus-visible:ring-destructive"
+                    )}
+                    value={username}
+                    maxLength={20}
+                    onChange={(e) => handleUsernameChange(e.target.value.replace(/\s/g, ""))}
+                    autoComplete="username"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <UsernameStatusIcon status={usernameStatus} />
+                  </span>
+                </div>
+                {errors.username ? (
+                  <p className="text-xs text-destructive">{errors.username}</p>
+                ) : usernameMsg ? (
+                  <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    3–20 characters: letters, numbers, and underscores only
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="max-w-sm">
+                <p className="text-xs text-muted-foreground mb-1">Username</p>
+                {initialUsername.current ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">@{initialUsername.current}</span>
                   </div>
-                  {errors.username ? (
-                    <p className="text-xs text-destructive">{errors.username}</p>
-                  ) : usernameMsg ? (
-                    <p className={cn("text-xs", usernameMsg.className)}>{usernameMsg.text}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      3–20 characters: letters, numbers, and underscores only 
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="max-w-sm">
-                  <p className="text-xs text-muted-foreground mb-1">Username</p>
-                  {initialUsername.current ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">@{initialUsername.current}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-muted-foreground italic">Not set yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Set your unique username</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </CardContent>
-            {editing("account") && (
-              <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                <Button variant="ghost" size="sm" onClick={() => cancelSection("account")} disabled={isPending}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={() => handleSaveSection("account")} disabled={isPending}>
-                  {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                  Save
-                </Button>
-              </CardFooter>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-muted-foreground italic">Not set yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Set your unique username</p>
+                  </>
+                )}
+              </div>
             )}
-          </Card>
+          </CardContent>
+          {editing("account") && (
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button variant="ghost" size="sm" onClick={() => cancelSection("account")} disabled={isPending}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => handleSaveSection("account")} disabled={isPending}>
+                {isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Save
+              </Button>
+            </CardFooter>
+          )}
+        </Card>
 
         {/* Profile Photo */}
         <Card>
@@ -534,7 +534,7 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div 
+              <div
                 className="relative group cursor-pointer shrink-0"
                 onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
               >
@@ -563,10 +563,10 @@ export function TpoProfileClient({ userProfile, initialData }: Props) {
                   onChange={handleAvatarFileChange}
                   aria-label="Upload avatar picture"
                 />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => avatarInputRef.current?.click()} 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => avatarInputRef.current?.click()}
                   disabled={isUploadingAvatar}
                   className="shadow-sm"
                 >

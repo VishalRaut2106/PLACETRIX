@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🚀 Placetrix: The Next-Gen Intelligent LMS Module</h1>
+  <h1>🚀 PlaceTrix: The Next-Gen Intelligent LMS Module</h1>
   <p><strong>End-to-End AI Evaluation Assistant for Educators</strong></p>
   <p><i>Submission for <b>The Next-Gen AI Education Track - Best Intelligent LMS Module</b> (Build with Gemma)</i></p>
 </div>
@@ -11,9 +11,9 @@
 **Teachers spend too much time on manual test creation and grading.** 
 In traditional Learning Management Systems, educators are forced to spend hours manually typing out questions from syllabi, grading subjective submissions, and analyzing student performance. More importantly, when students get an answer wrong, they rarely receive the deep, personalized feedback required to correct their conceptual misunderstandings.
 
-## 💡 The Solution: Placetrix
+## 💡 The Solution: PlaceTrix
 
-**Placetrix** is an open-source, self-hosted end-to-end evaluation assistant powered by **Gemma AI**. We designed this module to completely automate the assessment lifecycle for teachers—from document parsing to personalized student feedback—while maintaining the highest standard of academic rigor.
+**PlaceTrix** is an open-source, self-hosted end-to-end evaluation assistant powered by **Gemma AI**. We designed this module to completely automate the assessment lifecycle for teachers—from document parsing to personalized student feedback—while maintaining the highest standard of academic rigor.
 
 ---
 
@@ -28,11 +28,11 @@ The workflow begins when a teacher uploads a course Syllabus or Lecture PDF.
 
 ### 2. The Evaluation Phase: Conceptual Feedback (The Standout Feature)
 We use Gemma not just to mark answers as "right" or "wrong," but to deeply evaluate *why* a student failed.
-- **Personalized Constructive Feedback**: When a student completes a test, Placetrix aggregates their performance by topic. We use Gemma to analyze their exact mistakes and generate a **Personalized Study Strategy**.
+- **Personalized Constructive Feedback**: When a student completes a test, PlaceTrix aggregates their performance by topic. We use Gemma to analyze their exact mistakes and generate a **Personalized Study Strategy**.
 - **Explaining Conceptual Misunderstandings**: For every incorrect answer, Gemma provides an AI-generated explanation that doesn't just reveal the correct answer, but explicitly explains *why* the student's chosen distractor represents a conceptual misunderstanding. 
 
 ### 3. AI Resume & Candidate Analyzer
-As a bonus module for the placement lifecycle, Placetrix uses Gemma to act as an intelligent Applicant Tracking System (ATS). It evaluates student resumes against Job Descriptions, scoring them and providing line-by-line rewrite suggestions to bridge the gap between their current skills and industry expectations.
+As a bonus module for the placement lifecycle, PlaceTrix uses Gemma to act as an intelligent Applicant Tracking System (ATS). It evaluates student resumes against Job Descriptions, scoring them and providing line-by-line rewrite suggestions to bridge the gap between their current skills and industry expectations.
 
 ---
 

@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'Placetrix - Educational Assessment Platform'
+export const alt = 'PlaceTrix - Educational Assessment Platform'
 export const size = {
   width: 1200,
   height: 630,

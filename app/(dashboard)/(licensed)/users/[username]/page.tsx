@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserProfile } from "@/lib/supabase/profile";
 import { getCurrentUserRankAction } from "@/app/(dashboard)/(licensed)/logiclab/leaderboard/actions";
 import { notFound } from "next/navigation";
-import { CandidatePublicProfileView } from "./CandidatePublicProfileView";
+import { CandidateProfileReportView } from "./CandidateProfileReportView";
 
 function categorizeTopic(topic: string): "Advanced" | "Intermediate" | "Fundamental" {
   const t = topic.toLowerCase();
@@ -19,26 +19,35 @@ interface PageProps {
   params: Promise<{ username: string }>;
 }
 
-export default async function PublicProfilePage({ params }: PageProps) {
+const AUTHORIZED_ACCOUNT_TYPES = [
+  "admin",
+  "institute_primary",
+  "institute_staff",
+  "institute_placement_officer",
+];
+
+export default async function UserReportPage({ params }: PageProps) {
   const { username } = await params;
 
-  // 1. Get the viewer's profile (auth check — redirects if unauthenticated)
+  // 1. Get viewer's profile & enforce staff / tpo / primary / admin permission
   const viewer = await getUserProfile();
-  if (!viewer) return notFound();
+  if (!viewer || !AUTHORIZED_ACCOUNT_TYPES.includes(viewer.account_type)) {
+    return notFound();
+  }
 
   const supabase = await createClient();
 
-  // 2. Look up the target candidate by username
+  // 2. Look up target candidate profile
   const { data: targetProfile } = await (supabase as any)
     .from("profiles")
-    .select("*")
+    .select("id, full_name, first_name, last_name, email, username, avatar_path, bio, gender, linkedin_url, github_url, portfolio_links, institute_id, logiclab_points, account_type")
     .eq("username", username)
     .eq("account_type", "institute_candidate")
     .maybeSingle();
 
   if (!targetProfile) return notFound();
 
-  // 3. Access-control check
+  // 3. Enforce institute security boundary
   const isAdmin = viewer.account_type === "admin";
   const isSameInstitute =
     viewer.institute_id &&
@@ -47,7 +56,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   if (!isAdmin && !isSameInstitute) return notFound();
 
-  // 4. Fetch all public data for the target candidate
+  // 4. Batch query target candidate data in parallel
+  const cutOffDate20Weeks = new Date(Date.now() - 140 * 24 * 60 * 60 * 1000);
+  const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0];
+
   const [
     { data: academicDetails },
     { data: candidateEducation },
@@ -60,47 +72,50 @@ export default async function PublicProfilePage({ params }: PageProps) {
     { data: semesterGrades },
     { data: userBadges },
     { data: allBadges },
+    { data: instData },
+    { data: activityRows },
+    { data: streakRows },
+    { data: statsData },
+    { data: standardSolvedSubs },
+    { data: dailySolvedSubs },
+    { data: recentStandardRaw },
+    { data: recentDailyRaw },
+    { data: memberRows },
+    { data: attemptsRaw },
+    globalTagsRes,
   ] = await Promise.all([
     (supabase as any)
       .from("candidate_academic_details")
-      .select("course_id, passout_year, university_prn, course:institute_courses(course_name)")
+      .select("course_id, passout_year, university_prn, course:institute_courses(course_name, semesters_count)")
       .eq("profile_id", targetProfile.id)
       .maybeSingle(),
     (supabase as any)
       .from("candidate_education")
-      .select("*")
+      .select("id, type, institution_name, passout_year, grade_or_percentage")
       .eq("profile_id", targetProfile.id)
       .order("passout_year", { ascending: false }),
     (supabase as any)
       .from("candidate_experiences")
-      .select("*")
+      .select("id, title, company_name, location, start_date, end_date, is_current, description")
       .eq("profile_id", targetProfile.id)
       .order("start_date", { ascending: false }),
     (supabase as any)
       .from("candidate_projects")
-      .select("*")
+      .select("id, title, description, project_url, associated_with, start_date, end_date, is_ongoing, skills")
       .eq("profile_id", targetProfile.id)
       .order("start_date", { ascending: false }),
     (supabase as any)
       .from("candidate_certifications")
-      .select("*")
+      .select("id, name, issuing_org, credential_id, credential_url, issue_date, expiration_date, does_not_expire")
       .eq("profile_id", targetProfile.id)
       .order("issue_date", { ascending: false }),
     (supabase as any)
       .from("event_tickets")
-      .select(`
-        id,
-        event:events!inner(
-          id,
-          title,
-          date,
-          status
-        )
-      `)
+      .select("id, event:events!inner(id, title, date, status)")
       .eq("candidate_id", targetProfile.id)
       .eq("attendance_status", "Present")
       .eq("events.status", "Concluded"),
-    (supabase as any).from("skills").select("*").order("category").order("name"),
+    (supabase as any).from("skills").select("id, name, category").order("category").order("name"),
     (supabase as any)
       .from("candidate_skills")
       .select("skill_id")
@@ -112,71 +127,13 @@ export default async function PublicProfilePage({ params }: PageProps) {
       .order("semester_number", { ascending: true }),
     (supabase as any)
       .from("user_badges")
-      .select("earned_at, logiclab_badges(*)")
+      .select("earned_at, logiclab_badges(id, name, description, icon_name)")
       .eq("user_id", targetProfile.id)
       .order("earned_at", { ascending: false }),
-    (supabase as any).from("logiclab_badges").select("*").order("name"),
-  ]);
-
-  // 5. Derive semester count from the course config
-  let semestersCount = 8;
-  if (targetProfile.institute_id && academicDetails?.course_id) {
-    const { data: courseData } = await (supabase as any)
-      .from("institute_courses")
-      .select("semesters_count")
-      .eq("id", academicDetails.course_id)
-      .maybeSingle();
-    if (courseData) semestersCount = courseData.semesters_count;
-  }
-
-  // 6. Get institute name
-  let instituteName: string | null = null;
-  if (targetProfile.institute_id) {
-    const { data: inst } = await (supabase as any)
-      .from("institutes")
-      .select("institute_name")
-      .eq("id", targetProfile.institute_id)
-      .maybeSingle();
-    instituteName = inst?.institute_name ?? null;
-  }
-
-  const sgpaArray = Array.from({ length: semestersCount }, (_, i) => {
-    const row = (semesterGrades || []).find(
-      (g: any) => g.semester_number === i + 1
-    );
-    return row && row.sgpa != null ? Number(row.sgpa).toFixed(2) : null;
-  });
-
-  const eventCertificates = (eventTickets ?? [])
-    .filter((t: any) => t.event)
-    .map((t: any) => ({
-      ticketId: t.id,
-      eventId: t.event.id,
-      eventTitle: t.event.title,
-      eventDate: t.event.date,
-    }));
-
-  const courseName = Array.isArray(academicDetails?.course)
-    ? (academicDetails?.course as any)[0]?.course_name
-    : (academicDetails?.course as any)?.course_name;
-
-  const selectedSkillIds: string[] = (candidateSkillRows ?? []).map(
-    (r: any) => r.skill_id
-  );
-
-  // 7. Fetch LogicLab performance data for the target candidate
-  const cutOffDate20Weeks = new Date(Date.now() - 140 * 24 * 60 * 60 * 1000);
-  const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0];
-
-  const [
-    { data: activityRows },
-    { data: streakRows },
-    { data: statsData },
-    { data: standardSolvedSubs },
-    { data: dailySolvedSubs },
-    { data: recentStandardRaw },
-    { data: recentDailyRaw },
-  ] = await Promise.all([
+    (supabase as any).from("logiclab_badges").select("id, name, description, icon_name").order("name"),
+    targetProfile.institute_id
+      ? (supabase as any).from("institutes").select("institute_name").eq("id", targetProfile.institute_id).maybeSingle()
+      : Promise.resolve({ data: null }),
     (supabase as any)
       .from("logiclab_daily_challenge_user_activity")
       .select("activity_date, submission_count, solved, easy_solved, medium_solved, hard_solved, easy_attempted, medium_attempted, hard_attempted")
@@ -191,12 +148,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
     (supabase as any).rpc("get_user_global_stats", { p_user_id: targetProfile.id }),
     (supabase as any)
       .from("logiclab_problem_submissions")
-      .select("problem_id, status")
+      .select("problem_id")
       .eq("user_id", targetProfile.id)
       .eq("status", "Accepted"),
     (supabase as any)
       .from("logiclab_daily_challenge_submissions")
-      .select("problem_id, status")
+      .select("problem_id")
       .eq("user_id", targetProfile.id)
       .eq("status", "Accepted"),
     (supabase as any)
@@ -205,18 +162,47 @@ export default async function PublicProfilePage({ params }: PageProps) {
       .eq("user_id", targetProfile.id)
       .eq("status", "Accepted")
       .order("created_at", { ascending: false })
-      .limit(100),
+      .limit(50),
     (supabase as any)
       .from("logiclab_daily_challenge_submissions")
       .select("created_at, problem_id, logiclab_problems(id, title, difficulty)")
       .eq("user_id", targetProfile.id)
       .eq("status", "Accepted")
       .order("created_at", { ascending: false })
-      .limit(100),
+      .limit(50),
+    (supabase as any)
+      .from("cohort_students")
+      .select("cohort_id")
+      .eq("student_id", targetProfile.id),
+    (supabase as any)
+      .from("test_attempts")
+      .select("id, test_id, attempt_number, status, score, total_marks, percentage, passed, started_at, submitted_at, time_spent_seconds, tab_switch_count")
+      .eq("candidate_id", targetProfile.id)
+      .order("created_at", { ascending: false }),
+    (supabase as any).rpc("get_global_tags_count"),
   ]);
 
-  // Activity calendar and streak computation uses UTC calendar dates
-  // to match the UTC-based activity_date column in the DB.
+  const semestersCount = academicDetails?.course?.semesters_count ?? 8;
+  const courseName = academicDetails?.course?.course_name ?? null;
+  const instituteName = instData?.institute_name ?? null;
+
+  const sgpaArray = Array.from({ length: semestersCount }, (_, i) => {
+    const row = (semesterGrades || []).find((g: any) => g.semester_number === i + 1);
+    return row && row.sgpa != null ? Number(row.sgpa).toFixed(2) : null;
+  });
+
+  const eventCertificates = (eventTickets ?? [])
+    .filter((t: any) => t.event)
+    .map((t: any) => ({
+      ticketId: t.id,
+      eventId: t.event.id,
+      eventTitle: t.event.title,
+      eventDate: t.event.date,
+    }));
+
+  const selectedSkillIds: string[] = (candidateSkillRows ?? []).map((r: any) => r.skill_id);
+
+  // UTC-based activity calendar and streak computation
   const todayUtc = new Date();
   const todayStr = todayUtc.toISOString().split("T")[0];
   const yesterdayUtc = new Date(todayUtc.getTime() - 24 * 60 * 60 * 1000);
@@ -269,7 +255,6 @@ export default async function PublicProfilePage({ params }: PageProps) {
   }
   if (currentStreak > maxStreak) maxStreak = currentStreak;
 
-  // Build 140-day (20 weeks) activity calendar
   const uniqueDatesWithStatus = new Map<string, any>();
   for (const row of activityRows ?? []) {
     if (row.activity_date) {
@@ -293,7 +278,6 @@ export default async function PublicProfilePage({ params }: PageProps) {
     });
   }
 
-  // Fetch problem details for unique solved problem IDs to compute topic proficiency
   const solvedProblemIds = Array.from(
     new Set([
       ...(standardSolvedSubs || []).map((s: any) => s.problem_id),
@@ -319,21 +303,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
     }
   }
 
-  // Fetch ALL problems to get total topic counts for the radar/breakdown
-  const { data: allProblems } = await (supabase as any)
-    .from("logiclab_problems")
-    .select("tags");
-  
-  const totalTopicCounts: Record<string, number> = {};
-  for (const prob of allProblems || []) {
-    if (Array.isArray(prob.tags)) {
-      for (const tag of prob.tags) {
-        if (tag) {
-          totalTopicCounts[tag] = (totalTopicCounts[tag] || 0) + 1;
-        }
-      }
-    }
-  }
+  const totalTopicCounts: Record<string, number> = (globalTagsRes && typeof globalTagsRes.data === "object" && !Array.isArray(globalTagsRes.data))
+    ? (globalTagsRes.data as Record<string, number>)
+    : topicCounts;
 
   const sortedTopics = Object.entries(totalTopicCounts)
     .map(([name, total]) => ({
@@ -361,10 +333,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
     userRank = await getCurrentUserRankAction(targetProfile.institute_id, targetProfile.id, targetProfile.logiclab_points);
   }
 
-  // Deduplicate recent solved problems
   const seenProblems = new Set();
   const recentSolved = [];
-  const allRecentRaw = [...(recentStandardRaw || []), ...(recentDailyRaw || [])].sort((a, b) => 
+  const allRecentRaw = [...(recentStandardRaw || []), ...(recentDailyRaw || [])].sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
   for (const sub of allRecentRaw) {
@@ -396,7 +367,189 @@ export default async function PublicProfilePage({ params }: PageProps) {
     allBadges: allBadges || [],
   };
 
-  // 8. Build safe public data object — private fields explicitly excluded
+  // 5. Assigned Tests Querying via Cohorts
+  const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id);
+
+  let eligibleTestIds: string[] = [];
+  let assignedTestsRaw: any[] = [];
+
+  if (cohortIds.length > 0 && targetProfile.institute_id) {
+    const { data: testCohortRows } = await (supabase as any)
+      .from("test_cohorts")
+      .select("test_id")
+      .in("cohort_id", cohortIds);
+
+    eligibleTestIds = Array.from(new Set((testCohortRows ?? []).map((r: any) => String(r.test_id))));
+
+    if (eligibleTestIds.length > 0) {
+      const { data: testsData } = await (supabase as any)
+        .from("tests")
+        .select("id, title, description, pass_percentage, time_limit_seconds, available_from, available_until, marks_available, results_available, status, created_at")
+        .in("id", eligibleTestIds)
+        .eq("institute_id", targetProfile.institute_id)
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+
+      assignedTestsRaw = testsData ?? [];
+    }
+  }
+
+  const attemptsByTestId = new Map<string, any>();
+  (attemptsRaw ?? []).forEach((att: any) => {
+    if (!attemptsByTestId.has(att.test_id)) {
+      attemptsByTestId.set(att.test_id, att);
+    }
+  });
+
+  const submittedAttemptIds = (attemptsRaw ?? [])
+    .filter((a: any) => a.status === "submitted" || a.status === "auto_submitted")
+    .map((a: any) => a.id);
+
+  let questionStats = { totalAnswered: 0, totalCorrect: 0, accuracyPercentage: 0 };
+  if (submittedAttemptIds.length > 0) {
+    const { data: answers } = await (supabase as any)
+      .from("test_attempt_answers")
+      .select("is_correct")
+      .in("attempt_id", submittedAttemptIds);
+
+    if (answers && answers.length > 0) {
+      const totalAnswered = answers.length;
+      const totalCorrect = answers.filter((ans: any) => ans.is_correct === true).length;
+      const accuracyPercentage = (totalCorrect / totalAnswered) * 100;
+      questionStats = { totalAnswered, totalCorrect, accuracyPercentage };
+    }
+  }
+
+  const now = new Date();
+  let completedCount = 0;
+  let inProgressCount = 0;
+  let liveCount = 0;
+  let upcomingCount = 0;
+  let missedCount = 0;
+
+  let totalPercentageSum = 0;
+  let validScoreCount = 0;
+  let highestPercentage = 0;
+  let lowestPercentage = 100;
+  let passCount = 0;
+  let failCount = 0;
+  let totalTimeSpentSeconds = 0;
+  let totalTabSwitches = 0;
+
+  const testsList = assignedTestsRaw.map((test: any) => {
+    const attempt = attemptsByTestId.get(test.id);
+    const isSubmitted = attempt?.status === "submitted" || attempt?.status === "auto_submitted";
+    const isInProgress = attempt?.status === "in_progress";
+
+    const from = test.available_from ? new Date(test.available_from) : null;
+    const until = test.available_until ? new Date(test.available_until) : null;
+
+    let derivedStatus: "completed" | "in_progress" | "live" | "upcoming" | "missed" = "live";
+
+    if (isSubmitted) {
+      derivedStatus = "completed";
+      completedCount++;
+    } else if (isInProgress) {
+      derivedStatus = "in_progress";
+      inProgressCount++;
+    } else if (from && from > now) {
+      derivedStatus = "upcoming";
+      upcomingCount++;
+    } else if (until && until < now) {
+      derivedStatus = "missed";
+      missedCount++;
+    } else {
+      derivedStatus = "live";
+      liveCount++;
+    }
+
+    if (attempt) {
+      if (attempt.time_spent_seconds) {
+        totalTimeSpentSeconds += Number(attempt.time_spent_seconds);
+      }
+      if (attempt.tab_switch_count) {
+        totalTabSwitches += Number(attempt.tab_switch_count);
+      }
+
+      if (isSubmitted) {
+        let pct: number | null = null;
+        if (attempt.percentage !== null && attempt.percentage !== undefined) {
+          pct = Number(attempt.percentage);
+        } else if (attempt.score !== null && attempt.total_marks) {
+          pct = (Number(attempt.score) / Number(attempt.total_marks)) * 100;
+        }
+
+        if (pct !== null) {
+          totalPercentageSum += pct;
+          validScoreCount++;
+          if (pct > highestPercentage) highestPercentage = pct;
+          if (pct < lowestPercentage) lowestPercentage = pct;
+
+          const passThreshold = test.pass_percentage ?? 50;
+          const isPassed = pct >= passThreshold;
+          if (isPassed) {
+            passCount++;
+          } else {
+            failCount++;
+          }
+        }
+      }
+    }
+
+    return {
+      id: test.id,
+      title: test.title,
+      description: test.description,
+      passPercentage: test.pass_percentage,
+      timeLimitSeconds: test.time_limit_seconds,
+      availableFrom: test.available_from,
+      availableUntil: test.available_until,
+      marksAvailable: test.marks_available,
+      resultsAvailable: test.results_available,
+      status: test.status,
+      derivedStatus,
+      attempt: attempt ? {
+        id: attempt.id,
+        attemptNumber: attempt.attempt_number,
+        status: attempt.status,
+        score: attempt.score,
+        totalMarks: attempt.total_marks,
+        percentage: attempt.percentage,
+        passed: attempt.passed,
+        startedAt: attempt.started_at,
+        submittedAt: attempt.submitted_at,
+        timeSpentSeconds: attempt.time_spent_seconds,
+        tabSwitchCount: attempt.tab_switch_count || 0,
+      } : undefined,
+    };
+  });
+
+  const averagePercentage = validScoreCount > 0 ? totalPercentageSum / validScoreCount : 0;
+  if (validScoreCount === 0) lowestPercentage = 0;
+  const totalGradedOrFailed = passCount + failCount;
+  const passRate = totalGradedOrFailed > 0 ? (passCount / totalGradedOrFailed) * 100 : 0;
+  const avgTimeSpentSeconds = completedCount > 0 ? Math.round(totalTimeSpentSeconds / completedCount) : 0;
+
+  const assignedTestsData = {
+    totalAssigned: assignedTestsRaw.length,
+    completedCount,
+    inProgressCount,
+    liveCount,
+    upcomingCount,
+    missedCount,
+    averagePercentage,
+    highestPercentage,
+    lowestPercentage,
+    passCount,
+    failCount,
+    passRate,
+    totalTimeSpentSeconds,
+    avgTimeSpentSeconds,
+    totalTabSwitches,
+    questionStats,
+    testsList,
+  };
+
   const publicData = {
     profile_id: targetProfile.id,
     full_name: targetProfile.full_name,
@@ -410,7 +563,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     linkedin_url: targetProfile.linkedin_url,
     github_url: targetProfile.github_url,
     portfolio_links: targetProfile.portfolio_links,
-    course_name: courseName ?? null,
+    course_name: courseName,
     passout_year: academicDetails?.passout_year ?? null,
     university_prn: academicDetails?.university_prn ?? null,
     institute_name: instituteName,
@@ -418,7 +571,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   };
 
   return (
-    <CandidatePublicProfileView
+    <CandidateProfileReportView
       publicData={publicData}
       educationData={candidateEducation ?? []}
       experienceData={candidateExperiences ?? []}
@@ -429,6 +582,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
       selectedSkillIds={selectedSkillIds}
       semestersCount={semestersCount}
       logicLabData={logicLabData}
+      assignedTestsData={assignedTestsData}
     />
   );
 }

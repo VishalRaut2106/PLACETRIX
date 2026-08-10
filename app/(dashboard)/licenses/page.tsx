@@ -5,12 +5,12 @@ import { LicensesClient } from "./LicensesClient";
 
 export const metadata = {
   title: "License Management | PlaceTrix Admin",
-  description: "Manage Placetrix licenses and plans for colleges.",
+  description: "Manage PlaceTrix licenses and plans for colleges.",
 };
 
 export default async function LicensesPage() {
   const profile = await getUserProfile();
-  
+
   // Guard: Only platform admins can access the license dashboard
   if (!profile || profile.account_type !== "admin") {
     redirect("/home");
@@ -37,13 +37,13 @@ export default async function LicensesPage() {
       logo_path: inst.logo_path || null,
       license: lic
         ? {
-            id: lic.id,
-            status: effectiveStatus,
-            plan_name: lic.plan_name,
-            starts_at: lic.starts_at,
-            ends_at: lic.ends_at,
-            notes: lic.notes,
-          }
+          id: lic.id,
+          status: effectiveStatus,
+          plan_name: lic.plan_name,
+          starts_at: lic.starts_at,
+          ends_at: lic.ends_at,
+          notes: lic.notes,
+        }
         : null,
     };
   });

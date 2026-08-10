@@ -19,7 +19,7 @@ export function LogoLoading({
     lg: "w-48 h-28 md:w-56 md:h-32",
   }[size]
 
-  // Placetrix SVG logo with a built-in shimmer gradient
+  // PlaceTrix SVG logo with a built-in shimmer gradient
   const PlacetrixShimmerLogo = ({ className }: { className?: string }) => {
     // Generate a unique ID to avoid gradient ID collisions on the same page
     const gradientId = React.useId().replace(/:/g, "")

@@ -451,7 +451,7 @@ export function CandidateProfileClient({
   useEffect(() => {
     if (searchParams.get("incomplete") === "true") {
       toast.error("Profile Incomplete", {
-        description: "Please fill in all mandatory fields to unlock all features of Placetrix.",
+        description: "Please fill in all mandatory fields to unlock all features of PlaceTrix.",
         id: "profile-incomplete-toast",
       });
     }

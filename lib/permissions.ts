@@ -1,7 +1,7 @@
 import type { AccountType } from "@/lib/supabase/profile";
 
 /**
- * Centralized permission helpers for Placetrix RBAC.
+ * Centralized permission helpers for PlaceTrix RBAC.
  *
  * Use these instead of scattering raw `account_type` string comparisons
  * across the codebase. If a role is ever renamed or a new role is added,

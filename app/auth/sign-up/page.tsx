@@ -272,19 +272,19 @@ function SignUpContent() {
         <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           <span>
             Didn&apos;t receive it?{" "}
-              {resendCooldown > 0 ? (
-                <span>Resend in {resendCooldown}s</span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={handleResend}
-                  className="underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Resend code
-                </button>
-              )}{" "}
-              or check your spam folder.
+            {resendCooldown > 0 ? (
+              <span>Resend in {resendCooldown}s</span>
+            ) : (
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={handleResend}
+                className="underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Resend code
+              </button>
+            )}{" "}
+            or check your spam folder.
           </span>
         </div>
 
@@ -311,7 +311,7 @@ function SignUpContent() {
       <div className="flex flex-col space-y-1">
         <h1 className="font-cirka font-bold text-2xl tracking-wide">Create an Account</h1>
         <p className="text-base text-muted-foreground">
-          Sign up to get started with Placetrix.
+          Sign up to get started with PlaceTrix.
         </p>
       </div>
       <Button
@@ -379,7 +379,7 @@ function SignUpContent() {
                 if (password.length >= 10) score++;
                 if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
                 if (/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password)) score++;
-                
+
                 const isActive = step <= score;
                 let color = "bg-muted";
                 if (isActive) {

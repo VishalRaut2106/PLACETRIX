@@ -516,7 +516,7 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
                     {/* Managed-by note */}
                     <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
                       <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <span className="font-semibold">Your Placetrix license is managed by your institute.</span>{" "}
+                        <span className="font-semibold">Your PlaceTrix license is managed by your institute.</span>{" "}
                         For billing queries or plan changes, please contact your institute administrator directly.
                       </p>
                     </div>

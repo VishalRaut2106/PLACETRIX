@@ -56,7 +56,7 @@ export function WhatsNewModal({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <DialogTitle>What's New in Placetrix</DialogTitle>
+            <DialogTitle>What's New in PlaceTrix</DialogTitle>
             <Badge variant="secondary">v{LATEST_VERSION}</Badge>
           </div>
           <DialogDescription>

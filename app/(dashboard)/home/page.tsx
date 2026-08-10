@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 import { RecentSupportTickets } from "./RecentSupportTickets";
 import { CandidateDashboardClient } from "./_components/CandidateDashboardClient";
+import { TeacherDashboardClient } from "./_components/TeacherDashboardClient";
 import { LicenseBanner } from "@/components/license/LicenseBanner";
 import { getCachedPotd } from "../(licensed)/logiclab/actions";
 import {
@@ -188,11 +189,11 @@ export default async function HomePage() {
       average_score: averageScore,
     };
 
-    const globalStats = (statsRes.data as any) || { 
-      total: 0, solved: 0, 
-      easy: { total: 0, solved: 0 }, 
-      medium: { total: 0, solved: 0 }, 
-      hard: { total: 0, solved: 0 } 
+    const globalStats = (statsRes.data as any) || {
+      total: 0, solved: 0,
+      easy: { total: 0, solved: 0 },
+      medium: { total: 0, solved: 0 },
+      hard: { total: 0, solved: 0 }
     };
 
     const allActivityRows = allActivityRes.data;
@@ -204,7 +205,7 @@ export default async function HomePage() {
     }
 
     const sortedDates = Array.from(allActiveDates.keys()).sort((a, b) => b.localeCompare(a));
-    
+
     let currentStreak = 0;
     let maxStreak = 0;
 
@@ -214,7 +215,7 @@ export default async function HomePage() {
       const ascDates = [...sortedDates].reverse();
       let prevDate: Date | null = null;
       let tempStreak = 0;
-      
+
       for (const dStr of ascDates) {
         const currentDate = new Date(dStr);
         if (!prevDate) {
@@ -236,7 +237,7 @@ export default async function HomePage() {
       if (hasActiveStreak) {
         const checkDate = allActiveDates.has(todayStr) ? new Date(today) : new Date(yesterdayDate);
         let checkStr = checkDate.toISOString().split("T")[0];
-        
+
         while (allActiveDates.has(checkStr)) {
           currentStreak++;
           checkDate.setUTCDate(checkDate.getUTCDate() - 1);
@@ -343,7 +344,7 @@ export default async function HomePage() {
       const { data: liveData } = await liveQuery
         .order("available_until", { ascending: true, nullsFirst: false })
         .limit(2);
-      
+
       if (liveData) liveTests = liveData;
 
       let upcomingQuery = (supabase as any)
@@ -494,156 +495,275 @@ export default async function HomePage() {
     );
   }
 
-  // ── Institute ──────────────────────────────────────────────────────────────
-  if (profile.account_type === "institute_primary" || profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer") {
-    // Staff and TPO users resolve their parent institute's ID
-    const instituteId = profile.institute_id
+  // ── Institute / Staff / TPO ────────────────────────────────────────────────
+  if (
+    profile.account_type === "institute_primary" ||
+    profile.account_type === "institute_staff" ||
+    profile.account_type === "institute_placement_officer"
+  ) {
+    const instituteId = profile.institute_id;
 
-    // Resolve the primary profile ID for this institute to get stats
-    let primaryProfileId = profile.id
+    let primaryProfileId = profile.id;
     if (profile.account_type !== "institute_primary" && instituteId) {
       const { data: primaryLink } = await (supabase as any)
         .from("institute_profiles")
         .select("profile_id")
         .eq("institute_id", instituteId)
         .limit(1)
-        .maybeSingle()
+        .maybeSingle();
       if (primaryLink?.profile_id) {
-        primaryProfileId = primaryLink.profile_id
+        primaryProfileId = primaryLink.profile_id;
       }
     }
 
-    const { data } = await (supabase as any).rpc("get_institute_home_stats" as any, {
-      p_profile_id: primaryProfileId,
-    })
+    const today = new Date();
+    const cutOffDate20Weeks = new Date(today.getTime() - (140 * 24 * 60 * 60 * 1000));
+    const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0];
 
-    const instituteData = data as unknown as InstituteStatsResponse
-    const ip = instituteData?.profile
-    const stats = instituteData?.stats
+    const targetInstituteIds = Array.from(
+      new Set([instituteId, profile.id, primaryProfileId].filter((x): x is string => Boolean(x)))
+    );
+    const nowIso = new Date().toISOString();
+    const twoHoursAgoIso = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
-    // Fetch the actual profile update state from profiles
-    let hasBeenSaved = false
+    // 1. Featured Test Query (Live -> Upcoming -> Latest fallback)
+    let featuredTest: any = null;
+    if (targetInstituteIds.length > 0) {
+      // Live test query
+      const { data: liveTestData } = await (supabase as any)
+        .from("tests")
+        .select("id, title, description, time_limit_seconds, available_from, available_until, status")
+        .in("institute_id", targetInstituteIds)
+        .eq("status", "published")
+        .lte("available_from", nowIso)
+        .or(`available_until.gt.${nowIso},available_until.is.null`)
+        .order("available_until", { ascending: true, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (liveTestData) {
+        featuredTest = { ...liveTestData, isLive: true };
+      } else {
+        // Upcoming test query
+        const { data: upcomingTestData } = await (supabase as any)
+          .from("tests")
+          .select("id, title, description, time_limit_seconds, available_from, available_until, status")
+          .in("institute_id", targetInstituteIds)
+          .eq("status", "published")
+          .gt("available_from", nowIso)
+          .order("available_from", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (upcomingTestData) {
+          featuredTest = { ...upcomingTestData, isLive: false };
+        } else {
+          // Latest created test fallback
+          const { data: latestTestData } = await (supabase as any)
+            .from("tests")
+            .select("id, title, description, time_limit_seconds, available_from, available_until, status")
+            .in("institute_id", targetInstituteIds)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestTestData) {
+            const isLive =
+              latestTestData.status === "published" &&
+              (!latestTestData.available_from || new Date(latestTestData.available_from).getTime() <= Date.now()) &&
+              (!latestTestData.available_until || new Date(latestTestData.available_until).getTime() > Date.now());
+            featuredTest = { ...latestTestData, isLive };
+          }
+        }
+      }
+    }
+
+    // 2. Featured Opportunity Query (Active deadline -> Latest fallback)
+    let featuredOpportunity: any = null;
+    if (targetInstituteIds.length > 0) {
+      const { data: activeOppData } = await (supabase as any)
+        .from("opportunities")
+        .select("id, title, job_role, location, ctc_lpa, stipend_monthly, deadline, company:companies(name, logo_url)")
+        .in("institute_id", targetInstituteIds)
+        .gte("deadline", nowIso)
+        .order("deadline", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeOppData) {
+        featuredOpportunity = activeOppData;
+      } else {
+        const { data: latestOppData } = await (supabase as any)
+          .from("opportunities")
+          .select("id, title, job_role, location, ctc_lpa, stipend_monthly, deadline, company:companies(name, logo_url)")
+          .in("institute_id", targetInstituteIds)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestOppData) {
+          featuredOpportunity = latestOppData;
+        }
+      }
+    }
+
+    // 3. Featured Event Query (Live/Upcoming date -> Latest fallback)
+    let featuredEvent: any = null;
+    if (targetInstituteIds.length > 0) {
+      const { data: upcomingEventData } = await (supabase as any)
+        .from("events")
+        .select("id, title, description, date, venue, speaker_name, duration_minutes, status")
+        .in("institute_id", targetInstituteIds)
+        .gte("date", twoHoursAgoIso)
+        .order("date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (upcomingEventData) {
+        featuredEvent = upcomingEventData;
+      } else {
+        const { data: latestEventData } = await (supabase as any)
+          .from("events")
+          .select("id, title, description, date, venue, speaker_name, duration_minutes, status")
+          .in("institute_id", targetInstituteIds)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestEventData) {
+          featuredEvent = latestEventData;
+        }
+      }
+
+      if (featuredEvent && featuredEvent.date) {
+        const startTime = new Date(featuredEvent.date).getTime();
+        const endTime = startTime + (featuredEvent.duration_minutes || 120) * 60 * 1000;
+        const nowTime = Date.now();
+        const derived_status =
+          nowTime >= startTime && nowTime <= endTime
+            ? "live"
+            : nowTime < startTime
+              ? "upcoming"
+              : "past";
+        featuredEvent = { ...featuredEvent, derived_status };
+      }
+    }
+
+    // Parallel data fetching for institute dashboard stats & metadata
+    const [
+      homeStatsRes,
+      candidatesCountRes,
+      cohortsCountRes,
+      instituteProfileRes,
+      activityAttemptsRes,
+    ] = await Promise.all([
+      (supabase as any).rpc("get_institute_home_stats" as any, {
+        p_profile_id: primaryProfileId,
+      }),
+      instituteId
+        ? (supabase as any)
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("institute_id", instituteId)
+          .eq("account_type", "institute_candidate")
+        : Promise.resolve({ count: 0 }),
+      instituteId
+        ? (supabase as any)
+          .from("cohorts")
+          .select("*", { count: "exact", head: true })
+          .eq("institute_id", instituteId)
+        : Promise.resolve({ count: 0 }),
+      instituteId
+        ? (supabase as any)
+          .from("institutes")
+          .select("name")
+          .eq("id", instituteId)
+          .maybeSingle()
+        : Promise.resolve({ data: null }),
+      (supabase as any)
+        .from("test_attempts")
+        .select("submitted_at")
+        .eq("status", "submitted")
+        .gte("submitted_at", cutOffStr20Weeks),
+    ]);
+
+    const instituteData = homeStatsRes.data as unknown as InstituteStatsResponse;
+    const stats = instituteData?.stats || {
+      total_tests: 0,
+      live_tests: 0,
+      upcoming_tests: 0,
+      past_tests: 0,
+      draft_tests: 0,
+      total_attempts: 0,
+    };
+
+    // Calculate 20-week candidate activity calendar for institute
+    const dateCounts = new Map<string, number>();
+    (activityAttemptsRes.data ?? []).forEach((row: any) => {
+      if (row.submitted_at) {
+        const dStr = String(row.submitted_at).split("T")[0];
+        dateCounts.set(dStr, (dateCounts.get(dStr) || 0) + 1);
+      }
+    });
+
+    const activityCalendar: any[] = [];
+    const daysToGenerate = 140; // 20 weeks * 7 days
+    for (let i = daysToGenerate - 1; i >= 0; i--) {
+      const d = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+      const dateStr = d.toISOString().split("T")[0];
+      const count = dateCounts.get(dateStr) || 0;
+      activityCalendar.push({
+        date: dateStr,
+        count,
+        status: count > 0 ? "solved" : "none",
+        dayOfWeek: d.getUTCDay(),
+      });
+    }
+
+    const streakStats = {
+      currentStreak: dateCounts.size,
+      maxStreak: dateCounts.size,
+    };
+
+    let hasBeenSaved = false;
     if (profile.account_type === "institute_primary") {
-      hasBeenSaved = profile.profile_updated === true
+      hasBeenSaved = profile.profile_updated === true;
     } else {
       const { data: instProfile } = await (supabase as any)
         .from("profiles")
         .select("profile_updated")
         .eq("id", primaryProfileId)
-        .maybeSingle()
-      hasBeenSaved = instProfile?.profile_updated === true
+        .maybeSingle();
+      hasBeenSaved = instProfile?.profile_updated === true;
     }
-    const profileReady = hasBeenSaved
 
-    const profileSubtitle = !hasBeenSaved
-      ? "You haven't set up your institution profile yet. Add your details to get started."
-      : ""
+    const teacherProfile = {
+      id: profile.id,
+      username: profile.username || null,
+      full_name: profile.full_name || null,
+      account_type: profile.account_type,
+      profile_updated: hasBeenSaved,
+      institute_id: profile.institute_id || null,
+      institute_name: instituteProfileRes.data?.name || null,
+    };
 
-    const subtypeLabel = profile.account_type === "institute_staff"
-      ? "Staff"
-      : profile.account_type === "institute_placement_officer"
-        ? "TPO"
-        : "Institute"
+    const teacherStats = {
+      ...stats,
+      total_students: candidatesCountRes.count ?? 0,
+      total_cohorts: cohortsCountRes.count ?? 0,
+    };
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
-        <Suspense><LicenseBanner /></Suspense>
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Home</h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome back{profile.username ? `, @${profile.username}` : ""} · {subtypeLabel}
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {/* ── Profile banner (only for primary) ─────────────────────────── */}
-          {profile.account_type === "institute_primary" && !profileReady && (
-            <div className="rounded-lg border bg-card p-4 flex items-start justify-between gap-4">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">Your institution profile isn't complete yet</p>
-                <p className="text-xs text-muted-foreground">{profileSubtitle}</p>
-              </div>
-              <Link href="/myprofile" className="shrink-0">
-                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
-                  Complete Profile
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          {/* ── Profile banner for own profile completeness (for staff/TPO) ─────────────────────────── */}
-          {(profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer") && !profile.profile_updated && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 flex items-start justify-between gap-4 text-amber-800 dark:text-amber-300">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">Your profile isn't complete yet</p>
-                <p className="text-xs opacity-90">Please complete your profile details to unlock all dashboard tools.</p>
-              </div>
-              <Link href="/myprofile" className="shrink-0">
-                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-amber-500/30 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300">
-                  Complete Profile
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          {/* ── Test Stats (visible to staff and primary) ─────────────────── */}
-          {stats && (profile.account_type === "institute_staff" || profile.account_type === "institute_primary") && (
-            <div className="space-y-3">
-              <SectionHeader title="Tests Overview" href="/tests" />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:50ms]">
-                  <StatCard
-                    icon={<ListCheck className="h-4 w-4" />}
-                    label="Total Tests"
-                    value={stats.total_tests}
-                  />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:100ms]">
-                  <StatCard
-                    icon={<PlayCircle className="h-4 w-4" />}
-                    label="Live"
-                    value={stats.live_tests}
-                    accent={stats.live_tests > 0 ? "green" : "muted"}
-                  />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:150ms]">
-                  <StatCard
-                    icon={<CalendarClock className="h-4 w-4" />}
-                    label="Upcoming"
-                    value={stats.upcoming_tests}
-                    accent={stats.upcoming_tests > 0 ? "amber" : "muted"}
-                  />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:200ms]">
-                  <StatCard
-                    icon={<CheckCircle2 className="h-4 w-4" />}
-                    label="Past"
-                    value={stats.past_tests}
-                  />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:250ms]">
-                  <StatCard
-                    icon={<PenLine className="h-4 w-4" />}
-                    label="Drafts"
-                    value={stats.draft_tests}
-                  />
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:300ms]">
-                  <StatCard
-                    icon={<Users className="h-4 w-4" />}
-                    label="Attempts"
-                    value={stats.total_attempts}
-                    accent={stats.total_attempts > 0 ? "blue" : "muted"}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    )
+      <TeacherDashboardClient
+        profile={teacherProfile}
+        stats={teacherStats}
+        activityCalendar={activityCalendar}
+        streakStats={streakStats}
+        featuredTest={featuredTest}
+        featuredOpportunity={featuredOpportunity}
+        featuredEvent={featuredEvent}
+      />
+    );
   }
 
   // ── Admin ──────────────────────────────────────────────────────────────────
@@ -652,80 +772,58 @@ export default async function HomePage() {
       candidatesCount,
       institutesCount,
       pendingTicketsCount,
-      recentTicketsRes
+      recentTicketsRes,
+      allTestsCountRes,
+      allAttemptsCountRes,
+      featuredTestRes,
+      featuredOppRes,
     ] = await Promise.all([
       (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "institute_candidate"),
       (supabase as any).from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "institute_primary"),
       (supabase as any).from("tickets").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
       (supabase as any).from("tickets").select("*").order("created_at", { ascending: false }).limit(5),
+      (supabase as any).from("tests").select("*", { count: "exact", head: true }),
+      (supabase as any).from("test_attempts").select("*", { count: "exact", head: true }),
+      (supabase as any).from("tests").select("id, title, description, time_limit_seconds, available_from, available_until, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      (supabase as any).from("opportunities").select("id, title, job_role, location, ctc_lpa, stipend_monthly, deadline, company:companies(name, logo_url)").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
-    const stats = {
+    const adminStats = {
       candidates: candidatesCount.count ?? 0,
       institutes: institutesCount.count ?? 0,
       pendingTickets: pendingTicketsCount.count ?? 0,
     };
 
-    const recentTickets = recentTicketsRes.data || [];
+    const teacherStats = {
+      total_tests: allTestsCountRes.count ?? 0,
+      live_tests: 0,
+      upcoming_tests: 0,
+      past_tests: 0,
+      draft_tests: 0,
+      total_attempts: allAttemptsCountRes.count ?? 0,
+      total_students: candidatesCount.count ?? 0,
+      total_cohorts: institutesCount.count ?? 0,
+    };
+
+    const adminProfile = {
+      id: profile.id,
+      username: profile.username || null,
+      full_name: profile.full_name || null,
+      account_type: profile.account_type,
+      profile_updated: profile.profile_updated || true,
+      institute_id: null,
+      institute_name: "PlaceTrix Admin Platform",
+    };
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-8 md:px-8">
-        <Suspense><LicenseBanner /></Suspense>
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Home</h1>
-          <p className="text-sm text-muted-foreground">
-            Platform overview and recent support ticket queue · Admin
-          </p>
-        </div>
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-          {/* Column 1: Stats stack */}
-          <div className="flex flex-col gap-4 lg:col-span-1">
-            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:50ms]">
-              <StatCard
-                icon={<Users className="h-4 w-4" />}
-                label="Candidates"
-                value={stats.candidates}
-                accent="blue"
-              />
-            </div>
-            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:150ms]">
-              <StatCard
-                icon={<Users className="h-4 w-4" />}
-                label="Institutes"
-                value={stats.institutes}
-                accent="green"
-              />
-            </div>
-            <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:250ms]">
-              <StatCard
-                icon={<PlayCircle className="h-4 w-4" />}
-                label="Pending Tickets"
-                value={stats.pendingTickets}
-                accent={stats.pendingTickets > 0 ? "amber" : "muted"}
-              />
-            </div>
-          </div>
-
-          {/* Column 2 & 3: Support Queue Bento Card */}
-          <Card className="lg:col-span-2 bg-card border border-border/40 shadow-lg rounded-2xl p-0 gap-0 flex flex-col animate-in fade-in slide-in-from-bottom-3 duration-500 [animation-delay:350ms]">
-            <CardContent className="p-5 flex flex-col gap-3 flex-1 justify-start">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Recent Support Tickets
-                </h2>
-                <Link href="/support" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 flex items-center gap-1">
-                  Go to Support Queue
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-
-              <RecentSupportTickets initialTickets={recentTickets} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <TeacherDashboardClient
+        profile={adminProfile}
+        stats={teacherStats}
+        featuredTest={featuredTestRes.data}
+        featuredOpportunity={featuredOppRes.data}
+        adminStats={adminStats}
+        recentSupportTickets={recentTicketsRes.data || []}
+      />
     );
   }
 

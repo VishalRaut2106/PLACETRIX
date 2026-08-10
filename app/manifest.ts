@@ -2,9 +2,9 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Placetrix Educational Platform",
-    short_name: "Placetrix",
-    description: "Practice mock tests, join study groups, and track your progress with Placetrix.",
+    name: "PlaceTrix Educational Platform",
+    short_name: "PlaceTrix",
+    description: "Practice mock tests, join study groups, and track your progress with PlaceTrix.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

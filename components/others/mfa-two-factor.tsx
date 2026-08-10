@@ -123,7 +123,7 @@ export function MfaTwoFactor() {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: "Authenticator App",
-        issuer: "Placetrix",
+        issuer: "PlaceTrix",
       });
       if (error) throw error;
 

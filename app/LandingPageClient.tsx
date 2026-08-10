@@ -636,7 +636,7 @@ function HeroSection({ user, isLoading }: HeroSectionProps) {
               </h1>
 
               <p className="max-w-xl text-sm leading-7 text-zinc-700 dark:text-zinc-300 md:text-base md:leading-8">
-                Placetrix gives students the tools to practise smarter, track
+                PlaceTrix gives students the tools to practise smarter, track
                 progress, and stay ahead of every campus drive, all in one place.
               </p>
 
@@ -812,7 +812,7 @@ type Testimonial = {
 const testimonials: Testimonial[] = [
   {
     quote:
-      "Placetrix's structured aptitude and technical tests were vital to my prep. Consistent practice boosted my confidence and helped me clear the Infosys aptitude round.",
+      "PlaceTrix's structured aptitude and technical tests were vital to my prep. Consistent practice boosted my confidence and helped me clear the Infosys aptitude round.",
     image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/testimonials/pranjal.png",
     name: "Pranjal Haral",
     role: "Software Engineer",
@@ -820,7 +820,7 @@ const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "Regular practice with Placetrix improved my fundamentals and helped me crack the Infosys aptitude round. I recommend it to all aspirants.",
+      "Regular practice with PlaceTrix improved my fundamentals and helped me crack the Infosys aptitude round. I recommend it to all aspirants.",
     image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/testimonials/janhavi.png",
     name: "Janhavi Patil",
     role: "Software Engineer",
@@ -836,7 +836,7 @@ const testimonials: Testimonial[] = [
   },
   {
     quote:
-      "Placetrix helped me approach placements in a structured way. The consistent practice strengthened my problem-solving skills and boosted my confidence.",
+      "PlaceTrix helped me approach placements in a structured way. The consistent practice strengthened my problem-solving skills and boosted my confidence.",
     image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/testimonials/chaitali.png",
     name: "Chaitali Bonde",
     role: "Software Engineer",
@@ -982,7 +982,7 @@ function CTASection() {
             </h2>
             <p className="mx-auto mt-4 max-w-md text-sm text-stone-600 dark:text-stone-300 md:text-base">
               Join hundreds of students who have already cracked their dream
-              placements using Placetrix.
+              placements using PlaceTrix.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>

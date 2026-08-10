@@ -20,7 +20,7 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     icon: <XCircle className="h-4 w-4 shrink-0 text-destructive" />,
     title: "License Expired",
     description:
-      "Your college's Placetrix license has expired. Please contact Placetrix to renew access.",
+      "Your college's PlaceTrix license has expired. Please contact PlaceTrix to renew access.",
     className:
       "border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/10",
   },
@@ -28,7 +28,7 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     icon: <Clock className="h-4 w-4 shrink-0 text-warning" />,
     title: "License Pending",
     description:
-      "Your college's Placetrix license is pending activation. Contact your Placetrix representative to get started.",
+      "Your college's PlaceTrix license is pending activation. Contact your PlaceTrix representative to get started.",
     className:
       "border-warning/20 bg-warning/10 text-warning dark:border-warning/30 dark:bg-warning/10",
   },
@@ -36,7 +36,7 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     icon: <ShieldOff className="h-4 w-4 shrink-0 text-warning" />,
     title: "No License",
     description:
-      "Your college does not have an active Placetrix license. Contact Placetrix to get set up.",
+      "Your college does not have an active PlaceTrix license. Contact PlaceTrix to get set up.",
     className:
       "border-warning/20 bg-warning/10 text-warning dark:border-warning/30 dark:bg-warning/10",
   },
@@ -45,7 +45,7 @@ const BANNER_CONFIG: Record<BannerVariant, BannerConfig> = {
     icon: <XCircle className="h-4 w-4 shrink-0 text-destructive" />,
     title: "License Revoked",
     description:
-      "Your college's Placetrix license has been manually suspended or revoked. Please contact support.",
+      "Your college's PlaceTrix license has been manually suspended or revoked. Please contact support.",
     className:
       "border-destructive/20 bg-destructive/10 text-destructive dark:border-destructive/30 dark:bg-destructive/10",
   },
@@ -75,7 +75,7 @@ export function LicenseBanner() {
     } else {
       variant = "none";
     }
-  } 
+  }
 
 
   if (!variant || !BANNER_CONFIG[variant]) return null;

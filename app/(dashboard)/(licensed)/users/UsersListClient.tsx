@@ -162,7 +162,7 @@ export function UsersListClient({
 
   const handleUserClick = useCallback((user: InstituteUser) => {
     if (user.username?.trim()) {
-      push(`/u/${user.username.trim()}`)
+      push(`/users/${user.username.trim()}`)
     } else {
       toast.error("User has not set up a username yet")
     }

@@ -866,7 +866,7 @@ export function CandidateDashboardClient({
                   !candidateEvent && "opacity-50 pointer-events-none",
                   "border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10"
                 )}
-                onClick={() => candidateEvent && router.push("/events")}
+                onClick={() => candidateEvent && router.push(`/events/${candidateEvent.id}`)}
                 disabled={!candidateEvent}
               >
                 View Event Details

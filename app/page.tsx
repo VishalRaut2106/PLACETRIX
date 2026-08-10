@@ -30,7 +30,7 @@ export default async function RootPage() {
         "@type": "WebSite",
         "@id": "https://placetrix.app/#website",
         "url": "https://placetrix.app",
-        "name": "Placetrix",
+        "name": "PlaceTrix",
         "description": "Educational Assessment Platform for mock tests and study groups.",
         "publisher": {
           "@id": "https://placetrix.app/#organization"
@@ -40,13 +40,13 @@ export default async function RootPage() {
       {
         "@type": "Organization",
         "@id": "https://placetrix.app/#organization",
-        "name": "Placetrix",
+        "name": "PlaceTrix",
         "url": "https://placetrix.app",
         "logo": {
           "@type": "ImageObject",
           "@id": "https://placetrix.app/#logo",
           "url": "https://placetrix.app/placetrix.svg",
-          "caption": "Placetrix Logo"
+          "caption": "PlaceTrix Logo"
         },
         "image": {
           "@id": "https://placetrix.app/#logo"

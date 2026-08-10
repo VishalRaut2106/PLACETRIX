@@ -8,7 +8,7 @@ import { redirect } from "next/navigation"
  * Guards all feature routes under this group behind an active institute license.
  * Unauthenticated users are redirected to login.
  * Users without an active license are redirected to /home?license=<status>.
- * Placetrix admins (account_type === "admin") bypass all license checks.
+ * PlaceTrix admins (account_type === "admin") bypass all license checks.
  */
 export default async function LicensedLayout({
   children,

@@ -520,7 +520,7 @@ export function InstituteSettingsClient({ userProfile, initialData }: Props) {
                     </div>
                     <p className="text-sm font-medium">No license found</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Contact Placetrix support to activate your institution&apos;s license.
+                      Contact PlaceTrix support to activate your institution&apos;s license.
                     </p>
                   </div>
                 </CardContent>
@@ -617,7 +617,7 @@ export function InstituteSettingsClient({ userProfile, initialData }: Props) {
                   {/* Contact support */}
                   <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
                     <p className="text-sm text-blue-800 dark:text-blue-300">
-                      <span className="font-semibold">Billing is managed by Placetrix.</span>{" "}
+                      <span className="font-semibold">Billing is managed by PlaceTrix.</span>{" "}
                       For plan upgrades, renewals, or billing queries, contact us at{" "}
                       <a href="mailto:360viewtech@gmail.com" className="underline underline-offset-2 font-medium">
                         360viewtech@gmail.com

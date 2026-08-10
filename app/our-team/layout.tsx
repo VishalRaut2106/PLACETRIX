@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Our Team | Placetrix",
+  title: "Our Team | PlaceTrix",
   description: "Meet the team behind PlaceTrix. We are dedicated to providing the best educational assessment platform for students and institutions.",
 };
 
