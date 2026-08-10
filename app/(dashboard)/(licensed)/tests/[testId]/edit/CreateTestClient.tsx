@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils"
 import {
   Loader2, Save, Send, AlertCircle, AlertTriangle, BookOpen, CheckCircle2, Circle, Plus, Tag, X,
   PlusCircle, Sparkles, Upload, Trash2, Pencil, ChevronDown, ChevronUp, Info, FileJson, Image,
-  GripVertical, Layers
+  GripVertical, Layers, Check
 } from "lucide-react"
 import {
   Combobox,
@@ -697,6 +697,12 @@ function TestContentPanel({
     )
   }
 
+  function handleUpdateSectionDescription(sectionId: string, description: string) {
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, description } : s))
+    )
+  }
+
   function handleDeleteSection(sectionId: string) {
     if (sections.length <= 1) {
       toast.error("A test must have at least one section.")
@@ -839,6 +845,7 @@ function TestContentPanel({
                       canDelete={sections.length > 1}
                       availableTags={availableTags}
                       onRename={(newName) => handleRenameSection(sec.id, newName)}
+                      onUpdateDescription={(newDesc) => handleUpdateSectionDescription(sec.id, newDesc)}
                       onDelete={() => handleDeleteSection(sec.id)}
                       onAddQuestion={() => openAddQuestion(sec.id)}
                       onAiGenerate={() => openAiGenerate(sec.id)}
@@ -930,6 +937,7 @@ interface SortableSectionCardProps {
   canDelete: boolean
   availableTags: { id: string; name: string }[]
   onRename: (newName: string) => void
+  onUpdateDescription: (newDesc: string) => void
   onDelete: () => void
   onAddQuestion: () => void
   onAiGenerate: () => void
@@ -944,6 +952,7 @@ function SortableSectionCard({
   canDelete,
   availableTags,
   onRename,
+  onUpdateDescription,
   onDelete,
   onAddQuestion,
   onAiGenerate,
@@ -966,6 +975,8 @@ function SortableSectionCard({
 
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(section.name)
+  const [isEditingDesc, setIsEditingDesc] = useState(false)
+  const [descInput, setDescInput] = useState(section.description ?? "")
 
   const sectionMarks = questions.reduce((sum, q) => sum + q.marks, 0)
 
@@ -976,6 +987,11 @@ function SortableSectionCard({
     } else {
       setNameInput(section.name)
     }
+  }
+
+  function handleDescCommit() {
+    setIsEditingDesc(false)
+    onUpdateDescription(descInput.trim())
   }
 
   return (
@@ -1003,31 +1019,98 @@ function SortableSectionCard({
             {sectionIndex}
           </span>
 
-          {isEditingName ? (
-            <input
-              autoFocus
-              className="rounded border bg-background px-2 py-0.5 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-ring"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              onBlur={handleNameCommit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleNameCommit()
-                if (e.key === "Escape") {
-                  setNameInput(section.name)
-                  setIsEditingName(false)
-                }
-              }}
-            />
-          ) : (
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingName(true)}>
-              <h3 className="text-sm font-semibold tracking-tight text-foreground truncate">
-                {section.name}
-              </h3>
-              <Pencil className="size-3 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          )}
+          <div className="flex flex-col min-w-0">
+            {isEditingName ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  autoFocus
+                  className="h-7 w-44 sm:w-56 text-xs font-semibold"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onBlur={handleNameCommit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleNameCommit()
+                    if (e.key === "Escape") {
+                      setNameInput(section.name)
+                      setIsEditingName(false)
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="size-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                  onClick={handleNameCommit}
+                  title="Save section name"
+                >
+                  <Check className="size-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3
+                  className="text-sm font-semibold tracking-tight text-foreground truncate cursor-pointer hover:underline"
+                  onClick={() => setIsEditingName(true)}
+                  title="Click to rename section"
+                >
+                  {section.name}
+                </h3>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground hover:text-foreground shrink-0"
+                  onClick={() => setIsEditingName(true)}
+                  title="Rename Section"
+                >
+                  <Pencil className="size-3" />
+                </Button>
+              </div>
+            )}
 
-          <Badge variant="secondary" className="ml-1 text-[11px] font-normal shrink-0">
+            {isEditingDesc ? (
+              <div className="flex items-center gap-1 mt-1">
+                <Input
+                  autoFocus
+                  placeholder="Optional section description..."
+                  className="h-6 text-xs text-muted-foreground w-64"
+                  value={descInput}
+                  onChange={(e) => setDescInput(e.target.value)}
+                  onBlur={handleDescCommit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleDescCommit()
+                    if (e.key === "Escape") {
+                      setDescInput(section.description ?? "")
+                      setIsEditingDesc(false)
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="size-6 text-emerald-600 shrink-0"
+                  onClick={handleDescCommit}
+                >
+                  <Check className="size-3" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground"
+                onClick={() => setIsEditingDesc(true)}
+                title="Click to edit section description"
+              >
+                <span className="truncate max-w-xs">
+                  {section.description ? section.description : "+ Add description"}
+                </span>
+                <Pencil className="size-2.5 opacity-60 shrink-0" />
+              </div>
+            )}
+          </div>
+
+          <Badge variant="secondary" className="ml-2 text-[11px] font-normal shrink-0">
             {questions.length} Q{questions.length !== 1 ? "s" : ""} · {sectionMarks} M
           </Badge>
         </div>

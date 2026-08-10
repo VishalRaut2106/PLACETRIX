@@ -436,10 +436,11 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
 
   const MODEL_FALLBACK_CHAIN = [
     "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemma-4-31b",
     "gemini-2.0-flash",
     "gemini-1.5-pro",
-    "gemini-1.5-flash",
   ]
   let content = ""
   let lastError: unknown
@@ -459,7 +460,13 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
       if (content) break
     } catch (err) {
       lastError = err
-      console.warn(`[analyzeResumeAction] ${model} failed, trying fallback:`, err)
+      const msg = err instanceof Error ? err.message.toLowerCase() : ""
+      const isRetryable = /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+      if (!isRetryable) {
+        console.error(`[analyzeResumeAction] Non-retryable error on model ${model}, aborting fallback chain:`, err)
+        break
+      }
+      console.warn(`[analyzeResumeAction] Model ${model} quota/rate-limited, trying next model:`, err)
       await new Promise((r) => setTimeout(r, 500))
     }
   }
@@ -605,10 +612,11 @@ Return the new question in JSON.`
 
   const MODEL_FALLBACK_CHAIN = [
     "gemini-3.1-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemma-4-31b",
     "gemini-2.0-flash",
     "gemini-1.5-pro",
-    "gemini-1.5-flash",
   ]
   let content = ""
 
@@ -626,7 +634,13 @@ Return the new question in JSON.`
       content = raw
       if (content) break
     } catch (err) {
-      console.warn(`[generateExtraQuestionAction] ${model} failed`, err)
+      const msg = err instanceof Error ? err.message.toLowerCase() : ""
+      const isRetryable = /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+      if (!isRetryable) {
+        console.error(`[generateExtraQuestionAction] Non-retryable error on model ${model}, aborting fallback chain:`, err)
+        break
+      }
+      console.warn(`[generateExtraQuestionAction] Model ${model} quota/rate-limited, trying next model:`, err)
     }
   }
 

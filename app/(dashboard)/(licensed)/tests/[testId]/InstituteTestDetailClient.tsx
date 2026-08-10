@@ -239,6 +239,8 @@ function MetaItem({
 
 // ─── Question Card (Answer Key) ───────────────────────────────────────────────
 
+// ─── Question Card (Answer Key) ───────────────────────────────────────────────
+
 function QuestionCard({
   question,
   index,
@@ -252,72 +254,78 @@ function QuestionCard({
   return (
     <AccordionItem
       value={question.id}
-      className={cn('overflow-hidden', 'rounded-xl', 'border', 'bg-card', 'transition-colors', 'data-[state=open]:bg-muted/10')}
+      className="overflow-hidden rounded-xl border bg-card transition-colors data-[state=open]:bg-muted/10"
     >
-      <AccordionTrigger className={cn('px-4', 'py-3', 'text-left', 'hover:no-underline')}>
-        <div className={cn('flex', 'min-w-0', 'flex-1', 'items-start', 'gap-3')}>
-          <span className={cn('mt-px', 'shrink-0', 'flex', 'h-5', 'w-6', 'items-center', 'justify-center', 'rounded-md', 'bg-muted', 'text-[11px]', 'font-bold', 'tabular-nums', 'text-muted-foreground')}>
+      <AccordionTrigger className="px-4 py-3 text-left hover:no-underline cursor-pointer">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="mt-px shrink-0 flex h-5 w-6 items-center justify-center rounded-md bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">
             {index + 1}
           </span>
-          <div className={cn('min-w-0', 'flex-1')}>
-            <p className={cn('text-sm', 'font-medium', 'leading-relaxed', 'text-foreground', 'line-clamp-2')}>
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-sm font-medium leading-relaxed text-foreground line-clamp-2">
               <MathText>{question.question_text}</MathText>
             </p>
-            <div className={cn('mt-1.5', 'flex', 'flex-wrap', 'items-center', 'gap-1.5')}>
-              <Badge variant="outline" className={cn('h-4', 'px-1.5', 'text-[10px]')}>
-                {question.question_type === "single_correct" ? "Single" : "Multi"}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium">
+                {question.question_type === "single_correct" ? "Single Choice" : "Multiple Choice"}
               </Badge>
-              <Badge variant="secondary" className={cn('h-4', 'px-1.5', 'text-[10px]')}>
-                {question.marks} pt{question.marks !== 1 ? "s" : ""}
+              <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-medium">
+                {question.marks} {question.marks === 1 ? "mark" : "marks"}
               </Badge>
-              <span className={cn('text-[10px]', 'text-muted-foreground')}>
-                {correctCount} correct answer{correctCount !== 1 ? "s" : ""}
+              <span className="text-[10px] text-muted-foreground font-normal">
+                {correctCount} correct {correctCount === 1 ? "option" : "options"}
               </span>
             </div>
           </div>
         </div>
       </AccordionTrigger>
 
-      <AccordionContent className={cn('px-4', 'pb-4', 'pt-0')}>
+      <AccordionContent className="px-4 pb-4 pt-0 space-y-3">
         <Separator className="mb-3" />
-        <div className="space-y-1.5">
-          {sortedOptions.map((opt) => (
-            <div
-              key={opt.id}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg border px-3 py-2",
-                opt.is_correct
-                  ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-950/20"
-                  : "border-border bg-muted/20"
-              )}
-            >
-              {opt.is_correct ? (
-                <CheckCircle2 className={cn('h-3.5', 'w-3.5', 'shrink-0', 'text-emerald-600', 'dark:text-emerald-500')} />
-              ) : (
-                <XCircle className={cn('h-3.5', 'w-3.5', 'shrink-0', 'text-muted-foreground/40')} />
-              )}
-              <span
+        <div className="space-y-2">
+          {sortedOptions.map((opt, optIdx) => {
+            const letter = String.fromCharCode(65 + optIdx)
+            return (
+              <div
+                key={opt.id}
                 className={cn(
-                  "flex-1 text-sm leading-snug space-y-1.5",
-                  opt.is_correct ? "font-medium text-foreground" : "text-muted-foreground"
+                  "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-xs transition-all",
+                  opt.is_correct
+                    ? "border-emerald-500/40 bg-emerald-500/5 text-foreground font-medium dark:bg-emerald-950/20"
+                    : "border-border bg-background text-muted-foreground"
                 )}
               >
-                <div><MathText>{opt.option_text}</MathText></div>
-              </span>
-              {opt.is_correct && (
-                <span className={cn('shrink-0', 'text-[10px]', 'font-semibold', 'uppercase', 'tracking-wide', 'text-emerald-600', 'dark:text-emerald-500')}>
-                  Correct
+                <span className={cn(
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold border",
+                  opt.is_correct
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400"
+                    : "bg-muted text-muted-foreground border-border"
+                )}>
+                  {letter}
                 </span>
-              )}
-            </div>
-          ))}
+
+                <div className="min-w-0 flex-1 break-words leading-relaxed">
+                  <MathText>{opt.option_text}</MathText>
+                </div>
+
+                {opt.is_correct ? (
+                  <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400 shrink-0 gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Correct
+                  </Badge>
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30" />
+                )}
+              </div>
+            )
+          })}
         </div>
 
-        {question.tags.length > 0 && (
-          <div className={cn('mt-3', 'flex', 'flex-wrap', 'items-center', 'gap-1.5')}>
-            <Tag className={cn('h-3', 'w-3', 'text-muted-foreground/60')} />
+        {question.tags && question.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <Tag className="h-3 w-3 text-muted-foreground/60" />
             {question.tags.map((t) => (
-              <Badge key={t.id} variant="secondary" className={cn('h-4', 'px-1.5', 'text-[10px]', 'font-normal')}>
+              <Badge key={t.id} variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
                 {t.name}
               </Badge>
             ))}
@@ -325,11 +333,14 @@ function QuestionCard({
         )}
 
         {question.explanation && (
-          <div className={cn('mt-3', 'flex', 'items-start', 'gap-2.5', 'rounded-xl', 'border', 'bg-muted/40', 'p-3')}>
-            <Info className={cn('mt-0.5', 'h-3.5', 'w-3.5', 'shrink-0', 'text-muted-foreground')} />
-            <p className={cn('text-xs', 'leading-relaxed', 'text-muted-foreground')}>
-              <MathText>{question.explanation}</MathText>
-            </p>
+          <div className="flex items-start gap-2.5 rounded-xl border bg-muted/40 p-3 text-xs">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="space-y-1">
+              <span className="font-semibold text-foreground">Explanation</span>
+              <p className="leading-relaxed text-muted-foreground">
+                <MathText>{question.explanation}</MathText>
+              </p>
+            </div>
           </div>
         )}
       </AccordionContent>
@@ -337,85 +348,82 @@ function QuestionCard({
   )
 }
 
-
 // ─── Questions Tab (Answer Key) ───────────────────────────────────────────────
 
 function QuestionsTab({ questions, sections }: { questions: InstituteQuestion[]; sections?: InstituteSection[] }) {
   const totalMarks = questions.reduce((s, q) => s + q.marks, 0)
-  const hasSections = sections && sections.length > 0
+
+  // Use sections if available, or synthesize default Section A
+  const effectiveSections = useMemo(() => {
+    if (sections && sections.length > 0) return sections
+    return [{ id: "default-section-a", name: "Section A", description: null, order_index: 0 }]
+  }, [sections])
 
   return (
-    <div className="space-y-4">
-      <div className={cn('flex', 'items-center', 'justify-between')}>
-        <p className={cn('text-sm', 'text-muted-foreground')}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
           {questions.length > 0 ? (
             <>
-              <span className={cn('font-medium', 'text-foreground')}>{questions.length}</span>{" "}
+              <span className="font-semibold text-foreground">{questions.length}</span>{" "}
               question{questions.length !== 1 ? "s" : ""} ·{" "}
-              <span className={cn('font-medium', 'text-foreground')}>{totalMarks}</span> total marks
+              <span className="font-semibold text-foreground">{totalMarks}</span> total marks
             </>
           ) : (
             "No questions available"
           )}
         </p>
-        <Badge variant="outline" className={cn('gap-1', 'text-xs')}>
-          <BookOpen className={cn('h-3', 'w-3')} />
-          Answer Key
+        <Badge variant="outline" className="gap-1.5 text-xs font-semibold">
+          <BookOpen className="h-3.5 w-3.5" />
+          Answer Key & Solutions
         </Badge>
       </div>
 
       {questions.length === 0 ? (
-        <Card className={cn('rounded-xl', 'border-dashed')}>
-          <CardContent className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'gap-3', 'py-12', 'text-center')}>
-            <div className={cn('flex', 'h-10', 'w-10', 'items-center', 'justify-center', 'rounded-full', 'bg-muted')}>
-              <ListChecks className={cn('h-5', 'w-5', 'text-muted-foreground')} />
+        <Card className="rounded-xl border-dashed">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <ListChecks className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className={cn('text-sm', 'text-muted-foreground')}>No questions available</p>
+            <p className="text-sm text-muted-foreground">No questions available for this test.</p>
           </CardContent>
         </Card>
-      ) : hasSections ? (
+      ) : (
         <div className="space-y-6">
-          {sections.map((sec, secIdx) => {
-            const secQuestions = questions.filter((q) => q.section_id === sec.id)
+          {effectiveSections.map((sec, secIdx) => {
+            const secQuestions = questions.filter((q) => (q.section_id ?? "default-section-a") === sec.id || effectiveSections.length === 1)
             if (secQuestions.length === 0) return null
             const secMarks = secQuestions.reduce((s, q) => s + q.marks, 0)
 
             return (
-              <Card key={sec.id} className="overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b py-3 px-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                        {secIdx + 1}
-                      </span>
-                      <CardTitle className="text-sm font-bold">{sec.name}</CardTitle>
+              <div key={sec.id} className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                      {secIdx + 1}
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-foreground">{sec.name}</p>
+                      {sec.description && (
+                        <p className="text-xs text-muted-foreground">{sec.description}</p>
+                      )}
                     </div>
-                    <Badge variant="secondary" className="text-xs font-normal">
-                      {secQuestions.length} Qs · {secMarks} Marks
-                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="p-4 space-y-3">
-                  <Accordion type="multiple" className="space-y-2">
-                    {secQuestions
-                      .sort((a, b) => a.order_index - b.order_index)
-                      .map((q, i) => (
-                        <QuestionCard key={q.id} question={q} index={i} />
-                      ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
+                  <Badge variant="secondary" className="text-xs font-medium tabular-nums">
+                    {secQuestions.length} Qs · {secMarks} Marks
+                  </Badge>
+                </div>
+                <Accordion type="multiple" className="space-y-2">
+                  {secQuestions
+                    .sort((a, b) => a.order_index - b.order_index)
+                    .map((q, i) => (
+                      <QuestionCard key={q.id} question={q} index={i} />
+                    ))}
+                </Accordion>
+              </div>
             )
           })}
         </div>
-      ) : (
-        <Accordion type="multiple" className="space-y-2">
-          {[...questions]
-            .sort((a, b) => a.order_index - b.order_index)
-            .map((q, i) => (
-              <QuestionCard key={q.id} question={q} index={i} />
-            ))}
-        </Accordion>
       )}
     </div>
   )

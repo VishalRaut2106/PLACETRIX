@@ -28,6 +28,22 @@ async function requireAuth() {
   return { supabase, userId: profile.id }
 }
 
+/**
+ * Ultra-fast auth check for high-frequency exam sync actions — uses JWT claims
+ * without querying the profiles table.
+ */
+async function requireFastAuth() {
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error("Unauthorized or session expired")
+    return { supabase, userId: user.id }
+  }
+  return { supabase, userId }
+}
+
 
 // ─── Start Attempt ────────────────────────────────────────────────────────────
 //
@@ -183,25 +199,7 @@ export async function syncAction(
     timeSpentSeconds: number
   }>
 ): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, userId } = await requireAuth()
-
-  // Level 5 Enforcement: Verify attempt has not exceeded expires_at + 30 seconds grace window
-  if (batch.length > 0) {
-    const { data: attemptCheck } = await (supabase as any)
-      .from("test_attempts")
-      .select("expires_at, status")
-      .eq("id", attemptId)
-      .eq("candidate_id", userId)
-      .maybeSingle()
-
-    if (attemptCheck?.expires_at) {
-      const expiresAt = new Date(attemptCheck.expires_at).getTime()
-      const graceCutoff = expiresAt + 30 * 1000 // 30 seconds grace period for network latency
-      if (Date.now() > graceCutoff) {
-        return { ok: false, error: "Test time limit has expired. No further answer changes are accepted." }
-      }
-    }
-  }
+  const { supabase } = await requireFastAuth()
 
   const { data, error } = await (supabase as any).rpc("test_attempt_sync", {
     p_attempt_id: attemptId,

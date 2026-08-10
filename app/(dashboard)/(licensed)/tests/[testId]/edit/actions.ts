@@ -337,15 +337,19 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
   "gemini-3.5-flash",
   "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
   "gemma-4-31b",
   "gemini-2.0-flash",
   "gemini-1.5-pro",
-  "gemini-1.5-flash",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
-  // Escalate to next model on all transient errors (not just rate limits)
-  return true
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase()
+    return /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+  }
+  return false
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, baseDelayMs = 600): Promise<T> {
@@ -397,6 +401,18 @@ function cleanAiString(input: any): string {
   str = str.replace(/\\begin\{(?:enumerate|itemize)\}/g, "")
   str = str.replace(/\\end\{(?:enumerate|itemize)\}/g, "")
   str = str.replace(/\\item\s*/g, "- ")
+
+  // Convert bare \% outside math to plain %
+  // Protect math blocks first so we don't touch \% inside $...$ or $$...$$
+  str = str.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g, (m) => m.replace(/\\/g, "\x00"))
+  str = str.replace(/\\%/g, "%")
+  str = str.replace(/\x00/g, "\\")
+  // Convert bare \times, \cdot, \div outside math to unicode equivalents
+  str = str.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g, (m) => m.replace(/\\/g, "\x00"))
+  str = str.replace(/\\times/g, "×")
+  str = str.replace(/\\cdot/g, "·")
+  str = str.replace(/\\div/g, "÷")
+  str = str.replace(/\x00/g, "\\")
 
   return str
 }
@@ -691,10 +707,12 @@ ${existingTagsStr}`
       return await attemptWithModel(model)
     } catch (err) {
       lastError = err
-      console.warn(`[generateQuestionsAction] Model ${model} failed, advancing fallback chain…`)
-      if (isRetryableOnNextModel(err)) {
-        await new Promise((r) => setTimeout(r, 500))
+      if (!isRetryableOnNextModel(err)) {
+        console.error(`[generateQuestionsAction] Non-retryable error on model ${model}, aborting fallback chain:`, err)
+        break
       }
+      console.warn(`[generateQuestionsAction] Model ${model} quota/rate-limited, trying next model…`)
+      await new Promise((r) => setTimeout(r, 500))
     }
   }
 

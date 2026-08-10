@@ -32,14 +32,16 @@ export type ConceptualDiagnosisInput = {
 export type QuestionDiagnosis = {
   question_id: string
   is_correct: boolean
-  conceptual_flaw_summary: string
-  why_choice_was_wrong: string
-  correct_concept_explanation: string
-  distractor_analysis: string
+  analysis?: string
+  conceptual_flaw_summary?: string
+  why_choice_was_wrong?: string
+  correct_concept_explanation?: string
+  distractor_analysis?: string
 }
 
 export type DiagnosticResultPayload = {
   model_used?: string
+  analysis_type?: "deep" | "general"
   overall_diagnosis?: string
   strengths?: string[]
   key_misconceptions?: string[]
@@ -52,10 +54,11 @@ export type DiagnosticResultPayload = {
 // ── Fallback chain DOES NOT include gemini-3.5-flash to preserve its quota for test generation
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
   "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
   "gemma-4-31b",
   "gemini-2.0-flash",
   "gemini-1.5-pro",
-  "gemini-1.5-flash",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
@@ -161,10 +164,8 @@ STRICT INSTRUCTIONS:
 3. "key_misconceptions": 2–3 short bullet points identifying core conceptual flaws behind wrong answers.
 4. "recommended_review_topics": 2–4 specific topics or subfields the student must review.
 5. "question_diagnoses": An array with an entry for EVERY incorrect question evaluated in the prompt.
-   - "conceptual_flaw_summary": One clear sentence summarizing the flaw.
-   - "why_choice_was_wrong": Explain why their selected option is wrong and what reasoning flaw led to it.
-   - "correct_concept_explanation": Explain the correct concept clearly and concisely.
-   - "distractor_analysis": Explain why the wrong option was a tempting distractor trap.
+   - "question_id": string ID of the question.
+   - "analysis": A single concise, well-structured response paragraph covering BOTH: (1) the potential error or misconception made in selecting the option, and (2) the exact correct solution and reasoning.
 6. LATEX FORMATTING: Use standard single dollar signs ($...$) for inline math. Double-escape backslashes in JSON output ("\\\\frac{a}{b}"). Output raw JSON only.`
 
   const userPrompt = `Test Title: ${input.testTitle}
@@ -202,18 +203,12 @@ Perform a ${isGeneral ? "general lightweight performance synthesis" : "deep conc
                 properties: {
                   question_id: { type: "string" },
                   is_correct: { type: "boolean" },
-                  conceptual_flaw_summary: { type: "string" },
-                  why_choice_was_wrong: { type: "string" },
-                  correct_concept_explanation: { type: "string" },
-                  distractor_analysis: { type: "string" }
+                  analysis: { type: "string" }
                 },
                 required: [
                   "question_id",
                   "is_correct",
-                  "conceptual_flaw_summary",
-                  "why_choice_was_wrong",
-                  "correct_concept_explanation",
-                  "distractor_analysis"
+                  "analysis"
                 ]
               }
             }
@@ -248,11 +243,12 @@ Perform a ${isGeneral ? "general lightweight performance synthesis" : "deep conc
 
     const resultPayload: DiagnosticResultPayload = {
       model_used: model,
+      analysis_type: isGeneral ? "general" : "deep",
       overall_diagnosis: String(parsed.overall_diagnosis || ""),
       strengths: Array.isArray(parsed.strengths) ? parsed.strengths.map(String) : [],
       key_misconceptions: Array.isArray(parsed.key_misconceptions) ? parsed.key_misconceptions.map(String) : [],
       recommended_review_topics: Array.isArray(parsed.recommended_review_topics) ? parsed.recommended_review_topics.map(String) : [],
-      question_diagnoses: allDiagnoses,
+      question_diagnoses: !isGeneral ? allDiagnoses : [],
       generated_at: new Date().toISOString(),
     }
 
@@ -278,10 +274,13 @@ Perform a ${isGeneral ? "general lightweight performance synthesis" : "deep conc
       return await attemptWithModel(model)
     } catch (err) {
       lastError = err
-      console.warn(`[generateConceptualFeedbackAction] Model ${model} failed, advancing fallback chain...`)
-      if (isRetryableOnNextModel(err)) {
-        await new Promise((r) => setTimeout(r, 500))
+      if (!isRetryableOnNextModel(err)) {
+        // Hard error (parse failure, bad response, auth, etc.) — don't advance fallback chain
+        console.error(`[generateConceptualFeedbackAction] Non-retryable error on model ${model}, aborting fallback chain:`, err)
+        break
       }
+      console.warn(`[generateConceptualFeedbackAction] Model ${model} quota/rate-limited, trying next model...`)
+      await new Promise((r) => setTimeout(r, 500))
     }
   }
 

@@ -222,11 +222,6 @@ function QuestionReviewItem({
               <MathText>{answer.question_text}</MathText>
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {sectionName && (
-                <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium bg-primary/10 text-primary border-primary/20">
-                  {sectionName}
-                </Badge>
-              )}
               {isSkipped ? (
                 <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-normal text-muted-foreground">
                   Skipped
@@ -288,55 +283,24 @@ function QuestionReviewItem({
           ))}
         </div>
 
-        {/* ── AI Conceptual Breakdown ─────────────────────────────── */}
+        {/* ── AI Conceptual Breakdown (Single Unified Response) ─────────────────────────────── */}
         {qDiagnosis && !isInProgress && (
-          <div className="mt-3.5 rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/5 via-muted/30 to-blue-500/5 p-3.5 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-                <span>Trixy AI Conceptual Analysis</span>
-              </div>
+          <div className="mt-3.5 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3.5 space-y-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              <Sparkles className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+              <span>Trixy AI Analysis</span>
             </div>
 
-            <p className="text-xs font-medium text-foreground leading-relaxed">
-              <MathText>{qDiagnosis.conceptual_flaw_summary}</MathText>
-            </p>
-
-            {!isCorrect && qDiagnosis.why_choice_was_wrong && qDiagnosis.why_choice_was_wrong !== "N/A" && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400 text-[11px]">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                  <span>Reasoning Flaw</span>
-                </div>
-                <div className="text-foreground/90 pl-5 leading-relaxed">
-                  <MathText>{qDiagnosis.why_choice_was_wrong}</MathText>
-                </div>
-              </div>
-            )}
-
-            {!isCorrect && qDiagnosis.distractor_analysis && qDiagnosis.distractor_analysis !== "N/A" && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-1.5 font-semibold text-red-700 dark:text-red-400 text-[11px]">
-                  <Target className="h-3.5 w-3.5 shrink-0" />
-                  <span>Distractor Trap Analysis</span>
-                </div>
-                <div className="text-foreground/90 pl-5 leading-relaxed">
-                  <MathText>{qDiagnosis.distractor_analysis}</MathText>
-                </div>
-              </div>
-            )}
-
-            {qDiagnosis.correct_concept_explanation && (
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-1.5 font-semibold text-emerald-700 dark:text-emerald-400 text-[11px]">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                  <span>Core Concept</span>
-                </div>
-                <div className="text-foreground/90 pl-5 leading-relaxed">
-                  <MathText>{qDiagnosis.correct_concept_explanation}</MathText>
-                </div>
-              </div>
-            )}
+            <div className="text-xs text-foreground leading-relaxed">
+              <p>
+                <MathText>
+                  {qDiagnosis.analysis ||
+                    [qDiagnosis.conceptual_flaw_summary, qDiagnosis.why_choice_was_wrong, qDiagnosis.correct_concept_explanation]
+                      .filter(Boolean)
+                      .join(" ")}
+                </MathText>
+              </p>
+            </div>
           </div>
         )}
 
@@ -529,6 +493,44 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
     return tagPerformanceList.filter((t) => t.percentage < 60)
   }, [tagPerformanceList])
 
+  const sectionGroupMap = useMemo(() => {
+    if (!displayAnswers || displayAnswers.length === 0) return []
+
+    const secs = test.sections && test.sections.length > 0
+      ? test.sections
+      : [{ id: "default-section", name: "Section A", description: null, order_index: 0 }]
+
+    const groups: Array<{
+      section: { id: string; name: string; description: string | null; order_index: number }
+      answers: Array<{ answer: CandidateAnswerDetail; index: number }>
+      totalMarks: number
+      earnedMarks: number
+      correctCount: number
+    }> = secs.map((sec) => ({
+      section: sec,
+      answers: [],
+      totalMarks: 0,
+      earnedMarks: 0,
+      correctCount: 0,
+    }))
+
+    const defaultGroup = groups[0]
+
+    displayAnswers.forEach((ans, globalIdx) => {
+      let group = groups.find((g) => g.section.id === ans.section_id)
+      if (!group) group = defaultGroup
+
+      group.answers.push({ answer: ans, index: globalIdx })
+      group.totalMarks += ans.marks ?? 0
+      group.earnedMarks += ans.marks_awarded ?? 0
+      if (ans.is_correct === true) {
+        group.correctCount += 1
+      }
+    })
+
+    return groups.filter((g) => g.answers.length > 0)
+  }, [displayAnswers, test.sections])
+
   return (
     <div className="flex flex-col gap-6 px-4 py-8 md:px-8 pb-12 animate-in fade-in duration-500">
 
@@ -554,12 +556,6 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                 <Badge variant="secondary" className="h-5 gap-1 border bg-muted/30 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
                   <CalendarX className="h-3 w-3" />
                   Closed
-                </Badge>
-              )}
-              {isLive && (
-                <Badge variant="secondary" className="h-5 gap-1 border border-emerald-200/50 bg-emerald-50 px-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 shrink-0">
-                  <Clock className="h-3 w-3" />
-                  Live
                 </Badge>
               )}
               {isNotYetOpen && (
@@ -792,7 +788,6 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
 
               {diagnostic && (
                 <CardContent className="space-y-4 pt-0">
-                  <Separator />
 
                   {/* Overall Diagnosis */}
                   {diagnostic.overall_diagnosis && (
@@ -857,118 +852,64 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
             </Card>
           )}
 
-          {/* ── Topic & Tag Performance Analytics Card ─────────────────── */}
-          {!isInProgress && tagPerformanceList.length > 0 && (
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
-                <div className="space-y-1 min-w-0">
-                  <CardTitle className="text-base font-semibold">
-                    Topic & Skill Mastery Breakdown
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Performance breakdown by question tags to highlight strengths and focus areas.
-                  </CardDescription>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
-                  <Badge variant="outline" className="font-normal text-[11px]">
-                    {tagPerformanceList.filter((t) => t.status === "Strong").length} Mastered
-                  </Badge>
-                  {weakTags.length > 0 && (
-                    <Badge variant="secondary" className="font-normal text-[11px]">
-                      {weakTags.length} Need Work
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
 
-              <CardContent className="space-y-4 pt-0">
-                <Separator />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {tagPerformanceList.map((tagItem) => {
-                    const isStrong = tagItem.status === "Strong"
-                    const isModerate = tagItem.status === "Moderate"
-
-                    const statusBadge = isStrong ? (
-                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                        Strong Mastery
-                      </Badge>
-                    ) : isModerate ? (
-                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                        Moderate
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-[10px] font-normal border-0 bg-rose-500/10 text-rose-700 dark:text-rose-400">
-                        Focus Needed
-                      </Badge>
-                    )
-
-                    return (
-                      <div
-                        key={tagItem.tagName}
-                        className="flex flex-col gap-2 rounded-lg border bg-muted/20 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-xs text-foreground truncate">
-                            {tagItem.tagName}
-                          </span>
-                          {statusBadge}
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>
-                              {tagItem.correctQuestions}/{tagItem.totalQuestions} Questions Correct
-                            </span>
-                            <span className="font-semibold tabular-nums text-foreground">
-                              {tagItem.percentage.toFixed(0)}% ({tagItem.earnedMarks}/{tagItem.totalMarks} pts)
-                            </span>
-                          </div>
-                          <Progress value={Math.min(100, Math.max(0, tagItem.percentage))} className="h-1.5" />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {weakTags.length > 0 && (
-                  <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
-                    <span className="font-semibold text-foreground">Targeted Study Advice</span>
-                    <p className="leading-relaxed text-muted-foreground">
-                      You scored below 60% on: <span className="font-medium text-foreground">{weakTags.map((t) => t.tagName).join(", ")}</span>. Consider reviewing concepts and solving practice questions under these tags.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ── Question Review ──────────────────────────────────────────── */}
-          {displayAnswers.length > 0 && (
-            <div className="space-y-4">
+          {/* ── Question Review Grouped Section-Wise ─────────────────────── */}
+          {sectionGroupMap.length > 0 && (
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{displayAnswers.length}</span>{" "}
-                  question{displayAnswers.length !== 1 ? "s" : ""}
-                </p>
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-semibold text-foreground">
+                    Question & Section Review
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Review your answers, correct options, and detailed AI explanations section by section.
+                  </p>
+                </div>
                 <Badge variant="outline" className="gap-1 text-xs">
-                  <BookOpen className="h-3 w-3" />
-                  Review
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {displayAnswers.length} Questions
                 </Badge>
               </div>
-              <Accordion type="multiple" className="space-y-2">
-                {displayAnswers.map((a, i) => (
-                  <QuestionReviewItem
-                    key={a.question_id}
-                    answer={a}
-                    sections={test.sections}
-                    index={i}
-                    isInProgress={isInProgress}
-                    qDiagnosis={questionDiagnosisMap.get(a.question_id)}
-                  />
-                ))}
-              </Accordion>
+
+              {sectionGroupMap.map(({ section, answers: secAnswers, totalMarks, earnedMarks, correctCount }) => (
+                <div key={section.id} className="space-y-3 pt-2">
+                  {/* Section Header Text */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {section.name}
+                      </h4>
+                      {section.description && (
+                        <span className="text-xs text-muted-foreground/70 hidden sm:inline">
+                          — {section.description}
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-xs text-muted-foreground font-medium tabular-nums">
+                      {correctCount}/{secAnswers.length} Correct
+                      {!isInProgress && (earnedMarks !== correctCount || totalMarks !== secAnswers.length) && (
+                        <span> ({earnedMarks}/{totalMarks} pts)</span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Section Questions Accordion */}
+                  <Accordion type="multiple" className="space-y-2">
+                    {secAnswers.map(({ answer, index }) => (
+                      <QuestionReviewItem
+                        key={answer.question_id}
+                        answer={answer}
+                        sections={test.sections}
+                        index={index}
+                        isInProgress={isInProgress}
+                        qDiagnosis={questionDiagnosisMap.get(answer.question_id)}
+                      />
+                    ))}
+                  </Accordion>
+                </div>
+              ))}
             </div>
           )}
         </>

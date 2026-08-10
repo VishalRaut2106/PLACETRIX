@@ -87,18 +87,28 @@ function getFullscreenElement(): Element | null {
     )
 }
 
-async function requestFullscreen(el: Element): Promise<void> {
+async function requestFullscreen(el?: Element): Promise<boolean> {
     try {
-        if (el.requestFullscreen) {
-            await el.requestFullscreen()
-        } else if ((el as any).webkitRequestFullscreen) {
-            await (el as any).webkitRequestFullscreen()
-        } else if ((el as any).mozRequestFullScreen) {
-            await (el as any).mozRequestFullScreen()
+        const target = el || (typeof document !== "undefined" ? document.documentElement || document.body : null)
+        if (!target) return false
+        if (target.requestFullscreen) {
+            await target.requestFullscreen({ navigationUI: "hide" } as any)
+            return true
+        } else if ((target as any).webkitRequestFullscreen) {
+            await (target as any).webkitRequestFullscreen()
+            return true
+        } else if ((target as any).mozRequestFullScreen) {
+            await (target as any).mozRequestFullScreen()
+            return true
+        } else if ((target as any).msRequestFullscreen) {
+            await (target as any).msRequestFullscreen()
+            return true
         }
-    } catch {
-        // Fullscreen denied or not supported — silently continue
+    } catch (err) {
+        console.warn("[Fullscreen] Request rejected by browser:", err)
+        return false
     }
+    return false
 }
 
 async function exitFullscreen(): Promise<void> {
@@ -348,7 +358,7 @@ function QuestionNavigator({
                       }).length
 
                       return (
-                        <div key={sec.id} className="space-y-2 border-t pt-2 first:border-t-0 first:pt-0">
+                        <div key={sec.id} className="space-y-2 border-t pt-3 first:border-t-0 first:pt-0">
                           <div className="flex items-center justify-between text-[11px] font-bold text-foreground uppercase tracking-wider">
                             <span>{sec.name}</span>
                             <span className="text-[10px] text-muted-foreground font-normal">
@@ -372,22 +382,22 @@ function QuestionNavigator({
                                   onClick={() => !disabled && onJump(globalIndex)}
                                   disabled={disabled}
                                   className={cn(
-                                    "relative aspect-square w-full rounded-xl border text-xs font-bold transition-all duration-150",
+                                    "relative aspect-square w-full rounded-full border text-xs font-bold transition-all duration-150 flex items-center justify-center cursor-pointer select-none",
                                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                                     isCurrent && "ring-2 ring-primary ring-offset-2 z-10 scale-105 shadow-sm",
                                     isSaved
-                                      ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                      ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold"
                                       : isPending
-                                        ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300"
+                                        ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300 font-bold"
                                         : isFlagged
-                                          ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
-                                          : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground",
+                                          ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold"
+                                          : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground font-semibold",
                                     disabled && "cursor-not-allowed opacity-60"
                                   )}
                                 >
                                   {globalIndex + 1}
                                   {isFlagged && (
-                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-sm dark:border-indigo-900">
+                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-xs dark:border-indigo-900">
                                       <Flag className="h-2 w-2 fill-white text-white" />
                                     </span>
                                   )}
@@ -416,22 +426,22 @@ function QuestionNavigator({
                                 onClick={() => !disabled && onJump(i)}
                                 disabled={disabled}
                                 className={cn(
-                                    "relative aspect-square w-full rounded-xl border text-xs font-bold transition-all duration-150",
+                                    "relative aspect-square w-full rounded-full border text-xs font-bold transition-all duration-150 flex items-center justify-center cursor-pointer select-none",
                                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                                     isCurrent && "ring-2 ring-primary ring-offset-2 z-10 scale-105 shadow-sm",
                                     isSaved
-                                        ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                        ? "border-emerald-500 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold"
                                         : isPending
-                                            ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300"
+                                            ? "border-amber-500 bg-amber-50/80 text-amber-700 hover:bg-amber-100 animate-pulse dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-300 font-bold"
                                             : isFlagged
-                                                ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
-                                                : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground",
+                                                ? "border-indigo-500 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold"
+                                                : "border-border bg-background text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground font-semibold",
                                     disabled && "cursor-not-allowed opacity-60"
                                 )}
                             >
                                 {i + 1}
                                 {isFlagged && (
-                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-sm dark:border-indigo-900">
+                                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-indigo-200 bg-indigo-600 shadow-xs dark:border-indigo-900">
                                         <Flag className="h-2 w-2 fill-white text-white" />
                                     </span>
                                 )}
@@ -444,21 +454,21 @@ function QuestionNavigator({
 
             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t">
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-md border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40" />
+                    <div className="h-3 w-3 shrink-0 rounded-full border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40" />
                     <span>Saved ({savedCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-950/40" />
+                    <div className="h-3 w-3 shrink-0 rounded-full border border-amber-500 bg-amber-50 dark:bg-amber-950/40" />
                     <span>Unsaved ({unsavedCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-md border border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                    <div className="h-3 w-3 shrink-0 rounded-full border border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
                         <Flag className="h-2 w-2 fill-indigo-600 text-indigo-600 dark:fill-indigo-400 dark:text-indigo-400" />
                     </div>
                     <span>Flagged ({flaggedCount})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-md border border-border bg-background" />
+                    <div className="h-3 w-3 shrink-0 rounded-full border border-border bg-background" />
                     <span>Unanswered</span>
                 </div>
             </div>
@@ -494,12 +504,11 @@ function OptionButton({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                "group relative flex w-full min-h-[3.25rem] items-center gap-3.5 rounded-xl border p-4 sm:p-5 text-left text-sm transition-all duration-150",
-                "hover:border-primary/50 hover:bg-primary/5 active:scale-[0.995]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+                "group relative flex w-full min-h-[3rem] items-center gap-3.5 rounded-xl border p-4 text-left text-sm transition-all duration-150 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected
-                    ? "border-primary border-l-4 border-l-primary bg-primary/10 text-foreground font-semibold shadow-sm dark:bg-primary/15"
-                    : "border-border bg-background text-foreground/90 hover:text-foreground",
+                    ? "border-primary bg-primary/5 text-foreground font-medium shadow-2xs"
+                    : "border-border bg-card text-foreground/90 hover:border-muted-foreground/30 hover:bg-muted/30",
                 disabled && "cursor-not-allowed opacity-70"
             )}
         >
@@ -566,14 +575,40 @@ function QuestionView({
     const isActuallySynced = JSON.stringify([...selectedIds].sort()) === JSON.stringify([...syncedIds].sort())
     const hasSelection = selectedIds.length > 0
 
+    const currentSecIdx = sections && question.section_id
+        ? sections.findIndex((s) => s.id === question.section_id)
+        : -1
+    const currentSec = currentSecIdx !== -1 && sections ? sections[currentSecIdx] : null
+
     return (
         <div className="space-y-6">
+            {/* Section Header Text */}
+            {currentSec && (
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            {currentSec.name}
+                        </span>
+                        {currentSec.description && (
+                            <span className="text-xs text-muted-foreground/70 truncate hidden sm:inline">
+                                — {currentSec.description}
+                            </span>
+                        )}
+                    </div>
+                    {sections && sections.length > 1 && (
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                            Section {currentSecIdx + 1} of {sections.length}
+                        </span>
+                    )}
+                </div>
+            )}
+
             <div className="space-y-3">
-                <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-                    <Badge variant="outline" className="shrink-0 text-xs">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="shrink-0 text-xs font-semibold">
                         Q{index + 1} of {total}
                     </Badge>
-                    <Badge variant="secondary" className="shrink-0 text-xs">
+                    <Badge variant="secondary" className="shrink-0 text-xs font-medium">
                         {question.marks} {question.marks === 1 ? "mark" : "marks"}
                     </Badge>
                     <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">
@@ -762,6 +797,40 @@ function IntroScreen({
                         </p>
                     </div>
                 )}
+
+                {(() => {
+                    const sectionsToUse = test.sections && test.sections.length > 0 ? test.sections : [{ id: "default-section-a", name: "Section A", description: null, order_index: 0 }]
+                    return (
+                        <div className="space-y-3 rounded-xl border bg-muted/40 p-5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Test Sections ({sectionsToUse.length})
+                            </p>
+                            <div className="space-y-2 pt-0.5">
+                                {sectionsToUse.map((sec, idx) => {
+                                    const secQs = displayQuestions.filter((q) => (q.section_id ?? "default-section-a") === sec.id || sectionsToUse.length === 1)
+                                    const secMarks = secQs.reduce((s, q) => s + q.marks, 0)
+                                    return (
+                                        <div key={sec.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-foreground">
+                                                    {idx + 1}. {sec.name}
+                                                </span>
+                                                {sec.description && (
+                                                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                                                        — {sec.description}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-muted-foreground font-medium tabular-nums">
+                                                {secQs.length} {secQs.length === 1 ? "question" : "questions"} ({secMarks} {secMarks === 1 ? "mark" : "marks"})
+                                            </span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 <div className="space-y-2.5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
                     <div className="flex items-start gap-2">
@@ -1182,24 +1251,79 @@ export function AttemptClient({
 
     // ── Shuffling (Client-Side) ──────────────────────────────────────────────────
 
+    // ── Effective Sections & Normalized Questions ────────────────────────────────
+
+    const effectiveSections = useMemo<AttemptSection[]>(() => {
+        if (test.sections && test.sections.length > 0) {
+            return test.sections
+        }
+        return [
+            {
+                id: "default-section-a",
+                name: "Section A",
+                description: null,
+                order_index: 0,
+            },
+        ]
+    }, [test.sections])
+
+    const normalizedQuestions = useMemo(() => {
+        const defaultSecId = effectiveSections[0].id
+
+        return questions.map((q) => {
+            if (!q.section_id) return { ...q, section_id: defaultSecId }
+            const rawSecId = String(q.section_id).trim().toLowerCase()
+            const matchedSec = effectiveSections.find(
+                (s) => s.id.trim().toLowerCase() === rawSecId
+            )
+            return {
+                ...q,
+                section_id: matchedSec ? matchedSec.id : defaultSecId,
+            }
+        })
+    }, [questions, effectiveSections])
+
     const displayQuestions = useMemo(() => {
         const seed = seedFromUUID(shuffleSeed)
-        let qs = [...questions]
+        const qs = [...normalizedQuestions]
 
-        if (test.shuffle_questions) {
-            const rng = mulberry32(seed)
-            qs = seededShuffle(qs, rng)
-        }
+        const result: AttemptQuestion[] = []
+        const sectionMap = new Map<string, AttemptQuestion[]>()
+        
+        effectiveSections.forEach((sec) => sectionMap.set(sec.id, []))
 
-        if (test.shuffle_options) {
-            qs = qs.map((q) => {
-                const rng = mulberry32(seed ^ seedFromUUID(q.id))
-                return { ...q, options: seededShuffle(q.options, rng) }
-            })
-        }
+        qs.forEach((q) => {
+            const targetKey = q.section_id && sectionMap.has(q.section_id)
+                ? q.section_id
+                : effectiveSections[0].id
+            sectionMap.get(targetKey)!.push(q)
+        })
 
-        return qs
-    }, [questions, test.shuffle_questions, test.shuffle_options, shuffleSeed])
+        effectiveSections.forEach((sec, secIdx) => {
+            let secQs = sectionMap.get(sec.id) ?? []
+            if (secQs.length === 0) return
+
+            // Shuffle questions per section
+            if (test.shuffle_questions) {
+                const secSeed = (seed + (secIdx + 1) * 10007) >>> 0
+                const rng = mulberry32(secSeed)
+                secQs = seededShuffle(secQs, rng)
+            }
+
+            // Shuffle options for each question
+            if (test.shuffle_options) {
+                secQs = secQs.map((q) => {
+                    const qSeed = (seed + seedFromUUID(q.id)) >>> 0
+                    const rng = mulberry32(qSeed)
+                    return { ...q, options: seededShuffle(q.options, rng) }
+                })
+            }
+
+            result.push(...secQs)
+        })
+
+        return result
+    }, [normalizedQuestions, effectiveSections, test.shuffle_questions, test.shuffle_options, shuffleSeed])
 
     // ── State ──────────────────────────────────────────────────────────────────
 
@@ -1394,6 +1518,8 @@ export function AttemptClient({
         //    many events fire for the same user action.
         const triggerFocusLoss = () => {
             if (autoSubmitted.current || isSubmittingRef.current) return
+            // Only mark next violation once earlier popup is marked dismissed
+            if (showFocusWarningRef.current || showFullscreenWarningRef.current) return
             if (focusGuardRef.current) return
             focusGuardRef.current = true
 
@@ -1430,6 +1556,7 @@ export function AttemptClient({
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === "hidden") {
+                if (showFocusWarningRef.current || showFullscreenWarningRef.current) return
                 awayStartRef.current = getNowOnServer().getTime()
                 if (phase === "active" && attemptInfo) {
                     beaconSentRef.current = true
@@ -1840,22 +1967,22 @@ export function AttemptClient({
 
     const currentQuestion = displayQuestions[currentIndex]
 
-    const handleNext = useCallback(async () => {
+    const handleNext = useCallback(() => {
         if (isSubmittingRef.current) return
-        await performSync()
         setCurrentIndex((i) => Math.min(displayQuestions.length - 1, i + 1))
+        performSync()
     }, [displayQuestions.length, performSync])
 
-    const handlePrevious = useCallback(async () => {
+    const handlePrevious = useCallback(() => {
         if (isSubmittingRef.current) return
-        await performSync()
         setCurrentIndex((i) => Math.max(0, i - 1))
+        performSync()
     }, [performSync])
 
-    const handleJump = useCallback(async (targetIndex: number) => {
+    const handleJump = useCallback((targetIndex: number) => {
         if (isSubmittingRef.current || targetIndex === currentIndex) return
-        await performSync()
         setCurrentIndex(targetIndex)
+        performSync()
     }, [currentIndex, performSync])
 
     const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -1866,7 +1993,7 @@ export function AttemptClient({
             if (!isSubmittingRef.current && performSyncRef.current) {
                 performSyncRef.current()
             }
-        }, 600)
+        }, 150)
     }, [])
 
     const handleClearResponse = useCallback(() => {
@@ -1885,8 +2012,8 @@ export function AttemptClient({
         triggerDebouncedSync()
     }, [currentQuestion, triggerDebouncedSync])
 
-    const handleNextRef = useRef<() => Promise<void>>(async () => {})
-    const handlePreviousRef = useRef<() => Promise<void>>(async () => {})
+    const handleNextRef = useRef<() => void>(() => {})
+    const handlePreviousRef = useRef<() => void>(() => {})
     const handleClearResponseRef = useRef<(() => void) | undefined>(undefined)
 
     useEffect(() => {
@@ -2291,6 +2418,8 @@ export function AttemptClient({
                 isResuming={isResuming}
                 isStarting={isStarting}
                 onBegin={async () => {
+                    // Synchronously fire fullscreen request in response to direct click gesture
+                    const fsPromise = requestFullscreen(document.documentElement)
                     try {
                         let info = attemptInfo
                         if (!info) {
@@ -2301,6 +2430,7 @@ export function AttemptClient({
                                 setFocusLostCount(info.tab_switch_count)
                                 focusLostCountRef.current = info.tab_switch_count
                             } catch (err: any) {
+                                await exitFullscreen()
                                 if (isDeploymentError(err)) {
                                     setShowDeploymentError(true)
                                     setIsStarting(false)
@@ -2314,12 +2444,11 @@ export function AttemptClient({
                             setIsStarting(false)
                         }
                         if (info) {
-                            try {
-                                await enterFullscreen()
-                            } catch {}
+                            await fsPromise
                             setPhase("active")
                         }
                     } catch (err: any) {
+                        await exitFullscreen()
                         setIsStarting(false)
                         toast.error("Failed to start test due to a network glitch. Please try again.")
                     }
@@ -2490,10 +2619,6 @@ export function AttemptClient({
                 {/* Top Glassmorphic Header */}
                 <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                     <div className="flex items-center gap-3 min-w-0">
-                        <Badge variant="outline" className="shrink-0 gap-1 text-xs font-semibold">
-                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                            Proctored
-                        </Badge>
                         <h1 className="truncate text-sm font-bold text-foreground">
                             {test.title}
                         </h1>
@@ -2521,6 +2646,8 @@ export function AttemptClient({
                         )}
                     </div>
                 </header>
+
+
 
                 {/* Offline banner */}
                 {isOffline && (
@@ -2591,7 +2718,7 @@ export function AttemptClient({
                     {currentQuestion && (
                         <QuestionView
                             question={currentQuestion}
-                            sections={test.sections}
+                            sections={effectiveSections}
                             index={currentIndex}
                             total={displayQuestions.length}
                             selectedIds={currentAnswers}
@@ -2665,7 +2792,7 @@ export function AttemptClient({
                         <div className="px-1">
                             <QuestionNavigator
                                 questions={displayQuestions}
-                                sections={test.sections}
+                                sections={effectiveSections}
                                 currentIndex={currentIndex}
                                 answers={answers}
                                 syncedAnswers={syncedAnswers}
@@ -2798,7 +2925,7 @@ export function AttemptClient({
                     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
                         <QuestionNavigator
                             questions={displayQuestions}
-                            sections={test.sections}
+                            sections={effectiveSections}
                             currentIndex={currentIndex}
                             answers={answers}
                             syncedAnswers={syncedAnswers}
