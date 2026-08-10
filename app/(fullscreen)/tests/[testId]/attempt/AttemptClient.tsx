@@ -2462,7 +2462,7 @@ export function AttemptClient({
 
     return (
         <div
-            className="relative flex min-h-screen overflow-hidden bg-background select-none"
+            className="relative flex h-screen h-[100dvh] w-full overflow-hidden bg-background select-none"
             style={{
                 WebkitUserSelect: "none",
                 MozUserSelect: "none",
@@ -2614,10 +2614,10 @@ export function AttemptClient({
 
 
             {/* ── Question column ───────────────────────────────────────────────── */}
-            <main className="flex min-w-0 flex-1 flex-col">
+            <main className="flex min-w-0 flex-1 flex-col h-full overflow-hidden">
 
                 {/* Top Glassmorphic Header */}
-                <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                <header className="shrink-0 z-30 flex h-14 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                     <div className="flex items-center gap-3 min-w-0">
                         <h1 className="truncate text-sm font-bold text-foreground">
                             {test.title}
@@ -2651,7 +2651,7 @@ export function AttemptClient({
 
                 {/* Offline banner */}
                 {isOffline && (
-                    <div className="border-b border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30 px-6 py-3">
+                    <div className="shrink-0 border-b border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30 px-6 py-3">
                         <div className="mx-auto flex items-center gap-3 text-sm font-medium text-red-800 dark:text-red-300">
                             <WifiOff className="h-4 w-4 shrink-0" />
                             <span className="flex-1 min-w-0">
@@ -2663,7 +2663,7 @@ export function AttemptClient({
 
                 {/* Global sync error banner */}
                 {syncStatus === "error" && !isOffline && (
-                    <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30 px-6 py-3">
+                    <div className="shrink-0 border-b border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30 px-6 py-3">
                         <div className="mx-auto flex flex-wrap items-center gap-3 text-sm font-medium text-amber-800 dark:text-amber-300">
                             <AlertTriangle className="h-4 w-4 shrink-0" />
                             <span className="flex-1 min-w-0">
@@ -2685,7 +2685,7 @@ export function AttemptClient({
 
                 {/* Submit error banner */}
                 {submitError && (
-                    <div className="border-b border-destructive/20 bg-destructive/5 px-6 py-3">
+                    <div className="shrink-0 border-b border-destructive/20 bg-destructive/5 px-6 py-3">
                         <div className="mx-auto flex items-center gap-2 text-sm text-destructive">
                             <AlertTriangle className="h-4 w-4 shrink-0" />
                             <span className="min-w-0 flex-1 break-words">{submitError}</span>
@@ -2702,19 +2702,8 @@ export function AttemptClient({
                     </div>
                 )}
 
-                {/* Offline banner */}
-                {isOffline && (
-                    <div className="border-b border-destructive/20 bg-destructive/5 px-6 py-3">
-                        <div className="mx-auto flex flex-wrap items-center gap-2 text-sm font-semibold text-destructive">
-                            <AlertTriangle className="h-4 w-4 shrink-0" />
-                            <span>You are currently offline. Answers cannot be saved until you reconnect to the internet.</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Question body */}
-                <div className="mx-auto w-full flex-1 px-6 py-6 pb-24 md:px-7 md:py-7 md:pb-14 lg:px-8 lg:py-8">
-
+                {/* Question body (Scrollable content area) */}
+                <div className="flex-1 w-full min-h-0 overflow-y-auto px-6 py-6 pb-24 md:px-8 md:py-8 md:pb-8">
                     {currentQuestion && (
                         <QuestionView
                             question={currentQuestion}
@@ -2735,88 +2724,86 @@ export function AttemptClient({
                             onClearResponse={handleClearResponse}
                         />
                     )}
+                </div>
 
-                    {/* Desktop prev / next */}
-                    <div className="mt-10 hidden items-center justify-between md:flex">
+                {/* Desktop prev / next fixed footer bar */}
+                <div className="hidden md:flex shrink-0 h-16 border-t bg-background/95 backdrop-blur px-6 lg:px-8 items-center justify-between z-20">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevious}
+                        disabled={currentIndex === 0}
+                    >
+                        <ChevronLeft className="mr-1 h-4 w-4" />
+                        Previous
+                    </Button>
+
+                    <span className="text-xs tabular-nums text-muted-foreground font-medium">
+                        {currentIndex + 1} / {questions.length}
+                    </span>
+
+                    {isLastQuestion ? (
                         <Button
-                            variant="outline"
                             size="sm"
-                            onClick={handlePrevious}
-                            disabled={currentIndex === 0}
+                            onClick={() => setShowSubmitDialog(true)}
+                            disabled={isSubmitting}
                         >
-                            <ChevronLeft className="mr-1 h-4 w-4" />
-                            Previous
+                            <Send className="mr-1.5 h-4 w-4" />
+                            Submit Test
                         </Button>
-
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                            {currentIndex + 1} / {questions.length}
-                        </span>
-
-                        {isLastQuestion ? (
-                            <Button
-                                size="sm"
-                                onClick={() => setShowSubmitDialog(true)}
-                                disabled={isSubmitting}
-                            >
-                                <Send className="mr-1.5 h-4 w-4" />
-                                Submit Test
-                            </Button>
-                        ) : (
-                            <Button
-                                size="sm"
-                                onClick={handleNext}
-                                className="font-semibold px-5"
-                            >
-                                Next
-                                <ChevronRight className="ml-1 h-4 w-4" />
-                            </Button>
-                        )}
-                    </div>
+                    ) : (
+                        <Button
+                            size="sm"
+                            onClick={handleNext}
+                            className="font-semibold px-5"
+                        >
+                            Next
+                            <ChevronRight className="ml-1 h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </main>
 
 
             {/* ── Desktop sidebar ───────────────────────────────────────────────── */}
-            <aside className="hidden md:flex md:w-56 lg:w-64 xl:w-72 shrink-0 border-l">
-                <div className="sticky top-0 h-screen w-full overflow-y-auto">
-                    <div className="flex flex-col gap-5 p-5 lg:p-6">
+            <aside className="hidden md:flex md:w-56 lg:w-64 xl:w-72 shrink-0 h-full flex-col border-l bg-card/30 overflow-y-auto">
+                <div className="flex flex-col gap-5 p-5 lg:p-6">
 
-                        {test.time_limit_seconds && timeRemaining !== null && (
-                            <TimerDisplay
-                                timeRemaining={timeRemaining}
-                                timerDanger={timerDanger}
-                                timerWarning={timerWarning}
-                            />
-                        )}
+                    {test.time_limit_seconds && timeRemaining !== null && (
+                        <TimerDisplay
+                            timeRemaining={timeRemaining}
+                            timerDanger={timerDanger}
+                            timerWarning={timerWarning}
+                        />
+                    )}
 
-                        <div className="px-1">
-                            <QuestionNavigator
-                                questions={displayQuestions}
-                                sections={effectiveSections}
-                                currentIndex={currentIndex}
-                                answers={answers}
-                                syncedAnswers={syncedAnswers}
-                                flagged={flagged}
-                                disabled={isSubmitting}
-                                onJump={handleJump}
-                            />
-                        </div>
-
-                        <div className="space-y-4">
-                            <Button
-                                className="w-full shrink-0"
-                                onClick={() => setShowSubmitDialog(true)}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <><Loader2 className="h-4 w-4 animate-spin" />Submitting…</>
-                                ) : (
-                                    <><Send className="h-4 w-4" />Submit Test</>
-                                )}
-                            </Button>
-                        </div>
-
+                    <div className="px-1">
+                        <QuestionNavigator
+                            questions={displayQuestions}
+                            sections={effectiveSections}
+                            currentIndex={currentIndex}
+                            answers={answers}
+                            syncedAnswers={syncedAnswers}
+                            flagged={flagged}
+                            disabled={isSubmitting}
+                            onJump={handleJump}
+                        />
                     </div>
+
+                    <div className="space-y-4">
+                        <Button
+                            className="w-full shrink-0"
+                            onClick={() => setShowSubmitDialog(true)}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" />Submitting…</>
+                            ) : (
+                                <><Send className="h-4 w-4" />Submit Test</>
+                            )}
+                        </Button>
+                    </div>
+
                 </div>
             </aside>
 

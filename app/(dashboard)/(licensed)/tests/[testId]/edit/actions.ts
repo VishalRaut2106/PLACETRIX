@@ -383,9 +383,13 @@ function cleanAiString(input: any): string {
   // Replace literal \n with actual newlines
   str = str.replace(/\\n/g, "\n")
 
-  // Clean backslashes prepended to currency numbers like \2,000,000 or \$1,500,000
+  // Clean backslashes prepended to percentage & currency numbers
+  str = str.replace(/\\%\$\\?/g, "%")
+  str = str.replace(/\\%\$/g, "%")
+  str = str.replace(/\\%\\(?=\s|$|[^\w])/g, "%")
+
+  // Currency backslash artifacts: \$1,500,000 → $1,500,000
   str = str.replace(/\\+\$(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
-  str = str.replace(/\\(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
 
   // Convert legacy LaTeX delimiters \( ... \) -> $ ... $ and \[ ... \] -> $$ ... $$
   str = str.replace(/\\\\/g, "_DOUBLE_BACKSLASH_") // protect \\\\ first

@@ -1816,18 +1816,16 @@ export function sanitizeMathInput(raw: string): string {
   // 1. Convert literal \n escape sequences to real newlines
   str = str.replace(/\\n/g, "\n")
 
-  // 2. Currency backslash artifacts: \2,000,000 or \$1,500,000 → $2,000,000
-  str = str.replace(/\\+\$(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
-  str = str.replace(/\\(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
+  // 2. Clean AI backslash & percentage artifacts (e.g., 20\%$\ or 20\%$ or 20\%$\)
+  str = str.replace(/\\%\$\\?/g, "%")
+  str = str.replace(/\\%\$/g, "%")
+  str = str.replace(/\\%\\(?=\s|$|[^\w])/g, "%")
 
-  // 3. Convert legacy LaTeX delimiters to standard dollar signs
-  //    Protect \\ (double backslash) first so we don't accidentally convert it
-  str = str.replace(/\\\\/g, "\x00DBLBS\x00")
-  str = str.replace(/\\\[([^]*?)\\\]/g, "$$$$$1$$$$")  // \[ ... \] → $$ ... $$
-  str = str.replace(/\\\(([^]*?)\\\)/g, "$$$1$")        // \( ... \) → $ ... $
-  str = str.replace(/\x00DBLBS\x00/g, "\\\\")
+  // 3. Unescape percentage math delimiters: $20\%$ -> 20%, $20\%$ -> 20%
+  str = str.replace(/\$(\d+(?:\.\d+)?)\s*\\?%\$/g, "$1%")
+  str = str.replace(/(^|[^\\])\$(\d+(?:\.\d+)?)\s*\\?%/g, "$1$2%")
 
-  // 4. Strip markdown **bold** and *italic* (AI sometimes emits these in text fields)
+  // 4. Strip markdown **bold** and *italic*
   str = str.replace(/\*\*([^*]+?)\*\*/g, "$1")
   str = str.replace(/\*([^*]+?)\*/g, "$1")
 
@@ -1838,6 +1836,11 @@ export function sanitizeMathInput(raw: string): string {
 
   // 6. Fix triple-dollar artifacts like $$$x^2$$$ → $$x^2$$
   str = str.replace(/\${3,}([^$]+?)\${3,}/g, "$$$$$1$$$$")
+
+  // 7. Convert any remaining bare \% outside math blocks to %
+  str = str.replace(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g, (m) => m.replace(/\\/g, "\x00"))
+  str = str.replace(/\\%/g, "%")
+  str = str.replace(/\x00/g, "\\")
 
   return str
 }
@@ -1852,13 +1855,16 @@ function parseMathSegments(raw: string): MathSegmentItem[] {
   let match: RegExpExecArray | null
 
   while ((match = re.exec(sanitized)) !== null) {
-    // Check if match[3] (inline math $...$) contains multiple plain English words (swallowed text)
+    // Check if match[3] (inline math $...$) contains plain English words (swallowed sentence text)
     if (match[3] !== undefined) {
       const inlineContent = match[3]
       const stripped = inlineContent.replace(/\\(?:text|mathrm|mathbf|textit|operatorname)\{[^}]*\}/gi, "")
       const englishWords = stripped.match(/\b[a-zA-Z]{3,}\b/g) || []
-      // If 2+ English words separated by spaces, this is an unmatched currency $ swallowing sentence text!
-      if (englishWords.length >= 2 && /\s+/.test(stripped)) {
+      // If 2+ English words or 1 word of 3+ chars with spaces without math operators, this is sentence text!
+      if (
+        (englishWords.length >= 2 || (englishWords.length >= 1 && /\s+/.test(stripped))) &&
+        !/[\\_^=+\-*/<>|\{\}]/.test(stripped)
+      ) {
         continue
       }
     }
@@ -2006,7 +2012,7 @@ function MathTextInline({ text }: { text: string }) {
       {segments.map((seg, i) => {
         const key = `${seg.type}-${i}`
         return seg.type === "text" ? (
-          <span key={key}>{seg.value}</span>
+          <span key={key}>{seg.value.replace(/\\%/g, "%").replace(/\\(\$)/g, "$1")}</span>
         ) : (
           <MathSegment key={key} latex={seg.value} display={seg.display} />
         )
@@ -2087,7 +2093,7 @@ export function MathText({ children, className }: MathTextProps) {
       {segments.map((seg, i) => {
         const key = `${seg.type}-${i}`
         if (seg.type === "text") {
-          return <span key={key}>{seg.value}</span>
+          return <span key={key}>{seg.value.replace(/\\%/g, "%").replace(/\\(\$)/g, "$1")}</span>
         } else if (seg.type === "math") {
           return <MathSegment key={key} latex={seg.value} display={seg.display} />
         } else {
