@@ -1857,17 +1857,8 @@ export function InstituteTestDetailClient({
             </TabsList>
           </div>
 
-          {/* Refresh + Export — visible in action buttons row */}
+          {/* Export action button */}
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => router.refresh()}
-            >
-              <RotateCw className="h-4 w-4" />
-              Refresh
-            </Button>
             <ExportTestParticipantsModal testId={test.id} testName={test.title} totalAttempts={liveStats.total} />
           </div>
         </div>

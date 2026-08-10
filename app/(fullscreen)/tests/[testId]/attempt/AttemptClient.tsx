@@ -1518,8 +1518,8 @@ export function AttemptClient({
         //    many events fire for the same user action.
         const triggerFocusLoss = () => {
             if (autoSubmitted.current || isSubmittingRef.current) return
-            // Only mark next violation once earlier popup is marked dismissed
-            if (showFocusWarningRef.current || showFullscreenWarningRef.current) return
+            // Only mark next violation once earlier focus violation popup is marked dismissed
+            if (showFocusWarningRef.current) return
             if (focusGuardRef.current) return
             focusGuardRef.current = true
 
@@ -1556,7 +1556,7 @@ export function AttemptClient({
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === "hidden") {
-                if (showFocusWarningRef.current || showFullscreenWarningRef.current) return
+                if (showFocusWarningRef.current) return
                 awayStartRef.current = getNowOnServer().getTime()
                 if (phase === "active" && attemptInfo) {
                     beaconSentRef.current = true
@@ -2460,9 +2460,21 @@ export function AttemptClient({
 
     // ── Active ─────────────────────────────────────────────────────────────────
 
+    const isAnyModalOpen =
+        showFocusWarning ||
+        showFullscreenWarning ||
+        showMultiMonitorWarning ||
+        showDevToolsWarning ||
+        showSubmitDialog ||
+        showShortcutsModal ||
+        navSheetOpen
+
     return (
         <div
-            className="relative flex h-screen h-[100dvh] w-full overflow-hidden bg-background select-none"
+            className={cn(
+                "relative flex h-screen h-[100dvh] w-full overflow-hidden bg-background select-none transition-all duration-300",
+                isAnyModalOpen && "blur-2xl contrast-75 brightness-75 scale-[0.99] pointer-events-none select-none"
+            )}
             style={{
                 WebkitUserSelect: "none",
                 MozUserSelect: "none",
@@ -2476,6 +2488,14 @@ export function AttemptClient({
             onDragStart={(e) => e.preventDefault()}
         >
 
+            {/* Heavy Blur & Opacity Backdrop Overlay when any modal is open */}
+            {isAnyModalOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-background/80 backdrop-blur-3xl transition-all duration-300 pointer-events-none"
+                    aria-hidden="true"
+                />
+            )}
+
             {/* ── Level 1: Dynamic Anti-Cheat Screen Watermarking ───────────── */}
             <ExamWatermark name={candidateName} email={candidateEmail} candidateId={candidateId} />
 
@@ -2483,26 +2503,16 @@ export function AttemptClient({
             <AlertDialog open={showMultiMonitorWarning && !showFocusWarning}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                            <MonitorSmartphone className="h-5 w-5 shrink-0" />
-                            Multiple Displays Detected
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="space-y-3 pt-2">
-                                <p className="text-sm text-foreground">
-                                    An extended display or secondary monitor was detected. To preserve exam integrity, please disconnect external displays.
-                                </p>
-                                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
-                                    <p className="text-sm text-amber-800 dark:text-amber-300">
-                                        Disconnect your secondary display or switch to single-screen mode to continue your test.
-                                    </p>
-                                </div>
-                            </div>
+                        <AlertDialogTitle>Multiple Displays Detected</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            An extended display or secondary monitor was detected. Please disconnect external displays or switch to single-screen mode to continue your test.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={() => setShowMultiMonitorWarning(false)}>
+                        <AlertDialogAction
+                            onClick={() => setShowMultiMonitorWarning(false)}
+                            className="!bg-amber-500 !text-slate-950 hover:!bg-amber-400 font-semibold shadow-xs border-none"
+                        >
                             I Have Disconnected External Display
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -2513,58 +2523,40 @@ export function AttemptClient({
             <AlertDialog open={showDevToolsWarning && !showFocusWarning}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle className="h-5 w-5 shrink-0" />
-                            Developer Tools Detected
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="space-y-3 pt-2">
-                                <p className="text-sm text-foreground">
-                                    Browser Developer Tools or an un-docked inspection panel was detected. Inspection during an active test is monitored.
-                                </p>
-                                <div className="flex items-start gap-2.5 rounded-xl border border-destructive bg-destructive/10 p-4">
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                                    <p className="text-sm text-destructive">
-                                        Close Developer Tools immediately to resume your test session.
-                                    </p>
-                                </div>
-                            </div>
+                        <AlertDialogTitle>Developer Tools Detected</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Browser developer tools or an inspection panel was detected. Please close developer tools to continue your test session.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={() => setShowDevToolsWarning(false)}>
-                            I Understand, Close Inspection
+                        <AlertDialogAction
+                            onClick={() => setShowDevToolsWarning(false)}
+                            className="!bg-red-600 !text-white hover:!bg-red-700 font-semibold shadow-xs border-none"
+                        >
+                            Close Inspection & Resume
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
-
             {/* ── Anti-Cheat: Focus Lost Dialog (highest priority) ─────────────── */}
             <AlertDialog open={showFocusWarning}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle className="h-5 w-5 shrink-0" />
-                            Warning: Focus Lost
-                        </AlertDialogTitle>
+                        <AlertDialogTitle>Focus Lost Warning</AlertDialogTitle>
                         <AlertDialogDescription asChild>
-                            <div className="space-y-3 pt-2">
-                                <p className="text-sm text-foreground">
+                            <div className="space-y-2 pt-1 text-sm">
+                                <p>
                                     You navigated away from the test window or switched tabs.
-                                    This test is actively monitored for fair play.
                                 </p>
-                                <div className="flex items-start gap-2.5 rounded-xl border border-destructive bg-destructive/10 p-4">
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                                    <p className="text-sm text-destructive">
-                                        Violation #{focusLostCount}{test.strict_mode ? <> of {MAX_VIOLATIONS}</> : null} recorded.{" "}
-                                        {test.strict_mode
-                                            ? focusLostCount >= MAX_VIOLATIONS
-                                                ? "Your test is being submitted now."
-                                                : `${MAX_VIOLATIONS - focusLostCount} remaining before automatic submission.`
-                                            : "This incident has been logged and will be visible to your instructor."}
-                                    </p>
-                                </div>
+                                <p className="font-medium text-foreground">
+                                    Violation #{focusLostCount}{test.strict_mode ? <> of {MAX_VIOLATIONS}</> : null} recorded.{" "}
+                                    {test.strict_mode
+                                        ? focusLostCount >= MAX_VIOLATIONS
+                                            ? "Your test is being automatically submitted now."
+                                            : `${MAX_VIOLATIONS - focusLostCount} remaining before automatic submission.`
+                                        : "This incident has been logged."}
+                                </p>
                             </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -2574,8 +2566,9 @@ export function AttemptClient({
                                 focusGuardRef.current = false
                                 setShowFocusWarning(false)
                             }}
+                            className="!bg-red-600 !text-white hover:!bg-red-700 font-semibold shadow-xs border-none"
                         >
-                            I Understand, Return to Test
+                            Return to Test
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2585,27 +2578,16 @@ export function AttemptClient({
             <AlertDialog open={showFullscreenWarning && !showFocusWarning}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                            <Maximize className="h-5 w-5 shrink-0" />
-                            Fullscreen Required
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="space-y-3 pt-2">
-                                <p className="text-sm text-foreground">
-                                    You exited fullscreen. This test must be completed in fullscreen mode.
-                                </p>
-                                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
-                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500" />
-                                    <p className="text-sm text-amber-800 dark:text-amber-300">
-                                        Your progress is saved. No answers were lost.
-                                        Please return to fullscreen to continue the test.
-                                    </p>
-                                </div>
-                            </div>
+                        <AlertDialogTitle>Fullscreen Required</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You exited fullscreen mode. Your progress has been saved. Please return to fullscreen to continue the test.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={enterFullscreen}>
+                        <AlertDialogAction
+                            onClick={enterFullscreen}
+                            className="!bg-amber-500 !text-slate-950 hover:!bg-amber-400 font-semibold shadow-xs border-none"
+                        >
                             Return to Fullscreen
                         </AlertDialogAction>
                     </AlertDialogFooter>
