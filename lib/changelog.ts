@@ -15,6 +15,39 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.22",
+    date: "2026-08-11",
+    title: "Test Sections (Beta), AI Question Gen & Dashboard Redesign",
+    badge: "Feature",
+    categories: [
+      {
+        type: "added",
+        items: [
+          "Test sections (beta) — organize exam questions into named sections with per-section scoring, accuracy, and time-spent stats on result pages",
+          "Redesigned Teacher/Staff/TPO & Admin Home Dashboard with streak stats, activity calendar, and featured cards",
+          "Candidate PDF report generation from the user profile page",
+          "Expanded AI question generation limit to 60 questions at once with parallel batch processing"
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          "Section-aware exam navigation — question navigator and view stay in sync during live attempts",
+          "Test result breakdown now groups answers by section for easier review",
+          "AI question generation reliability with retry logic, deduplication, and better LaTeX/table support",
+          "Candidate profile statistics with detailed assigned-test analytics"
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          "Section panel is hidden on result pages for tests with no custom sections (no visual noise)",
+          "Sync speed improvements during active test attempts"
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.21",
     date: "2026-08-10",
     title: "Candidate Dashboard, Event Attendees & Session Fixes",
@@ -144,7 +177,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.21";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.22";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
