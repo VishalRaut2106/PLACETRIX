@@ -307,11 +307,24 @@ const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase()
-    return /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+  // Escalate to next model on all transient errors (not just rate limits)
+  return true
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, baseDelayMs = 600): Promise<T> {
+  let lastErr: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (attempt < retries) {
+        const delay = baseDelayMs * Math.pow(2, attempt)
+        await new Promise((r) => setTimeout(r, delay))
+      }
+    }
   }
-  return false
+  throw lastErr
 }
 
 function stripCodeFences(text: string): string {
@@ -320,6 +333,35 @@ function stripCodeFences(text: string): string {
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "")
     .trim()
+}
+
+function cleanAiString(input: any): string {
+  if (!input) return ""
+  let str = String(input).trim()
+
+  // Replace literal \n with actual newlines
+  str = str.replace(/\\n/g, "\n")
+
+  // Clean backslashes prepended to currency numbers like \2,000,000 or \$1,500,000
+  str = str.replace(/\\+\$(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
+  str = str.replace(/\\(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
+
+  // Convert legacy LaTeX delimiters \( ... \) -> $ ... $ and \[ ... \] -> $$ ... $$
+  str = str.replace(/\\\\/g, "_DOUBLE_BACKSLASH_") // protect \\\\ first
+  str = str.replace(/\\\[([\s\S]*?)\\\]/g, "$$$$$1$$$$")
+  str = str.replace(/\\\(([\s\S]*?)\\\)/g, "$$$1$")
+  str = str.replace(/_DOUBLE_BACKSLASH_/g, "\\\\")
+
+  // Strip markdown **bold** and *italic* that AI sometimes emits in text fields
+  str = str.replace(/\*\*([^*]+?)\*\*/g, "$1")
+  str = str.replace(/\*([^*]+?)\*/g, "$1")
+
+  // Strip \begin{enumerate} / \begin{itemize} environments -- replace \item with a dash
+  str = str.replace(/\\begin\{(?:enumerate|itemize)\}/g, "")
+  str = str.replace(/\\end\{(?:enumerate|itemize)\}/g, "")
+  str = str.replace(/\\item\s*/g, "- ")
+
+  return str
 }
 
 function sanitizeQuestions(raw: any[], marksDefault: number): QuestionForm[] {
@@ -338,7 +380,7 @@ function sanitizeQuestions(raw: any[], marksDefault: number): QuestionForm[] {
 
       let options: OptionForm[] = (q.options as any[]).map((o) => ({
         _key: crypto.randomUUID(),
-        option_text: String(o.option_text ?? "").trim(),
+        option_text: cleanAiString(o.option_text),
         is_correct: !!o.is_correct,
       }))
 
@@ -369,10 +411,10 @@ function sanitizeQuestions(raw: any[], marksDefault: number): QuestionForm[] {
       }
 
       return {
-        question_text: String(q.question_text).trim(),
+        question_text: cleanAiString(q.question_text),
         question_type: qType,
         marks: Number(q.marks ?? marksDefault),
-        explanation: String(q.explanation ?? "").trim(),
+        explanation: cleanAiString(q.explanation),
         tag_names: Array.isArray(q.tag_names)
           ? q.tag_names.map((t: any) => String(t).trim()).filter(Boolean)
           : [],
@@ -388,7 +430,7 @@ export async function generateQuestionsAction(
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return { error: "AI generation is not configured. Missing GEMINI_API_KEY in environment." }
 
-  const count = Math.min(20, Math.max(1, parseInt(input.count, 10) || 5))
+  const count = Math.min(60, Math.max(1, parseInt(input.count, 10) || 5))
   const marksDefault = DIFFICULTY_MARKS[input.difficulty]
 
   const typeInstruction =
@@ -413,11 +455,31 @@ STRICT RULES you must follow for every question:
 8. Vary cognitive levels across the batch: include recall, application, and analysis questions.
 9. Never repeat similar or near-identical questions within the same batch.
 10. Your response must be a raw JSON object — no markdown, no code fences, no extra text.
-11. LATEX & MATH FORMATTING:
-    - For ANY mathematical content, equations, standalone variables (like $x$, $y$, $\alpha$), chemical equations, scientific notations, fractions, matrices, or exponents, you MUST use standard LaTeX.
-    - Use single dollar signs ($...$) for inline math (e.g. "If $x + y = 10$, find $x$.") and double dollar signs ($$...$$) for centered block math equations.
-    - Do NOT use legacy LaTeX delimiters like \( \) or \[ \], nor plain text equations (e.g. do not write "x^2 + 5x" — instead write "$x^2 + 5x$").
-    - Backslash Escaping in JSON: Because your response is JSON, you MUST double-escape all LaTeX backslashes so they parse correctly. For example, write "\\\\frac{a}{b}" instead of "\\frac{a}{b}", "\\\\theta" instead of "\\theta", and "\\\\sqrt{x}" instead of "\\sqrt{x}". If you output a single backslash, JSON parsing will fail with an escape error.
+11. LATEX & MATH FORMATTING (STRICT RULES):
+    - For ANY mathematical content — equations, variables, exponents, fractions, square roots, chemical formulas, scientific notation, matrices, Greek letters — you MUST wrap them in LaTeX math delimiters. NEVER write math in plain text.
+    - Use $...$ for inline math and $$...$$ for block/display equations. No other delimiter styles are allowed.
+    - FORBIDDEN delimiters: NEVER use \\( ... \\) or \\[ ... \\] — these are legacy and will break rendering.
+    - CURRENCY RULE: A raw '$' in a sentence opens inline math and will swallow your text! For monetary values ALWAYS use either:
+        GOOD: "The total is $2{,}000{,}000$ rupees" (closed math)
+        GOOD: "The total is USD 2,000,000"
+        BAD:  "The total is $2,000,000 and..." ← NEVER do this — the '$' is unclosed
+    - DELIMITER MATCHING: Every '$' opens a math block. It MUST close on the same short expression.
+        GOOD: "If $x + y = 10$, find $x$."
+        BAD:  "$x + y = 10, find x$" ← do not wrap sentences in math
+    - MARKDOWN BOLD/ITALIC: NEVER output **bold** or *italic* markdown in question_text, option_text, or explanation. Use plain text or LaTeX \\textbf{} and \\textit{} if needed.
+    - JSON BACKSLASH ESCAPING (CRITICAL): Your entire response is a JSON string. Every LaTeX backslash MUST be double-escaped.
+        GOOD: "\\\\frac{1}{2}", "\\\\sqrt{x}", "\\\\theta", "\\\\alpha", "\\\\%", "\\\\times"
+        BAD:  "\\frac{1}{2}", "\\sqrt{x}", "\\theta" ← single backslash will cause JSON parse failure
+    - PERCENT SIGN: Always write percent as \\% inside math: "$20\\%$". Never write "20%" bare inside math mode.
+    - GREEK LETTERS / SYMBOLS: Always in math mode: "$\\alpha$", "$\\beta$", "$\\pi$", "$\\Omega$". Never bare.
+    - ENUMERATE / ITEMIZE: NEVER use \\begin{enumerate} or \\begin{itemize} inside question_text or option_text. Write list items as plain numbered text ("1. ..., 2. ...") or use a Markdown table.
+12. TABLES & DATA PRESENTATION:
+    - When a question involves tabular data, datasets, truth tables, data interpretation, scientific measurements, matrices, or comparison charts, you MUST format the table using standard Markdown tables OR LaTeX tabular environments.
+    - Markdown tables are strongly preferred for data interpretation and comparison questions.
+    - VERY IMPORTANT (NEWLINES): Each row of a Markdown table MUST be separated by an explicit newline character \\n in the JSON string. For example: "| Header 1 | Header 2 |\\n| --- | --- |\\n| Row 1 Col 1 | Row 1 Col 2 |\\n| Row 2 Col 1 | Row 2 Col 2 |". Never concatenate table rows on a single line!
+    - Ensure all mathematical symbols or expressions inside table cells are properly enclosed in LaTeX math delimiters (e.g. "$x^2$", "$\\\\alpha$").
+    - AMPERSAND in LaTeX tabular: The column separator '&' in \\begin{tabular} MUST be double-escaped as "\\\\&" because your output is JSON. A bare '&' will break JSON parsing.
+    - Double-escape ALL LaTeX backslashes in tabular output (e.g. write "\\\\begin{tabular}", "\\\\hline", "\\\\\\\\\\\\\\\\" for newlines inside LaTeX tables).
 
 It must follow this exact shape:
 {
@@ -445,8 +507,6 @@ It must follow this exact shape:
     ? tagData.map((t: any) => t.name).join(", ")
     : "No existing tags yet."
 
-  const nonce = crypto.randomUUID()
-  const randomSeed = Math.floor(Math.random() * 1000000)
 
   const executeSingleBatch = async (
     model: string,
@@ -467,8 +527,9 @@ ${existingTagsStr}`
       contents: batchPrompt,
       config: {
         systemInstruction: systemPrompt,
-        temperature: 0.25,
-        maxOutputTokens: 6000,
+        // Slight temperature jitter per batch for diversity across parallel requests
+        temperature: 0.25 + Math.random() * 0.15,
+        maxOutputTokens: 14000,
         responseMimeType: "application/json",
         responseSchema: {
           type: "object",
@@ -539,28 +600,51 @@ ${existingTagsStr}`
   const attemptWithModel = async (
     model: string
   ): Promise<GenerateQuestionsResult> => {
-    // If requesting > 6 questions, split into parallel sub-batches using Promise.all for >50% speedup
-    if (count > 6) {
-      const count1 = Math.ceil(count / 2)
-      const count2 = count - count1
+    const BATCH_SIZE = 15
+    const MAX_CONCURRENCY = 4
+    const STAGGER_MS = 300
 
-      const [batch1, batch2] = await Promise.all([
-        executeSingleBatch(model, count1),
-        executeSingleBatch(model, count2),
-      ])
-
-      const combined = [...batch1, ...batch2]
-      return {
-        questions: combined,
-        generatedWith: model,
-      }
+    if (count <= BATCH_SIZE) {
+      // Small request — single batch, no splitting needed, with retry
+      const questions = await withRetry(() => executeSingleBatch(model, count))
+      return { questions, generatedWith: model }
     }
 
-    const questions = await executeSingleBatch(model, count)
-    return {
-      questions,
-      generatedWith: model,
+    // Split total into chunks of at most BATCH_SIZE, then fire them in waves of MAX_CONCURRENCY
+    const chunks: number[] = []
+    let remaining = count
+    while (remaining > 0) {
+      const chunkSize = Math.min(BATCH_SIZE, remaining)
+      chunks.push(chunkSize)
+      remaining -= chunkSize
     }
+
+    // Launch chunks in waves with stagger to avoid hammering the API
+    // Each individual batch also retries up to 2× on transient failure before failing the wave
+    const allResults: QuestionForm[][] = []
+    for (let i = 0; i < chunks.length; i += MAX_CONCURRENCY) {
+      const wave = chunks.slice(i, i + MAX_CONCURRENCY)
+      const wavePromises = wave.map((chunkSize, waveIdx) =>
+        new Promise<QuestionForm[]>((resolve, reject) => {
+          setTimeout(() => {
+            withRetry(() => executeSingleBatch(model, chunkSize)).then(resolve).catch(reject)
+          }, waveIdx * STAGGER_MS)
+        })
+      )
+      const waveResults = await Promise.all(wavePromises)
+      allResults.push(...waveResults)
+    }
+
+    // Deduplicate across batches by question_text (trim + lowercase)
+    const seen = new Set<string>()
+    const combined = allResults.flat().filter((q) => {
+      const key = q.question_text.trim().toLowerCase().slice(0, 120)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    return { questions: combined, generatedWith: model }
   }
 
   let lastError: unknown

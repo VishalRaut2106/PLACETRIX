@@ -343,9 +343,13 @@ export function parseLatexInline(text: string): React.ReactNode[] {
       const j = text.indexOf("$", i + 1)
       if (j !== -1) {
         const formula = text.slice(i + 1, j)
-        pushKey(<KatexMath key={`im-${i}`} latex={formula} display={false} />)
-        i = j + 1
-        continue
+        const stripped = formula.replace(/\\(?:text|mathrm|mathbf|textit|operatorname)\{[^}]*\}/gi, "")
+        const englishWords = stripped.match(/\b[a-zA-Z]{3,}\b/g) || []
+        if (englishWords.length < 2 || !/\s+/.test(stripped)) {
+          pushKey(<KatexMath key={`im-${i}`} latex={formula} display={false} />)
+          i = j + 1
+          continue
+        }
       }
     }
 
@@ -750,6 +754,7 @@ interface Block {
   // table
   rows?: string[][]
   hasHeader?: boolean
+  alignments?: string[]
 }
 
 // ─── Document Parser ──────────────────────────────────────────────────────────
@@ -1027,6 +1032,25 @@ function parseLatexDocument(content: string): Block[] {
       if (trimmed.startsWith("\\centering") || trimmed.startsWith("\\label{")) { i++; continue }
     }
 
+    // ── Markdown table block ──
+    if (trimmed.includes("|") && (trimmed.startsWith("|") || (i + 1 < lines.length && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1].trim())))) {
+      const mdTableLines: string[] = []
+      let j = i
+      while (j < lines.length && lines[j].trim().includes("|") && !lines[j].trim().startsWith("\\")) {
+        mdTableLines.push(lines[j])
+        j++
+      }
+      if (mdTableLines.length >= 2) {
+        const parsed = parseMarkdownTable(mdTableLines.join("\n"))
+        if (parsed) {
+          const rows = parsed.headers.length > 0 ? [parsed.headers, ...parsed.rows] : parsed.rows
+          addBlock({ type: "table", rows, hasHeader: parsed.headers.length > 0, alignments: parsed.alignments })
+          i = j
+          continue
+        }
+      }
+    }
+
     // ── Loose \includegraphics ──
     const looseGfx = trimmed.match(/\\includegraphics(?:\[.*?\])?\{([^}]+)\}/)
     if (looseGfx) { addBlock({ type: "image", imageUrl: looseGfx[1] }); i++; continue }
@@ -1120,13 +1144,141 @@ function parseLatexDocument(content: string): Block[] {
 
 // ─── Table Parser ─────────────────────────────────────────────────────────────
 
+export interface TableData {
+  headers: string[]
+  rows: string[][]
+  alignments: ("left" | "center" | "right")[]
+}
+
+/**
+ * Normalizes raw table text by converting escaped \\n to real line breaks
+ * and inserting line breaks between concatenated single-line Markdown table rows (e.g. "| Col 1 | Col 2 | | --- | --- |").
+ */
+export function normalizeTableText(text: string): string {
+  if (!text) return ""
+  let str = text.replace(/\\n/g, "\n")
+  str = str.replace(/\|[ \t]*\|/g, "|\n|")
+  return str
+}
+
+/**
+ * Parses Markdown tables (e.g. | Col 1 | Col 2 |\n| --- | --- |\n| Val 1 | Val 2 |)
+ */
+export function parseMarkdownTable(text: string): TableData | null {
+  if (!text || !text.includes("|")) return null
+  const normalized = normalizeTableText(text)
+  const lines = normalized.trim().split("\n").map((l) => l.trim()).filter(Boolean)
+  if (lines.length < 2) return null
+
+  const isSepLine = (l: string) => /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(l)
+
+  let headerLineIndex = -1
+  let sepLineIndex = -1
+
+  if (isSepLine(lines[1])) {
+    headerLineIndex = 0
+    sepLineIndex = 1
+  } else if (lines.length > 2 && isSepLine(lines[2])) {
+    headerLineIndex = 1
+    sepLineIndex = 2
+  } else if (isSepLine(lines[0])) {
+    return null
+  }
+
+  const parseLineCells = (line: string): string[] => {
+    let trimmed = line.trim()
+    if (trimmed.startsWith("|")) trimmed = trimmed.slice(1)
+    if (trimmed.endsWith("|")) trimmed = trimmed.slice(0, -1)
+    return trimmed.split("|").map((c) => c.trim())
+  }
+
+  const alignments: ("left" | "center" | "right")[] = []
+  if (sepLineIndex !== -1) {
+    const sepCells = parseLineCells(lines[sepLineIndex])
+    for (const cell of sepCells) {
+      const startsColon = cell.startsWith(":")
+      const endsColon = cell.endsWith(":")
+      if (startsColon && endsColon) alignments.push("center")
+      else if (endsColon) alignments.push("right")
+      else alignments.push("left")
+    }
+  }
+
+  const headers = sepLineIndex !== -1 ? parseLineCells(lines[headerLineIndex]) : []
+  const rowLines = lines.filter((_, idx) => idx !== headerLineIndex && idx !== sepLineIndex)
+  const rows = rowLines.map(parseLineCells)
+
+  if (headers.length === 0 && rows.length === 0) return null
+  return { headers, rows, alignments }
+}
+
+/**
+ * Parses LaTeX tabular / table environments (e.g. \begin{tabular}{|c|l|} ... \end{tabular})
+ */
+export function parseLatexTabular(text: string): TableData | null {
+  if (!text) return null
+  const normalized = text.replace(/\\n/g, "\n")
+
+  const specMatch = normalized.match(/\\begin\{(?:tabular\*?|table)\}(?:\{[^}]*\})*\{([^}]+)\}/i)
+  const specStr = specMatch ? specMatch[1] : ""
+
+  const alignments: ("left" | "center" | "right")[] = []
+  for (const char of specStr) {
+    if (char === "c") alignments.push("center")
+    else if (char === "r") alignments.push("right")
+    else if (char === "l") alignments.push("left")
+  }
+
+  let body = normalized
+    .replace(/\\begin\{(?:tabular\*?|table)\}(?:\{[^}]*\})*(?:\[[^\]]*\])*/gi, "")
+    .replace(/\\end\{(?:tabular\*?|table)\}/gi, "")
+    .trim()
+
+  body = body.replace(/\\(?:hline|toprule|midrule|bottomrule|centering|caption\{[^}]*\}|label\{[^}]*\})/gi, "")
+
+  const rawRows = body.split(/\\\\|\\newline/).map((r) => r.trim()).filter(Boolean)
+
+  const allRows: string[][] = []
+  for (const r of rawRows) {
+    if (r.startsWith("\\") && !r.includes("&")) continue
+    const cells = r.split("&").map((c) => c.trim().replace(/\\+$/, "").trim())
+    if (cells.some((c) => c.length > 0)) {
+      allRows.push(cells)
+    }
+  }
+
+  if (allRows.length === 0) return null
+
+  let headers: string[] = []
+  let rows: string[][] = []
+  if (allRows.length > 1) {
+    headers = allRows[0]
+    rows = allRows.slice(1)
+  } else {
+    rows = allRows
+  }
+
+  return { headers, rows, alignments }
+}
+
 function parseTabular(lines: string[]): Block {
+  const fullText = lines.join("\n")
+  const parsed = parseLatexTabular(fullText) || parseMarkdownTable(fullText)
+  if (parsed) {
+    const rows = parsed.headers.length > 0 ? [parsed.headers, ...parsed.rows] : parsed.rows
+    return {
+      type: "table",
+      rows,
+      hasHeader: parsed.headers.length > 0,
+      alignments: parsed.alignments,
+    }
+  }
+
   const rows: string[][] = []
   for (const line of lines) {
     const t = line.trim()
     if (!t || t.startsWith("\\hline") || t.startsWith("\\toprule") || t.startsWith("\\midrule") || t.startsWith("\\bottomrule")) continue
-    if (t.startsWith("\\") && !t.includes("&")) continue // skip other LaTeX commands (not content rows)
-    // Split by & (column separator), trim \\ or \ from end
+    if (t.startsWith("\\") && !t.includes("&")) continue
     const cleaned = t.replace(/\\+$/, "").trim()
     const cells = cleaned.split("&").map(c => c.trim())
     if (cells.length > 0) rows.push(cells)
@@ -1533,17 +1685,29 @@ function renderBlock(block: Block, index: number, figureNumber?: number): React.
     case "table": {
       const rows = block.rows || []
       if (rows.length === 0) return null
+      const alignments = block.alignments || []
       const [headerRow, ...bodyRows] = rows
+
+      const getAlignClass = (idx: number) => {
+        const align = alignments[idx]
+        if (align === "center") return "text-center"
+        if (align === "right") return "text-right"
+        return "text-left"
+      }
+
       return (
-        <div key={`tbl-${index}`} className="my-6 w-full overflow-x-auto rounded-xl border border-border/50 shadow-xs">
-          <table className="w-full text-[13.5px] border-collapse">
+        <div key={`tbl-${index}`} className="my-6 w-full overflow-x-auto rounded-xl border border-border/50 bg-card/40 shadow-xs">
+          <table className="w-full text-[13.5px] border-collapse min-w-max sm:min-w-0">
             {block.hasHeader && (
               <thead>
-                <tr className="bg-muted/40 border-b border-border/60">
+                <tr className="bg-muted/60 border-b border-border/70">
                   {headerRow.map((cell, ci) => (
                     <th
                       key={ci}
-                      className="px-4 py-3 text-left font-semibold text-foreground/90 whitespace-nowrap"
+                      className={cn(
+                        "px-4 py-3 font-semibold text-foreground/90 select-none",
+                        getAlignClass(ci)
+                      )}
                     >
                       {parseLatexInline(cell)}
                     </th>
@@ -1551,17 +1715,14 @@ function renderBlock(block: Block, index: number, figureNumber?: number): React.
                 </tr>
               </thead>
             )}
-            <tbody>
+            <tbody className="divide-y divide-border/30">
               {(block.hasHeader ? bodyRows : rows).map((row, ri) => (
                 <tr
                   key={ri}
-                  className={cn(
-                    "border-b border-border/30 last:border-0",
-                    ri % 2 === 0 ? "bg-transparent" : "bg-muted/20"
-                  )}
+                  className="hover:bg-muted/30 transition-colors odd:bg-transparent even:bg-muted/15"
                 >
                   {row.map((cell, ci) => (
-                    <td key={ci} className="px-4 py-2.5 text-foreground/75">
+                    <td key={ci} className={cn("px-4 py-2.5 text-foreground/80 leading-relaxed align-middle", getAlignClass(ci))}>
                       {parseLatexInline(cell)}
                     </td>
                   ))}
@@ -1638,15 +1799,72 @@ type MathSegmentItem =
   | { type: "text"; value: string }
   | { type: "math"; value: string; display: boolean }
 
+export type ContentSegmentItem =
+  | { type: "text"; value: string }
+  | { type: "math"; value: string; display: boolean }
+  | { type: "table"; data: TableData }
+
+/**
+ * Sanitizes a raw string to clean up common AI LaTeX output errors before rendering.
+ * Applied both server-side (cleanAiString in actions.ts) and client-side here for
+ * historical questions and imported content that bypassed server sanitization.
+ */
+export function sanitizeMathInput(raw: string): string {
+  if (!raw) return ""
+  let str = raw
+
+  // 1. Convert literal \n escape sequences to real newlines
+  str = str.replace(/\\n/g, "\n")
+
+  // 2. Currency backslash artifacts: \2,000,000 or \$1,500,000 → $2,000,000
+  str = str.replace(/\\+\$(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
+  str = str.replace(/\\(\d{1,3}(?:,\d{3})*|\d+)/g, "$$$1")
+
+  // 3. Convert legacy LaTeX delimiters to standard dollar signs
+  //    Protect \\ (double backslash) first so we don't accidentally convert it
+  str = str.replace(/\\\\/g, "\x00DBLBS\x00")
+  str = str.replace(/\\\[([^]*?)\\\]/g, "$$$$$1$$$$")  // \[ ... \] → $$ ... $$
+  str = str.replace(/\\\(([^]*?)\\\)/g, "$$$1$")        // \( ... \) → $ ... $
+  str = str.replace(/\x00DBLBS\x00/g, "\\\\")
+
+  // 4. Strip markdown **bold** and *italic* (AI sometimes emits these in text fields)
+  str = str.replace(/\*\*([^*]+?)\*\*/g, "$1")
+  str = str.replace(/\*([^*]+?)\*/g, "$1")
+
+  // 5. Strip \begin{enumerate}/\begin{itemize} and convert \item to dashes
+  str = str.replace(/\\begin\{(?:enumerate|itemize)\}/g, "")
+  str = str.replace(/\\end\{(?:enumerate|itemize)\}/g, "")
+  str = str.replace(/\\item\s*/g, "- ")
+
+  // 6. Fix triple-dollar artifacts like $$$x^2$$$ → $$x^2$$
+  str = str.replace(/\${3,}([^$]+?)\${3,}/g, "$$$$$1$$$$")
+
+  return str
+}
+
 function parseMathSegments(raw: string): MathSegmentItem[] {
+  if (!raw) return []
+  const sanitized = sanitizeMathInput(raw)
+
   const segments: MathSegmentItem[] = []
   const re = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$]+?)\$|\\\(([\s\S]+?)\\\)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
 
-  while ((match = re.exec(raw)) !== null) {
+  while ((match = re.exec(sanitized)) !== null) {
+    // Check if match[3] (inline math $...$) contains multiple plain English words (swallowed text)
+    if (match[3] !== undefined) {
+      const inlineContent = match[3]
+      const stripped = inlineContent.replace(/\\(?:text|mathrm|mathbf|textit|operatorname)\{[^}]*\}/gi, "")
+      const englishWords = stripped.match(/\b[a-zA-Z]{3,}\b/g) || []
+      // If 2+ English words separated by spaces, this is an unmatched currency $ swallowing sentence text!
+      if (englishWords.length >= 2 && /\s+/.test(stripped)) {
+        continue
+      }
+    }
+
     if (match.index > lastIndex) {
-      segments.push({ type: "text", value: raw.slice(lastIndex, match.index) })
+      segments.push({ type: "text", value: sanitized.slice(lastIndex, match.index) })
     }
 
     if (match[1] !== undefined) {
@@ -1662,11 +1880,93 @@ function parseMathSegments(raw: string): MathSegmentItem[] {
     lastIndex = re.lastIndex
   }
 
-  if (lastIndex < raw.length) {
-    segments.push({ type: "text", value: raw.slice(lastIndex) })
+  if (lastIndex < sanitized.length) {
+    segments.push({ type: "text", value: sanitized.slice(lastIndex) })
   }
 
   return segments
+}
+
+function parseContentSegments(raw: string): ContentSegmentItem[] {
+  if (!raw) return []
+
+  const normalizedRaw = normalizeTableText(raw)
+  const tableMatches: { start: number; end: number; data: TableData }[] = []
+
+  // 1. LaTeX tabular / table environments
+  const latexTableRegex = /\\begin\{(?:tabular\*?|table)\}[\s\S]*?\\end\{(?:tabular\*?|table)\}/gi
+  let match: RegExpExecArray | null
+  while ((match = latexTableRegex.exec(normalizedRaw)) !== null) {
+    const data = parseLatexTabular(match[0])
+    if (data) {
+      tableMatches.push({ start: match.index, end: latexTableRegex.lastIndex, data })
+    }
+  }
+
+  // 2. Markdown tables
+  const lines = normalizedRaw.split("\n")
+  let lineOffset = 0
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    const lineLen = line.length + 1
+    const isTableLine = line.includes("|")
+    const nextIsSep = i + 1 < lines.length && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1].trim())
+
+    if (isTableLine && (line.trim().startsWith("|") || nextIsSep)) {
+      const tableLines: string[] = []
+      const startIdx = lineOffset
+      let j = i
+      while (j < lines.length && lines[j].includes("|") && !lines[j].trim().startsWith("\\")) {
+        tableLines.push(lines[j])
+        j++
+      }
+      if (tableLines.length >= 2) {
+        const fullMdStr = tableLines.join("\n")
+        const data = parseMarkdownTable(fullMdStr)
+        if (data) {
+          let endIdx = startIdx
+          for (let k = i; k < j; k++) {
+            endIdx += lines[k].length + (k < lines.length - 1 ? 1 : 0)
+          }
+          const overlaps = tableMatches.some((m) => Math.max(m.start, startIdx) < Math.min(m.end, endIdx))
+          if (!overlaps) {
+            tableMatches.push({ start: startIdx, end: endIdx, data })
+          }
+          i = j
+          lineOffset = endIdx
+          continue
+        }
+      }
+    }
+    lineOffset += lineLen
+    i++
+  }
+
+  if (tableMatches.length === 0) {
+    return parseMathSegments(normalizedRaw)
+  }
+
+  tableMatches.sort((a, b) => a.start - b.start)
+
+  const result: ContentSegmentItem[] = []
+  let lastIndex = 0
+
+  for (const tm of tableMatches) {
+    if (tm.start > lastIndex) {
+      const textBefore = normalizedRaw.slice(lastIndex, tm.start)
+      result.push(...parseMathSegments(textBefore))
+    }
+    result.push({ type: "table", data: tm.data })
+    lastIndex = tm.end
+  }
+
+  if (lastIndex < normalizedRaw.length) {
+    const textAfter = normalizedRaw.slice(lastIndex)
+    result.push(...parseMathSegments(textAfter))
+  }
+
+  return result
 }
 
 function MathSegment({ latex, display }: { latex: string; display: boolean }) {
@@ -1699,22 +1999,10 @@ function MathSegment({ latex, display }: { latex: string; display: boolean }) {
   )
 }
 
-export interface MathTextProps {
-  /** The raw string, possibly containing $...$ or $$...$$ delimiters. */
-  children: string
-  /** Extra class names applied to the wrapping element. */
-  className?: string
-}
-
-/**
- * Drop-in replacement for a plain <p> / <span> wherever question or option
- * text may contain LaTeX math.
- */
-export function MathText({ children, className }: MathTextProps) {
-  const segments = useMemo(() => parseMathSegments(children), [children])
-
+function MathTextInline({ text }: { text: string }) {
+  const segments = useMemo(() => parseMathSegments(text), [text])
   return (
-    <span className={className}>
+    <span>
       {segments.map((seg, i) => {
         const key = `${seg.type}-${i}`
         return seg.type === "text" ? (
@@ -1722,6 +2010,89 @@ export function MathText({ children, className }: MathTextProps) {
         ) : (
           <MathSegment key={key} latex={seg.value} display={seg.display} />
         )
+      })}
+    </span>
+  )
+}
+
+function MathTable({ data }: { data: TableData }) {
+  const getAlignClass = (idx: number) => {
+    const align = data.alignments[idx] || "left"
+    if (align === "center") return "text-center"
+    if (align === "right") return "text-right"
+    return "text-left"
+  }
+
+  return (
+    <div className="my-4 w-full overflow-x-auto rounded-xl border border-border/50 bg-card/40 shadow-xs">
+      <table className="w-full text-[13.5px] border-collapse min-w-max sm:min-w-0">
+        {data.headers && data.headers.length > 0 && (
+          <thead>
+            <tr className="bg-muted/60 border-b border-border/70">
+              {data.headers.map((h, ci) => (
+                <th
+                  key={ci}
+                  className={cn(
+                    "px-4 py-2.5 font-semibold text-foreground/90 select-none",
+                    getAlignClass(ci)
+                  )}
+                >
+                  <MathTextInline text={h} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody className="divide-y divide-border/30">
+          {data.rows.map((row, ri) => (
+            <tr
+              key={ri}
+              className="hover:bg-muted/30 transition-colors odd:bg-transparent even:bg-muted/15"
+            >
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={cn(
+                    "px-4 py-2.5 text-foreground/80 leading-relaxed align-middle",
+                    getAlignClass(ci)
+                  )}
+                >
+                  <MathTextInline text={cell} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export interface MathTextProps {
+  /** The raw string, possibly containing $...$ or $$...$$ delimiters or Markdown/LaTeX tables. */
+  children: string
+  /** Extra class names applied to the wrapping element. */
+  className?: string
+}
+
+/**
+ * Drop-in replacement for a plain <p> / <span> wherever question or option
+ * text may contain LaTeX math or Markdown / LaTeX tables.
+ */
+export function MathText({ children, className }: MathTextProps) {
+  const segments = useMemo(() => parseContentSegments(children), [children])
+
+  return (
+    <span className={className}>
+      {segments.map((seg, i) => {
+        const key = `${seg.type}-${i}`
+        if (seg.type === "text") {
+          return <span key={key}>{seg.value}</span>
+        } else if (seg.type === "math") {
+          return <MathSegment key={key} latex={seg.value} display={seg.display} />
+        } else {
+          return <MathTable key={key} data={seg.data} />
+        }
       })}
     </span>
   )

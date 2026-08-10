@@ -984,8 +984,8 @@ function AiGenerateSheet({
   const [isPending, startTransition] = useTransition()
 
   const countFieldError =
-    form.count !== "" && (Number(form.count) < 1 || Number(form.count) > 20)
-      ? "Enter a number between 1 and 20."
+    form.count !== "" && (Number(form.count) < 1 || Number(form.count) > 60)
+      ? "Enter a number between 1 and 60."
       : null
 
   const setField = <K extends keyof AiGenerateForm>(k: K, v: AiGenerateForm[K]) =>
@@ -1004,8 +1004,8 @@ function AiGenerateSheet({
       return
     }
 
-    if (isNaN(count) || count < 1 || count > 20) {
-      setError("Count must be between 1 and 20.")
+    if (isNaN(count) || count < 1 || count > 60) {
+      setError("Count must be between 1 and 60.")
       return
     }
 
@@ -1141,7 +1141,7 @@ function AiGenerateSheet({
               <Input
                 type="number"
                 min={1}
-                max={20}
+                max={60}
                 value={form.count}
                 onChange={(e) => setField("count", e.target.value)}
                 onBlur={() => {
