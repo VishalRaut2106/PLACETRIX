@@ -2,7 +2,7 @@ import { createClient as createServerClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { redirect } from "next/navigation"
 import { LogicLabDashboardClient } from "./_components/LogicLabDashboardClient"
-import { getCachedPotd } from "./actions"
+import { getCachedPotd, fetchProblemsInfinite } from "./actions"
 
 export const metadata = {
   title: "LogicLab",
@@ -36,20 +36,20 @@ export default async function LogicLabPage() {
   const isAdmin = profile.account_type === "admin"
   if (isAdmin) redirect("/logiclab/admin")
 
-  // 1. Fetch live user data (Lightning fast, paginated via Postgres RPC)
+  // 1. Fetch live problems list (using robust RPC + direct fallback)
   const supabase = (await createServerClient()) as any
-  const { data: initialProblemsData } = await supabase.rpc('get_paginated_problems', {
-    p_user_id: profile.id,
-    p_limit: 20,
-    p_offset: 0,
-    p_search: "",
-    p_tab: "all",
-    p_difficulty: "All",
-    p_tag: "All",
-    p_sort_by: "number-asc"
+  const { problems: initialProblems, hasMore: initialHasMore, totalCount: initialTotalCount } = await fetchProblemsInfinite({
+    userId: profile.id,
+    limit: 20,
+    offset: 0,
+    search: "",
+    tab: "all",
+    difficulty: "All",
+    tag: "All",
+    sortBy: "number-asc"
   })
 
-  const enrichedProblems = initialProblemsData || []
+  const enrichedProblems = initialProblems || []
   // Use UTC calendar dates (matching DB TIMESTAMPTZ & POTD date column)
   const today = new Date()
   const todayStr = today.toISOString().split("T")[0]
@@ -188,9 +188,9 @@ export default async function LogicLabPage() {
     hard: { total: 0, solved: 0 }
   }
 
-  const initialProblems = enrichedProblems
-  const initialTotalCount = enrichedProblems.length > 0 ? Number(enrichedProblems[0].total_count) : 0
-  const initialHasMore = initialTotalCount > 20
+  const initialProblemsList = enrichedProblems
+  const totalCountForInit = initialTotalCount || (enrichedProblems.length > 0 ? Number(enrichedProblems[0].total_count) : 0)
+  const hasMoreForInit = initialHasMore ?? (totalCountForInit > 20)
 
   // Fetch initial POTD directly from aggressively cached function
   let initialPotd = await getCachedPotd(todayStr);
@@ -245,8 +245,8 @@ export default async function LogicLabPage() {
 
   return (
     <LogicLabDashboardClient
-      initialProblems={initialProblems}
-      initialHasMore={initialHasMore}
+      initialProblems={initialProblemsList}
+      initialHasMore={hasMoreForInit}
       isAdmin={isAdmin}
       streakStats={streakStats}
       activityCalendar={activityCalendar}

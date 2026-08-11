@@ -31,12 +31,11 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  const { data, count, error } = await supabase
+  let { data, count, error } = await supabase
     .from("profiles")
     .select("id, first_name, last_name, username, avatar_path, logiclab_points, logiclab_solved_count, current_streak", { count: "exact" })
     .eq("institute_id", instituteId)
-  
-    .gt("logiclab_points", 0) // Only users with a score
+    .gt("logiclab_points", 0)
     .order("logiclab_points", { ascending: false })
     .order("logiclab_solved_count", { ascending: false })
     .range(from, to)
@@ -44,6 +43,23 @@ export async function getLeaderboardAction(instituteId: string, page: number = 1
   if (error) {
     console.error("Error fetching leaderboard:", error)
     return { data: [], totalCount: 0 }
+  }
+
+  // If no students have > 0 points yet, fallback to fetching all candidates in the institute
+  if (!data || data.length === 0) {
+    const { data: fallbackData, count: fallbackCount, error: fallErr } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, username, avatar_path, logiclab_points, logiclab_solved_count, current_streak", { count: "exact" })
+      .eq("institute_id", instituteId)
+      .eq("account_type", "institute_candidate")
+      .order("logiclab_points", { ascending: false })
+      .order("created_at", { ascending: true })
+      .range(from, to)
+
+    if (!fallErr && fallbackData) {
+      data = fallbackData
+      count = fallbackCount
+    }
   }
 
   // 1. Calculate basic rank and parse avatars

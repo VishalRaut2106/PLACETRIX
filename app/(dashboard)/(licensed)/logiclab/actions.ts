@@ -269,15 +269,114 @@ export async function fetchProblemsInfinite({
     p_sort_by: sortBy
   })
 
-  if (error || !data) {
-    console.error("[fetchProblemsInfinite] RPC Error:", error)
+  if (!error && data) {
+    const totalCount = data.length > 0 ? Number(data[0].total_count) : 0
+    const hasMore = offset + limit < totalCount
+    return { problems: data, hasMore, totalCount }
+  }
+
+  // Fallback if get_paginated_problems RPC fails or missing DB views
+  console.warn("[fetchProblemsInfinite] RPC failed or missing, using fallback query:", error?.message)
+
+  let query = supabase
+    .from("logiclab_problems")
+    .select("id, number, title, difficulty, tags, created_at", { count: "exact" })
+
+  if (search) {
+    query = query.ilike("title", `%${search}%`)
+  }
+  if (difficulty && difficulty !== "All") {
+    query = query.eq("difficulty", difficulty)
+  }
+  if (tag && tag !== "All") {
+    query = query.contains("tags", [tag])
+  }
+
+  query = query.order("number", { ascending: sortBy !== "number-desc" }).range(offset, offset + limit - 1)
+
+  const { data: rawProblems, count, error: fallErr } = await query
+
+  if (fallErr || !rawProblems) {
+    console.error("[fetchProblemsInfinite] Fallback error:", fallErr)
     return { problems: [], hasMore: false, totalCount: 0 }
   }
 
-  const totalCount = data.length > 0 ? Number(data[0].total_count) : 0
+  // Fetch user solved status and problem submission stats across all submission tables
+  let solvedSet = new Set<string>()
+  const statsMap: Record<string, { total: number; accepted: number }> = {}
+
+  if (rawProblems.length > 0) {
+    const pIds = rawProblems.map((p: any) => p.id)
+    pIds.forEach((id: string) => {
+      statsMap[id] = { total: 0, accepted: 0 }
+    })
+
+    const [uSolved, pSubUser, dSubUser, allPSubs, allDSubs] = await Promise.all([
+      userId
+        ? supabase
+            .from("logiclab_user_solved_problems")
+            .select("problem_id")
+            .eq("user_id", userId)
+            .in("problem_id", pIds)
+        : Promise.resolve({ data: [] }),
+      userId
+        ? supabase
+            .from("logiclab_problem_submissions")
+            .select("problem_id")
+            .eq("user_id", userId)
+            .eq("status", "Accepted")
+            .in("problem_id", pIds)
+        : Promise.resolve({ data: [] }),
+      userId
+        ? supabase
+            .from("logiclab_daily_challenge_submissions")
+            .select("problem_id")
+            .eq("user_id", userId)
+            .eq("status", "Accepted")
+            .in("problem_id", pIds)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("logiclab_problem_submissions")
+        .select("problem_id, status")
+        .in("problem_id", pIds),
+      supabase
+        .from("logiclab_daily_challenge_submissions")
+        .select("problem_id, status")
+        .in("problem_id", pIds)
+    ])
+
+    if (uSolved.data) uSolved.data.forEach((s: any) => solvedSet.add(s.problem_id))
+    if (pSubUser.data) pSubUser.data.forEach((s: any) => solvedSet.add(s.problem_id))
+    if (dSubUser.data) dSubUser.data.forEach((s: any) => solvedSet.add(s.problem_id))
+
+    const addStat = (s: any) => {
+      if (statsMap[s.problem_id]) {
+        statsMap[s.problem_id].total += 1
+        if (s.status === "Accepted") {
+          statsMap[s.problem_id].accepted += 1
+        }
+      }
+    }
+    if (allPSubs.data) allPSubs.data.forEach(addStat)
+    if (allDSubs.data) allDSubs.data.forEach(addStat)
+  }
+
+  const enriched = rawProblems.map((p: any) => {
+    const st = statsMap[p.id] || { total: 0, accepted: 0 }
+    const acceptanceRate = st.total > 0 ? Math.round((st.accepted / st.total) * 100) : null
+    return {
+      ...p,
+      solved_status: solvedSet.has(p.id) ? "Accepted" : null,
+      acceptance_rate: acceptanceRate,
+      total_submissions: st.total,
+      total_count: count || rawProblems.length
+    }
+  })
+
+  const totalCount = count || enriched.length
   const hasMore = offset + limit < totalCount
 
-  return { problems: data, hasMore, totalCount }
+  return { problems: enriched, hasMore, totalCount }
 }
 
 // Cache execution-critical static data to eliminate DB reads on /run and /submit.

@@ -20,35 +20,51 @@ export async function awardGamificationRewards(
   
   try {
     // 1. Check if this is the first time the user is solving this problem
-    const table = isDailyChallenge ? 'logiclab_daily_challenge_submissions' : 'logiclab_problem_submissions'
-    const { count, error: countErr } = await supabase
-      .from(table)
+    const { count: dailyCount, error: dailyErr } = await supabase
+      .from('logiclab_daily_challenge_submissions')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('problem_id', problemId)
       .eq('status', 'Accepted')
 
-    if (countErr) {
-      console.error("[Gamification] Error checking previous submissions:", countErr)
+    const { count: regularCount, error: regularErr } = await supabase
+      .from('logiclab_problem_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('problem_id', problemId)
+      .eq('status', 'Accepted')
+
+    if (dailyErr || regularErr) {
+      console.error("[Gamification] Error checking previous submissions:", dailyErr || regularErr)
       return unlockedBadges
     }
 
-    // If count > 1, they've already solved this before, so no new points/badges for solving it again.
-    // (Note: because the route just inserted one, if count === 1, it means THIS is the first solve)
-    if (count !== null && count > 1) {
+    const totalAccepted = (dailyCount || 0) + (regularCount || 0);
+    
+    // If the submission route just inserted the Accepted record, totalAccepted will be exactly 1 for a first-time solve.
+    const isFirstTimeEver = totalAccepted === 1;
+    // If it's a daily challenge, and this is the first time they solved it as a daily challenge.
+    const isFirstTimePOTD = isDailyChallenge && (dailyCount === 1);
+
+    // If they already got rewards for both regular and POTD for this problem, don't give duplicate points/streaks.
+    if (!isFirstTimeEver && !isFirstTimePOTD) {
       return unlockedBadges
     }
 
     // 2. Calculate Points
     let pointsToAdd = 0
-    const diff = difficulty.toLowerCase()
-    
-    if (diff === 'easy') pointsToAdd = 10
-    else if (diff === 'medium') pointsToAdd = 20
-    else if (diff === 'hard') pointsToAdd = 30
-    else pointsToAdd = 10 // default
+    let incrementSolvedCount = false
 
-    if (isDailyChallenge) {
+    if (isFirstTimeEver) {
+      incrementSolvedCount = true
+      const diff = difficulty.toLowerCase()
+      if (diff === 'easy') pointsToAdd = 10
+      else if (diff === 'medium') pointsToAdd = 20
+      else if (diff === 'hard') pointsToAdd = 30
+      else pointsToAdd = 10 // default
+    }
+
+    if (isFirstTimePOTD) {
       pointsToAdd += 10 // POTD bonus
     }
 
@@ -73,15 +89,17 @@ export async function awardGamificationRewards(
     let newCurrentStreak = profile.current_streak || 0;
     let newLongestStreak = profile.longest_streak || 0;
     
-    if (profile.last_solve_date === yesterday) {
-      newCurrentStreak += 1;
-    } else if (profile.last_solve_date !== today) {
-      newCurrentStreak = 1; // Reset streak
+    if (isFirstTimeEver) {
+      if (profile.last_solve_date === yesterday) {
+        newCurrentStreak += 1;
+      } else if (profile.last_solve_date !== today) {
+        newCurrentStreak = 1; // Reset streak
+      }
+      if (newCurrentStreak > newLongestStreak) newLongestStreak = newCurrentStreak;
     }
-    if (newCurrentStreak > newLongestStreak) newLongestStreak = newCurrentStreak;
 
     let newPotdStreak = profile.potd_streak || 0;
-    if (isDailyChallenge) {
+    if (isFirstTimePOTD) {
       if (profile.last_potd_date === yesterday) {
         newPotdStreak += 1;
       } else if (profile.last_potd_date !== today) {
@@ -89,20 +107,31 @@ export async function awardGamificationRewards(
       }
     }
     
-    // We assume if they hit this function, they got "Accepted". 
-    // To properly track flawless streak, we would need to know if they had previous "Wrong Answer" submissions for this problem today, 
-    // but for simplicity, we increment it by 1 for each newly solved problem.
-    const newFlawlessStreak = (profile.flawless_streak || 0) + 1;
-    
+    const newFlawlessStreak = isFirstTimeEver ? (profile.flawless_streak || 0) + 1 : (profile.flawless_streak || 0);
+    const newSolvedCount = incrementSolvedCount ? (profile.logiclab_solved_count || 0) + 1 : (profile.logiclab_solved_count || 0);
+
+    // Record this solve in logiclab_user_solved_problems only if it's their first time ever
+    if (isFirstTimeEver) {
+      try {
+        const adminSupabase = getAdminSupabase();
+        await adminSupabase
+          .from('logiclab_user_solved_problems')
+          .upsert({ user_id: userId, problem_id: problemId, solved_at: new Date().toISOString() }, { onConflict: 'user_id,problem_id' });
+      } catch (e) {
+        console.error("[Gamification] Error recording in logiclab_user_solved_problems:", e);
+      }
+    }
+
     await supabase
       .from('profiles')
       .update({ 
         logiclab_points: newPoints,
+        logiclab_solved_count: newSolvedCount,
         current_streak: newCurrentStreak,
         longest_streak: newLongestStreak,
-        last_solve_date: today,
+        last_solve_date: isFirstTimeEver ? today : profile.last_solve_date,
         potd_streak: newPotdStreak,
-        last_potd_date: isDailyChallenge ? today : profile.last_potd_date,
+        last_potd_date: isFirstTimePOTD ? today : profile.last_potd_date,
         flawless_streak: newFlawlessStreak
       })
       .eq('id', userId)
