@@ -24,6 +24,7 @@ const AUTHORIZED_ACCOUNT_TYPES = [
   "institute_primary",
   "institute_staff",
   "institute_placement_officer",
+  "institute_candidate",
 ];
 
 export default async function UserReportPage({ params }: PageProps) {
