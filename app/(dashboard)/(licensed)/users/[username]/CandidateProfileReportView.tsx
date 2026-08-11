@@ -379,6 +379,120 @@ export function CandidateProfileReportView({
                         CGPA {cgpa}
                       </Badge>
                     )}
+                    {logicLabData?.badges && logicLabData.badges.length > 0 && (
+                      <div className="flex items-center gap-1.5 ml-1 pl-3 border-l border-border/60">
+                        {logicLabData!.badges.slice(0, 3).map((badge: any, idx: number) => {
+                          const isUrl = badge.icon_name && (badge.icon_name.startsWith('http') || badge.icon_name.startsWith('/'));
+                          return (
+                            <TooltipProvider key={idx}>
+                              <Tooltip delayDuration={200}>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center justify-center size-[30px] rounded-full bg-muted border border-border/50 hover:bg-muted-foreground/10 transition-colors cursor-pointer group shadow-sm overflow-hidden">
+                                    {isUrl ? (
+                                      <img src={badge.icon_name} alt={badge.name} className="size-[22px] object-contain drop-shadow-sm group-hover:scale-110 transition-transform" />
+                                    ) : (
+                                      <Award className="size-4 text-primary drop-shadow-sm group-hover:scale-110 transition-transform" />
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="flex flex-col gap-0.5 max-w-[200px] text-center p-2">
+                                  <p className="font-semibold text-xs">{badge.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">{badge.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="flex items-center justify-center size-[30px] rounded-full bg-muted border border-border/50 hover:bg-muted-foreground/10 transition-colors cursor-pointer shadow-sm text-[10px] font-semibold text-muted-foreground ml-0.5">
+                              {logicLabData!.badges.length > 3 ? `+${logicLabData!.badges.length - 3}` : '...'}
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md w-full sm:max-w-lg">
+                            <DialogHeader>
+                              <DialogTitle>Earned Badges</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-4 pt-4">
+                              {(() => {
+                                  const allBadges = logicLabData!.allBadges || [];
+                                  const earnedBadgeIds = new Map(logicLabData!.badges?.map((b: any) => [b.id, b]) || []);
+
+                                  if (allBadges.length === 0) {
+                                    return <div className="text-sm text-muted-foreground italic w-full col-span-full text-center py-8">No badges available yet.</div>;
+                                  }
+
+                                  const sortedAllBadges = [...allBadges].sort((a: any, b: any) => {
+                                    const aEarned = earnedBadgeIds.has(a.id);
+                                    const bEarned = earnedBadgeIds.has(b.id);
+                                    if (aEarned && !bEarned) return -1;
+                                    if (!aEarned && bEarned) return 1;
+                                    if (aEarned && bEarned) {
+                                      const aDate = new Date(earnedBadgeIds.get(a.id).earned_at).getTime();
+                                      const bDate = new Date(earnedBadgeIds.get(b.id).earned_at).getTime();
+                                      return bDate - aDate;
+                                    }
+                                    return 0;
+                                  });
+
+                                  return sortedAllBadges.map((badge: any, idx: number) => {
+                                    const earnedData = earnedBadgeIds.get(badge.id);
+                                    const isEarned = !!earnedData;
+                                    const isUrl = badge.icon_name && (badge.icon_name.startsWith('http') || badge.icon_name.startsWith('/'));
+
+                                    return (
+                                      <TooltipProvider key={idx}>
+                                        <Tooltip delayDuration={200}>
+                                          <TooltipTrigger asChild>
+                                            <div className={cn("flex flex-col items-center gap-2 cursor-pointer group", !isEarned && "opacity-70 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300")}>
+                                              <div className={cn(
+                                                "flex items-center justify-center size-14 rounded-2xl border transition-colors shadow-sm overflow-hidden",
+                                                isEarned ? "bg-muted/50 hover:bg-muted" : "bg-muted/30 border-dashed"
+                                              )}>
+                                                {isUrl ? (
+                                                  <img 
+                                                    src={badge.icon_name} 
+                                                    alt={badge.name} 
+                                                    className={cn(
+                                                      "size-10 object-contain transition-transform duration-300",
+                                                      isEarned ? "drop-shadow-sm group-hover:scale-110" : "group-hover:scale-105"
+                                                    )} 
+                                                  />
+                                                ) : (
+                                                  <Award className={cn(
+                                                    "size-6 transition-transform duration-300",
+                                                    isEarned ? "text-primary drop-shadow-sm group-hover:scale-110" : "text-muted-foreground group-hover:scale-105"
+                                                  )} />
+                                                )}
+                                              </div>
+                                              <p className={cn("text-[10px] font-medium text-center leading-tight line-clamp-2 px-1", !isEarned && "text-muted-foreground")}>
+                                                {badge.name}
+                                              </p>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="flex flex-col gap-1 max-w-[220px] text-center p-3 bg-popover text-popover-foreground">
+                                            <p className="font-semibold text-sm">{badge.name}</p>
+                                            <p className="text-xs text-muted-foreground">{badge.description}</p>
+                                            {isEarned ? (
+                                              <p className="text-[10px] text-muted-foreground/50 mt-1.5 pt-1.5 border-t">
+                                                Earned: {new Date(earnedData.earned_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              </p>
+                                            ) : (
+                                              <p className="text-[10px] text-muted-foreground/50 mt-1.5 pt-1.5 border-t italic">
+                                                Not earned yet
+                                              </p>
+                                            )}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
                   </div>
                   <div className="text-xs text-muted-foreground flex flex-wrap items-center justify-center sm:justify-start gap-4 pt-1">
                     <span>Email: {publicData.email}</span>
