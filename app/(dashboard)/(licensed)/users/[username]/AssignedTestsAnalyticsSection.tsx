@@ -306,7 +306,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Completion</span>
-              <BookOpen className="size-4 text-blue-500 shrink-0 print:hidden" />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums leading-none">
@@ -323,7 +322,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Avg Score</span>
-              <TrendingUp className="size-4 text-emerald-500 shrink-0 print:hidden" />
             </div>
             <div>
               <p className={cn(
@@ -344,7 +342,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Pass Rate</span>
-              <Award className="size-4 text-amber-500 shrink-0 print:hidden" />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums leading-none">
@@ -360,7 +357,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Time Spent</span>
-              <Clock className="size-4 text-indigo-500 shrink-0 print:hidden" />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums leading-none">
@@ -376,7 +372,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Accuracy</span>
-              <Target className="size-4 text-cyan-500 shrink-0 print:hidden" />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums leading-none">
@@ -392,7 +387,6 @@ export function AssignedTestsAnalyticsSection({ data }: Props) {
           <div className="rounded-xl border border-border/50 bg-card p-3.5 flex flex-col gap-1.5 shadow-2xs print:border-border/80">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Proctoring</span>
-              <ShieldAlert className={cn("size-4 shrink-0 print:hidden", totalTabSwitches > 0 ? "text-rose-500" : "text-emerald-500")} />
             </div>
             <div>
               <p className={cn(

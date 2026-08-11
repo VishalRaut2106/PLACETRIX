@@ -210,9 +210,41 @@ function LogicLabAnalyticsSection({ data }: { data: LogicLabData }) {
           </div>
         </div>
 
-        {/* ── LogicLab Stats Cards (Rings & Heatmap) ── */}
+        {/* ── LogicLab Stats Cards (Rings & Heatmap) & Recent Solved ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 print:grid-cols-1">
           <LogicLabStatsCards globalStats={globalStats} activityCalendar={activityCalendar} streakStats={streakStats} />
+
+          {/* ── Recent Solved Problems ── */}
+          {data.recentSolved && data.recentSolved.length > 0 && (
+            <Card className={cn('min-w-0', 'flex', 'flex-col', 'relative', 'transition-all', 'hover:border-border/80', 'py-0')}>
+              <CardHeader className={cn('flex', 'flex-row', 'items-center', 'justify-between', 'pt-4', 'pb-1')}>
+                <CardTitle className={cn('text-xs', 'font-semibold', 'text-muted-foreground', 'uppercase', 'tracking-wider')}>
+                  Recently Solved
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className={cn('flex', 'flex-col', 'flex-1', 'gap-2', 'pb-4')}>
+                {data.recentSolved.slice(0, 5).map((problem, i) => (
+                  <div key={`${problem.id}-${i}`} className="flex items-center justify-between py-1.5 border-b border-border/40 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "text-[10px] px-2 py-0.5 rounded font-medium",
+                        problem.difficulty === "Easy" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
+                        problem.difficulty === "Medium" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
+                        "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      )}>
+                        {problem.difficulty}
+                      </span>
+                      <span className="text-sm font-medium line-clamp-1">{problem.title}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                      {new Date(problem.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </CardContent>
     </Card>
