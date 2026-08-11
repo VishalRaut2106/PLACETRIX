@@ -61,99 +61,57 @@ export default async function LogicLabPage() {
   const cutOffDate20Weeks = new Date(today.getTime() - (140 * 24 * 60 * 60 * 1000))
   const cutOffStr20Weeks = cutOffDate20Weeks.toISOString().split("T")[0]
 
-  // 1. Fetch aggregated daily activity for the 20-week heatmap
-  const { data: activityRows } = await (supabase as any)
-    .from("logiclab_daily_challenge_user_activity")
-    .select("activity_date, submission_count, solved, easy_solved, medium_solved, hard_solved, easy_attempted, medium_attempted, hard_attempted")
-    .eq("user_id", profile.id)
-    .gte("activity_date", cutOffStr20Weeks)
-    .order("activity_date", { ascending: true })
+  // 1. Fetch recent submissions for the 20-week heatmap
+  const [{ data: regSubs }, { data: dailySubs }] = await Promise.all([
+    (supabase as any).from('logiclab_problem_submissions')
+      .select('created_at, status, logiclab_problems!inner(difficulty)')
+      .eq('user_id', profile.id)
+      .gte('created_at', cutOffStr20Weeks),
+    (supabase as any).from('logiclab_daily_challenge_submissions')
+      .select('created_at, status, logiclab_problems!inner(difficulty)')
+      .eq('user_id', profile.id)
+      .gte('created_at', cutOffStr20Weeks)
+  ]);
 
-  const uniqueDatesWithStatus = new Map<string, {
-    solved: boolean
-    attempted: boolean
-    count: number
-    easy_solved: number
-    medium_solved: number
-    hard_solved: number
-    easy_attempted: number
-    medium_attempted: number
-    hard_attempted: number
-  }>()
+  const allSubs = [...(regSubs || []), ...(dailySubs || [])];
+  
+  const uniqueDatesWithStatus = new Map<string, any>();
 
-  for (const row of activityRows ?? []) {
-    if (!row.activity_date) continue
-    const dateStr = row.activity_date
-    uniqueDatesWithStatus.set(dateStr, {
-      solved: !!row.solved,
-      attempted: !row.solved && row.submission_count > 0,
-      count: Number(row.submission_count),
-      easy_solved: Number(row.easy_solved || 0),
-      medium_solved: Number(row.medium_solved || 0),
-      hard_solved: Number(row.hard_solved || 0),
-      easy_attempted: Number(row.easy_attempted || 0),
-      medium_attempted: Number(row.medium_attempted || 0),
-      hard_attempted: Number(row.hard_attempted || 0),
-    })
-  }
+  for (const sub of allSubs) {
+    if (!sub.created_at) continue;
+    const dateStr = sub.created_at.split("T")[0]; // UTC date
+    const diff = sub.logiclab_problems?.difficulty;
+    const isSolved = sub.status === "Accepted";
 
-  // 2. Fetch all activity dates (without date limits) to calculate streaks accurately across any length of time
-  const { data: streakRows } = await (supabase as any)
-    .from("logiclab_daily_challenge_user_activity")
-    .select("activity_date, solved")
-    .eq("user_id", profile.id)
-    .order("activity_date", { ascending: true })
-
-  const allActiveDates = new Map<string, { solved: boolean }>()
-  for (const row of streakRows ?? []) {
-    if (!row.activity_date) continue
-    allActiveDates.set(row.activity_date, { solved: !!row.solved })
-  }
-
-  const sortedDates = Array.from(allActiveDates.keys()).sort((a, b) => b.localeCompare(a))
-
-  let currentStreak = 0
-  let maxStreak = 0
-
-  const hasActiveStreak = allActiveDates.has(todayStr) || allActiveDates.has(yesterdayStr)
-
-  if (sortedDates.length > 0) {
-    const ascDates = [...sortedDates].reverse()
-    let prevDate: Date | null = null
-    let tempStreak = 0
-
-    for (const dStr of ascDates) {
-      const currentDate = new Date(dStr)
-      if (!prevDate) {
-        tempStreak = 1
-      } else {
-        const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime())
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
-        if (diffDays <= 1) {
-          tempStreak++
-        } else {
-          if (tempStreak > maxStreak) maxStreak = tempStreak
-          tempStreak = 1
-        }
-      }
-      prevDate = currentDate
+    if (!uniqueDatesWithStatus.has(dateStr)) {
+      uniqueDatesWithStatus.set(dateStr, {
+        solved: false, attempted: true, count: 0,
+        easy_solved: 0, medium_solved: 0, hard_solved: 0,
+        easy_attempted: 0, medium_attempted: 0, hard_attempted: 0
+      });
     }
-    if (tempStreak > maxStreak) maxStreak = tempStreak
 
-    if (hasActiveStreak) {
-      const checkDate = allActiveDates.has(todayStr) ? new Date(today) : new Date(yesterdayDate)
-      let checkStr = checkDate.toISOString().split("T")[0]
+    const state = uniqueDatesWithStatus.get(dateStr);
+    state.count += 1;
+    if (isSolved) state.solved = true;
 
-      while (allActiveDates.has(checkStr)) {
-        currentStreak++
-        checkDate.setUTCDate(checkDate.getUTCDate() - 1)
-        checkStr = checkDate.toISOString().split("T")[0]
-      }
+    if (diff === "Easy") {
+      state.easy_attempted += 1;
+      if (isSolved) state.easy_solved += 1;
+    } else if (diff === "Medium") {
+      state.medium_attempted += 1;
+      if (isSolved) state.medium_solved += 1;
+    } else if (diff === "Hard") {
+      state.hard_attempted += 1;
+      if (isSolved) state.hard_solved += 1;
     }
   }
 
-  if (currentStreak > maxStreak) maxStreak = currentStreak
-  const streakStats = { currentStreak, maxStreak }
+  // 2. Read streak stats directly from the profile (updated natively by gamification engine)
+  const streakStats = { 
+    currentStreak: profile.current_streak || 0, 
+    maxStreak: profile.longest_streak || 0 
+  }
 
   const activityCalendar: any[] = []
   const daysToGenerate = 140 // 20 weeks * 7 days

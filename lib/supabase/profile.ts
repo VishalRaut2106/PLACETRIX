@@ -44,6 +44,12 @@ export interface UserProfile {
   logiclab_score?: number | null;
   logiclab_points?: number | null;
   logiclab_solved_count?: number | null;
+  current_streak?: number | null;
+  longest_streak?: number | null;
+  potd_streak?: number | null;
+  last_solve_date?: string | null;
+  last_potd_date?: string | null;
+  flawless_streak?: number | null;
 }
 
 function isDefinitiveRevocation(error: AuthApiError): boolean {
