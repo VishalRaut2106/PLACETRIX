@@ -2,24 +2,11 @@
 
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { unstable_cache } from "next/cache"
+import { getUserProfile } from "@/lib/supabase/profile"
+import { getCachedGlobalProblemsList, getCachedPotd, getCachedProblemExecutionData } from "@/lib/supabase/cached-queries"
 import { Problem } from "./_types"
 
-// Cache LogicLab global problems list for 1 hour
-export const getCachedGlobalProblemsList = unstable_cache(
-  async () => {
-    const adminSupabase = createAdminClient()
-    
-    const { data: problems } = await adminSupabase
-      .from("logiclab_problems")
-      .select("id, number, title, difficulty, created_at")
-      .order("number", { ascending: true })
-
-    return (problems as any[]) || []
-  },
-  ["global-problems-list-cache-v1"],
-  { revalidate: 3600, tags: ["global-problems"] }
-)
+export { getCachedGlobalProblemsList, getCachedPotd, getCachedProblemExecutionData }
 
 export async function getIdeProblemList(userId: string) {
   const supabase = (await createServerClient()) as any
@@ -95,21 +82,6 @@ export async function getProblemDataSPA(problemId: string, userId: string) {
   }
 }
 
-// Cache daily challenge POTD metadata for 1 min
-export const getCachedPotd = unstable_cache(
-  async (todayStr: string) => {
-    const adminSupabase = createAdminClient()
-    const { data } = await (adminSupabase as any)
-      .from("logiclab_daily_challenges")
-      .select("id, problem_id, logiclab_problems ( id, title, difficulty )")
-      .eq("date", todayStr)
-      .maybeSingle()
-    return data
-  },
-  ["daily-potd-cache"],
-  { revalidate: 60, tags: ["potd"] }
-)
-
 // (Removed getCachedGlobalProblems as pagination is now natively handled by Postgres RPC)
 
 // Infinite scroll pagination for daily challenges history
@@ -136,14 +108,34 @@ export async function fetchDailyChallengesInfinite({
 }): Promise<{ challenges: any[]; hasMore: boolean }> {
   const supabase = (await createServerClient()) as any
 
-  // Fetch all POTDs (excluding today)
-  const { data: historyData, error } = await supabase
+  const { data, error } = await supabase.rpc("get_paginated_daily_challenges", {
+    p_user_id: userId || null,
+    p_today_str: todayStr,
+    p_limit: limit,
+    p_offset: offset,
+    p_search: search,
+    p_tab: tab,
+    p_difficulty: difficulty,
+    p_tag: tag,
+    p_sort_by: sortBy,
+  })
+
+  if (!error && data) {
+    const totalCount = data.length > 0 ? Number(data[0].total_count) : 0
+    const hasMore = offset + limit < totalCount
+    return { challenges: data, hasMore }
+  }
+
+  console.warn("[fetchDailyChallengesInfinite] RPC failed or missing, using fallback query:", error?.message)
+
+  // Fallback if RPC fails: fetch all POTDs (excluding today)
+  const { data: historyData, error: fallErr } = await supabase
     .from("logiclab_daily_challenges")
     .select("id, date, problem_id, logiclab_problems ( id, number, title, difficulty, tags )")
     .neq("date", todayStr)
     .order("date", { ascending: false })
 
-  if (error || !historyData) return { challenges: [], hasMore: false }
+  if (fallErr || !historyData) return { challenges: [], hasMore: false }
 
   // Fetch user submissions
   const dailyChallengeIds = historyData.map((h: any) => h.id)
@@ -403,23 +395,722 @@ export async function fetchProblemsInfinite({
   return { problems: enriched, hasMore: finalHasMore, totalCount: finalTotalCount }
 }
 
-// Cache execution-critical static data to eliminate DB reads on /run and /submit.
-// Revalidate after 1 hour or when a problem is updated (tag: problem-exec-{id}).
-export async function getCachedProblemExecutionData(problemId: string) {
-  return unstable_cache(
-    async () => {
-      const adminSupabase = createAdminClient() as any
-      const { data: problems, error } = await adminSupabase
-        .from("logiclab_problems")
-        .select("driver_codes, time_limit, memory_limit, test_cases")
-        .eq("id", problemId)
+// ─── Format Code Action ────────────────────────────────────────────────────────
 
-      if (error || !problems || !problems.length) {
-        return null
-      }
-      return problems[0]
-    },
-    [`problem-exec-${problemId}`],
-    { revalidate: 3600, tags: [`problem-exec-${problemId}`] }
-  )()
+function formatCppCode(code: string): string {
+  let indentLevel = 0;
+  const indentSize = 4;
+  let preProcessed = code
+    .replace(/{/g, '{\n')
+    .replace(/}/g, '\n}\n')
+    .replace(/;/g, ';\n')
+    .replace(/public:/g, 'public:\n')
+    .replace(/private:/g, 'private:\n')
+    .replace(/protected:/g, 'protected:\n');
+  preProcessed = preProcessed.replace(/\(([^)]+)\)/g, (match) => match.replace(/;\n/g, '; '));
+  const lines = preProcessed.split('\n');
+  const formattedLines = [];
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line) continue;
+    if (line.startsWith('}')) indentLevel = Math.max(0, indentLevel - 1);
+    let currentIndent = indentLevel;
+    if (line === 'public:' || line === 'private:' || line === 'protected:') {
+      currentIndent = Math.max(0, indentLevel - 1);
+    }
+    formattedLines.push(' '.repeat(currentIndent * indentSize) + line);
+    if (line.endsWith('{')) indentLevel++;
+  }
+  return formattedLines.join('\n');
 }
+
+export async function formatCodeAction(code: string, language: string): Promise<{ code: string; warning?: string; error?: string }> {
+  if (!code || !language) return { code, error: 'Missing code or language' };
+  try {
+    let formattedCode = code;
+    if (language === 'javascript' || language === 'typescript') {
+      const prettier = (await import('prettier')).default;
+      const prettierPluginBabel = await import('prettier/plugins/babel');
+      const prettierPluginEstree = await import('prettier/plugins/estree');
+      formattedCode = await prettier.format(code, {
+        parser: 'babel',
+        plugins: [prettierPluginBabel, prettierPluginEstree],
+        semi: true,
+        singleQuote: true,
+      });
+    } else if (language === 'java') {
+      const prettier = (await import('prettier')).default;
+      const javaPlugin = (await import('prettier-plugin-java')).default;
+      formattedCode = await prettier.format(code, {
+        parser: 'java',
+        plugins: [javaPlugin],
+        tabWidth: 4,
+      });
+    } else if (language === 'cpp') {
+      formattedCode = formatCppCode(code);
+    }
+    return { code: formattedCode };
+  } catch (err: any) {
+    return { code, warning: 'Code contains syntax errors, could not format.' };
+  }
+}
+
+// ─── Seed & Update Problem Actions ─────────────────────────────────────────────
+
+export async function seedProblemsAction(problemsPayload: any[]) {
+  const profile = await getUserProfile();
+  if (!profile || profile.account_type !== "admin") {
+    throw new Error("Forbidden: admin only");
+  }
+  const problems: any[] = Array.isArray(problemsPayload) ? problemsPayload : [];
+  if (problems.length === 0) throw new Error("No problems provided");
+
+  const supabase = (await createServerClient()) as any;
+  const { data: existing } = await supabase.from("logiclab_problems").select("title");
+  const existingTitles = new Set((existing || []).map((p: any) => p.title.trim().toLowerCase()));
+
+  const toInsert = problems.filter((p: any) => p.title && !existingTitles.has(p.title.trim().toLowerCase()));
+  if (toInsert.length === 0) {
+    return { message: "All problems already exist in the database", inserted: 0, skipped: problems.length };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("logiclab_problems")
+    .insert(toInsert)
+    .select("id, title");
+
+  if (error) throw new Error(error.message);
+  return { message: `Successfully seeded ${inserted.length} problems!`, inserted: inserted.length, skipped: problems.length - toInsert.length };
+}
+
+export async function updateProblemAction(problemId: string, data: any) {
+  const profile = await getUserProfile();
+  if (!profile || profile.account_type !== "admin") {
+    throw new Error("Forbidden: admin only");
+  }
+  if (!problemId || !data) throw new Error("Missing problemId or data");
+
+  const supabase = (await createServerClient()) as any;
+  const { data: updated, error } = await supabase
+    .from("logiclab_problems")
+    .update(data)
+    .eq("id", problemId)
+    .select();
+
+  if (error) throw new Error(error.message);
+
+  const { revalidatePath, revalidateTag } = await import("next/cache");
+  try {
+    revalidatePath("/logiclab", "page");
+    revalidatePath("/logiclab/admin", "page");
+    // @ts-ignore
+    revalidateTag(`problem-exec-${problemId}`);
+  } catch {}
+
+  return { data: updated[0] };
+}
+
+// ─── Run Code Action ───────────────────────────────────────────────────────────
+
+const ALLOWED_LANGUAGE_IDS = new Set([54, 62, 63, 71]);
+
+export async function runCodeAction(body: {
+  source_code: string;
+  language_id: number;
+  stdin?: string;
+  problem_id?: string;
+  mode?: string;
+  custom_cases?: string[];
+  custom_expected?: string[];
+}) {
+  let { source_code, language_id, stdin, problem_id, mode, custom_cases, custom_expected } = body;
+  if (source_code) {
+    source_code = source_code.replace(/[\u00A0\u200B]/g, ' ');
+  }
+
+  const profile = await getUserProfile();
+  if (!profile) return { success: false, error: "Unauthorized" };
+
+  if (!ALLOWED_LANGUAGE_IDS.has(Number(language_id))) {
+    return { success: false, error: `Unsupported language_id: ${language_id}.` };
+  }
+
+  const { rateLimit } = await import("@/lib/rate-limit");
+  const rl = rateLimit("run", profile.id, 30, 60_000);
+  if (!rl.success) {
+    return { success: false, error: `Rate limit exceeded. Please wait ${Math.ceil(rl.resetInMs / 1000)}s before running again.` };
+  }
+
+  if (!source_code || source_code.length > 50000) {
+    return { success: false, error: "Code payload exceeds maximum size limit of 50KB." };
+  }
+
+  const blocklistRegex = /(sys\.exit|os\.system|subprocess\.|exec\(|eval\(|__import__|java\.lang\.Runtime|java\.lang\.ProcessBuilder)/i;
+  if (blocklistRegex.test(source_code)) {
+    return { success: false, error: "Security Exception: Blocked keyword or potentially destructive function detected in code." };
+  }
+
+  let finalSource = source_code;
+  let finalStdin = stdin || "";
+  let sampleTestCases: any[] = [];
+  let timeLimit = 2.0;
+  let memoryLimit = 256000;
+  let lineOffset = 0;
+
+  if (mode === "problem" && problem_id) {
+    const problemData = (await getCachedProblemExecutionData(problem_id)) as any;
+    if (!problemData) throw new Error("Problem not found or could not be loaded from cache.");
+
+    timeLimit = Math.min(problemData.time_limit || 2.0, 15.0);
+    memoryLimit = Math.min((problemData.memory_limit || 256) * 1024, 512000);
+
+    let driverCodes: any = problemData.driver_codes || {};
+    if (typeof driverCodes === "string") {
+      try { driverCodes = JSON.parse(driverCodes); } catch { driverCodes = {}; }
+    }
+    const langKey = String(language_id);
+    const driverCode = driverCodes[langKey] || "";
+    if (!driverCode) {
+      return { success: false, error: `Execution engine error: Driver code missing for language ${langKey}.` };
+    }
+
+    if (langKey === "62") {
+      const lines = driverCode.split("\n");
+      const imports = lines.filter((line: string) => line.trim().startsWith("import "));
+      const nonImports = lines.filter((line: string) => !line.trim().startsWith("import "));
+      lineOffset = 2 + imports.length + 2;
+      finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n\n" + source_code + "\n\n" + nonImports.join("\n");
+    } else if (langKey === "71") {
+      const merged = source_code + "\n\n" + driverCode;
+      lineOffset = 6;
+      finalSource = "from __future__ import annotations\nimport sys\nimport json\nimport math\nimport collections\nfrom typing import *\n" + merged;
+    } else if (langKey === "54") {
+      const lines = driverCode.split("\n");
+      const includes = lines.filter((line: string) => line.trim().startsWith("#include") || line.trim().startsWith("using "));
+      const nonIncludes = lines.filter((line: string) => !line.trim().startsWith("#include") && !line.trim().startsWith("using "));
+      lineOffset = 16 + includes.length + 2;
+      finalSource = "#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <map>\n#include <set>\n#include <unordered_map>\n#include <unordered_set>\n#include <queue>\n#include <stack>\n#include <cmath>\n#include <climits>\n#include <limits>\n#include <numeric>\n#include <utility>\nusing namespace std;\n" + includes.join("\n") + "\n\n" + source_code + "\n\n" + nonIncludes.join("\n");
+    } else {
+      finalSource = source_code + "\n\n" + driverCode;
+    }
+
+    let testCases: any[] = problemData.test_cases || [];
+    if (typeof testCases === "string") {
+      try { testCases = JSON.parse(testCases); } catch { testCases = []; }
+    }
+    sampleTestCases = testCases.filter((tc: any) => tc.is_sample || tc.isSample);
+    if (sampleTestCases.length === 0 && testCases.length > 0) sampleTestCases = [testCases[0]];
+
+    if (Array.isArray(custom_cases) && custom_cases.length > 0) {
+      sampleTestCases = custom_cases.map((customInput, idx) => {
+        const originalTc = sampleTestCases[idx] || {};
+        const expected = (Array.isArray(custom_expected) && idx < custom_expected.length) ? custom_expected[idx] : undefined;
+        return {
+          ...originalTc,
+          input: customInput,
+          expected_output: (expected !== undefined && expected !== "") ? expected : originalTc.expected_output,
+          is_custom: idx >= sampleTestCases.length
+        };
+      });
+    }
+  }
+
+  const judge0Endpoint = process.env.NEXT_PUBLIC_JUDGE0_ENDPOINT || process.env.JUDGE0_ENDPOINT;
+  if (!judge0Endpoint) return { success: false, error: "Judge0 endpoint is not configured in environment variables." };
+
+  const encodedSource = Buffer.from(finalSource || "").toString("base64");
+  const decode = (str: string | null) => {
+    if (!str) return "";
+    try { return Buffer.from(str, "base64").toString("utf-8"); } catch { return str; }
+  };
+
+  if (mode === "problem" && sampleTestCases.length > 0) {
+    let overallSuccess = true;
+    let overallStatus = { id: 3, description: "Accepted" };
+    let totalTime = 0;
+    let maxMemory = 0;
+    const results: any[] = [];
+
+    const batchPayload = {
+      submissions: sampleTestCases.map((tc: any) => ({
+        source_code: encodedSource,
+        language_id,
+        stdin: Buffer.from(tc.input || "").toString("base64"),
+        cpu_time_limit: timeLimit,
+        memory_limit: memoryLimit
+      }))
+    };
+
+    let executedResults: any[] = [];
+    try {
+      const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(batchPayload),
+      });
+
+      if (!batchResponse.ok) throw new Error("Failed to submit batch to Judge0");
+
+      const batchTokens = await batchResponse.json();
+      if (!Array.isArray(batchTokens) || batchTokens.length !== sampleTestCases.length) {
+        throw new Error("Invalid token count returned from Judge0");
+      }
+
+      const tokensStr = batchTokens.map((t: any) => t.token).join(",");
+      const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`;
+
+      let allDone = false;
+      let attempts = 0;
+      let finalBatchResults: any[] = [];
+      const pollStart = Date.now();
+
+      while (!allDone && Date.now() - pollStart < 30_000) {
+        const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        try {
+          const statusRes = await fetch(batchGetUrl);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            if (statusData && Array.isArray(statusData.submissions)) {
+              finalBatchResults = statusData.submissions;
+              allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2);
+            }
+          }
+        } catch {}
+        attempts++;
+      }
+
+      executedResults = sampleTestCases.map((tc: any, i: number) => {
+        const data = finalBatchResults[i];
+        if (!data) return { index: i + 1, tc, error: "Judge0 service timed out or dropped token." };
+        if (data.status?.id <= 2) return { index: i + 1, tc, error: "Judge0 Timeout: Execution stuck in queue or processing too long." };
+        if (data.status?.id === 13) return { index: i + 1, tc, error: "Internal Error in Judge0." };
+        return { index: i + 1, tc, data };
+      });
+    } catch (err: any) {
+      executedResults = sampleTestCases.map((tc: any, i: number) => ({ index: i + 1, tc, error: `Batch execution failed: ${err.message}` }));
+    }
+    executedResults.sort((a, b) => a.index - b.index);
+
+    for (const execution of executedResults) {
+      let { index, tc, error, data } = execution;
+      let consoleOutput = "";
+
+      if (!error && data?.stdout) {
+        const stdoutRaw = decode(data.stdout).trim();
+        const errMatch = stdoutRaw.match(/@@@LOGICLAB_ERR_START@@@([\s\S]*?)@@@LOGICLAB_ERR_END@@@/);
+        if (errMatch) {
+          error = "Runtime Error: " + errMatch[1].trim();
+          consoleOutput = stdoutRaw.replace(errMatch[0], "").trim();
+        } else {
+          const resMatch = stdoutRaw.match(/@@@LOGICLAB_RES_START@@@([\s\S]*?)@@@LOGICLAB_RES_END@@@/);
+          if (resMatch) {
+            data.stdout = Buffer.from(resMatch[1].trim()).toString("base64");
+            consoleOutput = stdoutRaw.replace(resMatch[0], "").trim();
+          } else {
+            const lines = stdoutRaw.split('\n');
+            if (lines.length > 0) {
+              const lastLine = lines.pop() || "";
+              data.stdout = Buffer.from(lastLine.trim()).toString("base64");
+              consoleOutput = lines.join('\n').trim();
+            } else {
+              data.stdout = Buffer.from("").toString("base64");
+              consoleOutput = stdoutRaw;
+            }
+          }
+        }
+      }
+
+      if (error) {
+        overallSuccess = false;
+        overallStatus = { id: 13, description: "System Error" };
+        results.push({ index, passed: false, input: tc.input, error, actual: error, expected: tc.expected_output, consoleOutput });
+        continue;
+      }
+
+      const stdout = decode(data.stdout).trim();
+      const expectedTrimmed = (tc.expected_output || "").trim();
+      const statusId = data.status?.id || 0;
+
+      let passed = false;
+      if (tc.is_custom && !expectedTrimmed) {
+        passed = (statusId === 3);
+      } else {
+        passed = (statusId === 3 && stdout === expectedTrimmed);
+      }
+
+      if (!passed) overallSuccess = false;
+      if (statusId !== 3 && overallStatus.id === 3) overallStatus = data.status;
+
+      const timeVal = parseFloat(data.time || "0");
+      const memoryVal = parseInt(data.memory || "0", 10);
+      totalTime = Math.max(totalTime, timeVal);
+      maxMemory = Math.max(maxMemory, memoryVal);
+
+      results.push({
+        index,
+        passed,
+        input: tc.input,
+        expected: expectedTrimmed,
+        actual: stdout,
+        stderr: decode(data.stderr),
+        compile_output: decode(data.compile_output),
+        message: decode(data.message),
+        console_output: consoleOutput,
+        status: data.status || { id: 3, description: "Accepted" },
+        time: timeVal.toFixed(3),
+        memory: String(memoryVal)
+      });
+    }
+
+    return {
+      success: overallSuccess,
+      status: overallStatus,
+      time: totalTime.toFixed(2),
+      memory: String(maxMemory),
+      cases: results,
+      lineOffset
+    };
+  } else {
+    const encodedStdin = Buffer.from(finalStdin || "").toString("base64");
+    const submissionsUrl = `${judge0Endpoint}/submissions?wait=true&base64_encoded=true`;
+    let retries = 3;
+    let delay = 500;
+
+    while (retries > 0) {
+      try {
+        const response = await fetch(submissionsUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ source_code: encodedSource, language_id, stdin: encodedStdin }),
+        });
+        const textResponse = await response.text();
+        let data;
+        try { data = JSON.parse(textResponse); } catch { return { success: false, error: "Judge0 JSON parse error" }; }
+
+        if (!response.ok) {
+          if (response.status === 429 || response.status >= 500) {
+            retries--;
+            if (retries > 0) { await new Promise((resolve) => setTimeout(resolve, delay)); delay *= 2; continue; }
+          }
+          return { success: false, error: data.error || response.statusText };
+        }
+
+        return {
+          success: true,
+          stdout: decode(data.stdout),
+          stderr: decode(data.stderr),
+          compile_output: decode(data.compile_output),
+          message: decode(data.message),
+          status: data.status || { id: 3, description: "Accepted" },
+          time: data.time || "0.00",
+          memory: data.memory || "0",
+        };
+      } catch (err: any) {
+        retries--;
+        if (retries > 0) { await new Promise((resolve) => setTimeout(resolve, delay)); delay *= 2; continue; }
+        return { success: false, error: err.message };
+      }
+    }
+  }
+}
+
+// ─── Submit Code Action ────────────────────────────────────────────────────────
+
+function estimateInputSize(input: string): number {
+  if (!input) return 0;
+  const trimmed = input.trim();
+  const tokens = trimmed.split(/[\s,\[\]{}]+/);
+  const validTokens = tokens.filter(t => t.length > 0);
+  if (validTokens.length > 3) return validTokens.length;
+  return trimmed.length;
+}
+
+export async function submitCodeAction(body: {
+  problem_id: string;
+  code: string;
+  language_id: number;
+  daily_challenge_id?: string;
+}) {
+  const { problem_id, code, language_id, daily_challenge_id } = body;
+  const profile = await getUserProfile();
+  if (!profile) return { success: false, error: "Unauthorized" };
+  const user_id = profile.id;
+
+  if (!problem_id || !code || !language_id) {
+    return { success: false, error: "Missing required fields: problem_id, code, language_id" };
+  }
+  if (!ALLOWED_LANGUAGE_IDS.has(Number(language_id))) {
+    return { success: false, error: `Unsupported language_id: ${language_id}.` };
+  }
+
+  const { rateLimit } = await import("@/lib/rate-limit");
+  const rl = rateLimit("submit", user_id, 10, 60_000);
+  if (!rl.success) {
+    return { success: false, error: `Rate limit exceeded. Please wait ${Math.ceil(rl.resetInMs / 1000)}s before submitting again.` };
+  }
+
+  if (code.length > 50000) {
+    return { success: false, error: "Code payload exceeds maximum size limit of 50KB." };
+  }
+
+  const blocklistRegex = /(sys\.exit|os\.system|subprocess\.|exec\(|eval\(|__import__|java\.lang\.Runtime|java\.lang\.ProcessBuilder)/i;
+  if (blocklistRegex.test(code)) {
+    return { success: false, error: "Security Exception: Blocked keyword or potentially destructive function detected in code." };
+  }
+
+  const supabase = (await createServerClient()) as any;
+  const problemData = (await getCachedProblemExecutionData(problem_id)) as any;
+  if (!problemData) throw new Error("Problem not found or could not be loaded.");
+
+  const timeLimit = Math.min(problemData.time_limit || 2.0, 15.0);
+  const memoryLimit = Math.min((problemData.memory_limit || 256) * 1024, 512000);
+
+  let driverCodes: any = problemData.driver_codes || {};
+  if (typeof driverCodes === "string") {
+    try { driverCodes = JSON.parse(driverCodes); } catch { driverCodes = {}; }
+  }
+  const langKey = String(language_id);
+  const driverCode = driverCodes[langKey] || "";
+  if (!driverCode) {
+    return { success: false, error: `Submission failed: Driver code missing for language ${langKey}.` };
+  }
+
+  let finalSource = code;
+  if (langKey === "62") {
+    const lines = driverCode.split("\n");
+    const imports = lines.filter((line: string) => line.trim().startsWith("import "));
+    const nonImports = lines.filter((line: string) => !line.trim().startsWith("import "));
+    finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n\n" + code + "\n\n" + nonImports.join("\n");
+  } else if (langKey === "71") {
+    const merged = code + "\n\n" + driverCode;
+    finalSource = "from __future__ import annotations\nimport sys\nimport json\nimport math\nimport collections\nfrom typing import *\n" + merged;
+  } else if (langKey === "54") {
+    const lines = driverCode.split("\n");
+    const includes = lines.filter((line: string) => line.trim().startsWith("#include") || line.trim().startsWith("using "));
+    const nonIncludes = lines.filter((line: string) => !line.trim().startsWith("#include") && !line.trim().startsWith("using "));
+    finalSource = "#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <map>\n#include <set>\n#include <unordered_map>\n#include <unordered_set>\n#include <queue>\n#include <stack>\n#include <cmath>\n#include <climits>\n#include <limits>\n#include <numeric>\n#include <utility>\nusing namespace std;\n" + includes.join("\n") + "\n\n" + code + "\n\n" + nonIncludes.join("\n");
+  } else {
+    finalSource = code + "\n\n" + driverCode;
+  }
+
+  let testCases: any[] = problemData.test_cases || [];
+  if (typeof testCases === "string") {
+    try { testCases = JSON.parse(testCases); } catch { testCases = []; }
+  }
+  if (!testCases || testCases.length === 0) {
+    return { success: false, error: "Submission failed: Problem has no test cases configured." };
+  }
+
+  const judge0Endpoint = process.env.NEXT_PUBLIC_JUDGE0_ENDPOINT || process.env.JUDGE0_ENDPOINT;
+  if (!judge0Endpoint) return { success: false, error: "Judge0 endpoint is not configured in environment variables." };
+
+  const encodedSource = Buffer.from(finalSource).toString("base64");
+  const decode = (str: string | null) => {
+    if (!str) return "";
+    try { return Buffer.from(str, "base64").toString("utf-8"); } catch { return str; }
+  };
+
+  const batchPayload = {
+    submissions: testCases.map((tc: any) => ({
+      source_code: encodedSource,
+      language_id,
+      stdin: Buffer.from(tc.input || "").toString("base64"),
+      cpu_time_limit: timeLimit,
+      memory_limit: memoryLimit
+    }))
+  };
+
+  let executedResults: any[] = [];
+  try {
+    const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(batchPayload),
+    });
+
+    if (!batchResponse.ok) throw new Error("Failed to submit batch to Judge0");
+
+    const batchTokens = await batchResponse.json();
+    if (!Array.isArray(batchTokens) || batchTokens.length !== testCases.length) {
+      throw new Error("Invalid token count returned from Judge0");
+    }
+
+    const tokensStr = batchTokens.map((t: any) => t.token).join(",");
+    const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`;
+
+    let allDone = false;
+    let attempts = 0;
+    let finalBatchResults: any[] = [];
+    const pollStart = Date.now();
+
+    while (!allDone && Date.now() - pollStart < 30_000) {
+      const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      try {
+        const statusRes = await fetch(batchGetUrl);
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          if (statusData && Array.isArray(statusData.submissions)) {
+            finalBatchResults = statusData.submissions;
+            allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2);
+          }
+        }
+      } catch {}
+      attempts++;
+    }
+
+    executedResults = testCases.map((tc: any, i: number) => {
+      const data = finalBatchResults[i];
+      if (!data) return { index: i + 1, tc, error: "Judge0 service timed out or dropped token." };
+      if (data.status?.id <= 2) return { index: i + 1, tc, error: "Judge0 Timeout: Execution stuck in queue or processing too long." };
+      if (data.status?.id === 13) return { index: i + 1, tc, error: "Internal Error in Judge0." };
+      return { index: i + 1, tc, data };
+    });
+  } catch (err: any) {
+    executedResults = testCases.map((tc: any, i: number) => ({ index: i + 1, tc, error: `Batch execution failed: ${err.message}` }));
+  }
+  executedResults.sort((a, b) => a.index - b.index);
+
+  let passedCount = 0;
+  let maxRuntime = 0;
+  let maxMemory = 0;
+  let overallStatus = "Accepted";
+  let firstFailedResult: any = null;
+  const testResults: any[] = [];
+
+  for (const execution of executedResults) {
+    let { index, tc, error, data } = execution;
+    let consoleOutput = "";
+
+    if (!error && data?.stdout) {
+      const stdoutRaw = decode(data.stdout).trim();
+      const errMatch = stdoutRaw.match(/@@@LOGICLAB_ERR_START@@@([\s\S]*?)@@@LOGICLAB_ERR_END@@@/);
+      if (errMatch) {
+        error = "Runtime Error: " + errMatch[1].trim();
+        consoleOutput = stdoutRaw.replace(errMatch[0], "").trim();
+      } else {
+        const resMatch = stdoutRaw.match(/@@@LOGICLAB_RES_START@@@([\s\S]*?)@@@LOGICLAB_RES_END@@@/);
+        if (resMatch) {
+          data.stdout = Buffer.from(resMatch[1].trim()).toString("base64");
+          consoleOutput = stdoutRaw.replace(resMatch[0], "").trim();
+        } else {
+          const lines = stdoutRaw.split('\n');
+          if (lines.length > 0) {
+            const lastLine = lines.pop() || "";
+            data.stdout = Buffer.from(lastLine.trim()).toString("base64");
+            consoleOutput = lines.join('\n').trim();
+          } else {
+            data.stdout = Buffer.from("").toString("base64");
+            consoleOutput = stdoutRaw;
+          }
+        }
+      }
+    }
+
+    if (error) {
+      if (overallStatus === "Accepted") overallStatus = "System Error";
+      const item = { index, passed: false, input: tc.input, expected: tc.expected_output, actual: error, status: { id: 13, description: "System Error" }, time: "0.000", memory: "0", consoleOutput };
+      testResults.push(item);
+      if (!firstFailedResult) firstFailedResult = item;
+      continue;
+    }
+
+    const stdout = decode(data.stdout).trim();
+    const expectedTrimmed = (tc.expected_output || "").trim();
+    const statusId = data.status?.id || 0;
+    const passed = (statusId === 3 && stdout === expectedTrimmed);
+
+    const runtimeSec = parseFloat(data.time || "0");
+    const runtimeMs = Math.round(runtimeSec * 1000);
+    const memoryKb = parseInt(data.memory || "0", 10);
+
+    if (runtimeMs > maxRuntime) maxRuntime = runtimeMs;
+    if (memoryKb > maxMemory) maxMemory = memoryKb;
+
+    if (passed) {
+      passedCount++;
+    } else if (overallStatus === "Accepted") {
+      overallStatus = data.status?.description || "Wrong Answer";
+    }
+
+    const item = {
+      index,
+      passed,
+      input: tc.input,
+      expected: expectedTrimmed,
+      actual: stdout,
+      status: data.status,
+      time: runtimeSec.toFixed(3),
+      memory: String(memoryKb),
+      consoleOutput
+    };
+    testResults.push(item);
+    if (!passed && !firstFailedResult) firstFailedResult = item;
+  }
+
+  const isAccepted = passedCount === testCases.length;
+
+  if (daily_challenge_id) {
+    await supabase.from("logiclab_daily_challenge_submissions").insert({
+      daily_challenge_id,
+      user_id,
+      problem_id,
+      code,
+      language_id,
+      status: overallStatus,
+      passed_count: passedCount,
+      total_count: testCases.length,
+      runtime: maxRuntime,
+      memory: maxMemory,
+    });
+
+    if (isAccepted) {
+      try {
+        const { data: statsRow } = await supabase.from("logiclab_daily_challenge_stats").select("accepted_submissions").eq("daily_challenge_id", daily_challenge_id).single();
+        await supabase.from("logiclab_daily_challenge_stats").update({ accepted_submissions: (statsRow?.accepted_submissions || 0) + 1 }).eq("daily_challenge_id", daily_challenge_id);
+      } catch {}
+
+      try {
+        const { data: userStatsRow } = await supabase.from("logiclab_daily_challenge_user_stats").select("current_streak, longest_streak").eq("user_id", user_id).single();
+        const curStreak = (userStatsRow?.current_streak || 0) + 1;
+        const longStreak = Math.max(curStreak, userStatsRow?.longest_streak || 0);
+        await supabase.from("logiclab_daily_challenge_user_stats").upsert({ user_id, current_streak: curStreak, longest_streak: longStreak, last_solved_date: new Date().toISOString().split("T")[0] });
+      } catch {}
+    }
+  }
+
+  const { data: insertedSub } = await supabase.from("logiclab_problem_submissions").insert({
+    user_id,
+    problem_id,
+    code,
+    language_id,
+    status: overallStatus,
+    passed_count: passedCount,
+    total_count: testCases.length,
+    runtime: maxRuntime,
+    memory: maxMemory,
+  }).select("id, created_at").single();
+
+  const { revalidatePath: revPath } = await import("next/cache");
+  try {
+    revPath(`/logiclab/problems/${problem_id}`);
+    revPath("/logiclab");
+  } catch {}
+
+  return {
+    success: true,
+    submission_id: insertedSub?.id,
+    created_at: insertedSub?.created_at,
+    is_accepted: isAccepted,
+    status: overallStatus,
+    passed_count: passedCount,
+    total_count: testCases.length,
+    runtime: maxRuntime,
+    memory: maxMemory,
+    first_failed: firstFailedResult,
+    cases: testResults,
+  };
+}
+
+

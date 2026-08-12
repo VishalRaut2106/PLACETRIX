@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient as createServerClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
 
 export interface LeaderboardEntry {
   id: string
@@ -24,7 +25,22 @@ export interface LeaderboardEntry {
 
 const PAGE_SIZE = 50
 
+// Inner cached function — keyed by instituteId + page, revalidates every 60s.
+// Leaderboard rankings don't need sub-second freshness. This eliminates
+// 4 Supabase queries per load for all users viewing the same institute page.
+function _fetchLeaderboard(instituteId: string, page: number) {
+  return unstable_cache(
+    async () => _leaderboardQuery(instituteId, page),
+    [`leaderboard-${instituteId}-p${page}`],
+    { revalidate: 60, tags: [`leaderboard-${instituteId}`] }
+  )()
+}
+
 export async function getLeaderboardAction(instituteId: string, page: number = 1): Promise<{ data: LeaderboardEntry[], totalCount: number }> {
+  return _fetchLeaderboard(instituteId, page)
+}
+
+async function _leaderboardQuery(instituteId: string, page: number): Promise<{ data: LeaderboardEntry[], totalCount: number }> {
   const supabase = (await createServerClient()) as any
   
   // Calculate offset

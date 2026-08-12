@@ -1,5 +1,6 @@
 "use client"
 
+import { seedProblemsAction, updateProblemAction } from "../actions"
 import React, { useState, useRef } from "react"
 import dynamic from "next/dynamic"
 
@@ -512,33 +513,15 @@ export function AdminProblemEditorClient({
 
       let result;
       if (isEdit) {
-        const res = await fetch("/api/logiclab/update-problem", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ problemId: initialProblem.id, data: payload }),
-        })
-        const json = await res.json()
-        if (!res.ok || json.error) {
-          result = { error: { message: json.error || "Failed to update problem via API" } }
-        } else {
-          result = { data: json.data }
-        }
+        const json = await updateProblemAction(initialProblem.id, payload);
+        result = { data: json.data };
       } else {
-        const res = await fetch("/api/logiclab/seed-problems", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify([payload]),
-        })
-        const json = await res.json()
-        if (!res.ok || json.error) {
-          result = { error: { message: json.error || "Failed to create problem via API" } }
-        } else {
-          result = { data: { id: json.problems?.[0]?.id } }
-        }
+        const json = await seedProblemsAction([payload]);
+        result = { data: { id: json.inserted } };
       }
 
-      if (result.error || !result.data) {
-        throw new Error(result.error?.message || `Failed to ${isEdit ? "update" : "create"} problem.`)
+      if (!result.data) {
+        throw new Error(`Failed to ${isEdit ? "update" : "create"} problem.`)
       }
 
       toast.success(`Problem ${isEdit ? "updated" : "created"} successfully!`)
@@ -560,9 +543,6 @@ export function AdminProblemEditorClient({
 
     setSaving(true)
     try {
-      const supabase = createClient() as any
-      
-      // 1. Bulk insert problems with their test cases embedded
       const problemInserts = validProblems.map((p) => ({
         title: p.title,
         description: p.description,
@@ -575,18 +555,9 @@ export function AdminProblemEditorClient({
         test_cases: p.test_cases,
       }))
 
-      const res = await fetch("/api/logiclab/seed-problems", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(problemInserts),
-      })
-      const json = await res.json()
-      if (!res.ok || json.error) {
-        throw new Error(json.error || "Failed to batch insert problems via API.")
-      }
-      const insertedProblems = json.problems || []
+      const result = await seedProblemsAction(problemInserts);
 
-      toast.success(`Successfully imported ${insertedProblems.length} problems!`)
+      toast.success(`Successfully imported ${result.inserted} problems!`)
       router.push("/logiclab/admin")
     } catch (err: any) {
       console.error("Bulk Import Error:", err)

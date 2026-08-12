@@ -1,5 +1,7 @@
 "use client";
 
+import { runCodeAction } from "../actions";
+
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 
@@ -240,13 +242,9 @@ export default function PlaygroundWorkspaceClient({ userId }: PlaygroundWorkspac
         processedCode = processedCode.replace(/(?:public\s+)?class\s+[a-zA-Z0-9_]+\s*\{/, "class Main {");
       }
 
-      const res = await fetch("/api/logiclab/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source_code: processedCode, language_id: selectedLang.id, stdin }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Sandbox error.");
+      const data = await runCodeAction({ source_code: processedCode, language_id: selectedLang.id, stdin });
+      if (!data) throw new Error("Execution failed with empty response.");
+      if (data.error) throw new Error(data.error);
       setResults(data);
       if (data.status?.id === 3) {
         toast.success("Executed successfully!");

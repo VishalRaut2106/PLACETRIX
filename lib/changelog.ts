@@ -15,6 +15,31 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.23",
+    date: "2026-08-13",
+    title: "Server Action Migrations, Supabase Caching & Account Navigation UI",
+    badge: "Feature",
+    categories: [
+      {
+        type: "improved",
+        items: [
+          "Migrated LogicLab API routes to high-performance Server Actions, significantly reducing network overhead and Firebase App Hosting latency",
+          "Implemented Next.js unstable_cache layer for global skills, badges, problem execution, tag counts, and candidate resume prefill data",
+          "Moved 'My Profile' and 'Settings' menu items from sidebar navigation into the user account dropdown popup",
+          "Optimized Firebase App Hosting configuration with 1024 MiB memory allocations and optimized external package bundling",
+          "Enhanced image delivery domain support for Supabase storage rendering endpoints"
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          "Eliminated 8+ redundant DB queries on candidate resume generator page load",
+          "Cleaned up obsolete LogicLab HTTP API route handlers"
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.22",
     date: "2026-08-11",
     title: "Test Sections (Beta), AI Question Gen & Dashboard Redesign",
@@ -177,7 +202,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.22";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.23";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {

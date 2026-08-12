@@ -18,9 +18,6 @@ import {
   IconBell,
   IconSettings,
   IconHeart,
-  IconSun,
-  IconMoon,
-  IconDeviceLaptop,
   IconLock,
   IconChevronRight,
   IconChevronUp,
@@ -57,7 +54,6 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useSidebarHoverContext } from "@/components/sidebar-hover-context"
-import { useTheme } from "next-themes"
 import { buildStorageUrl } from "@/lib/storage"
 import { version } from "@/package.json"
 import { useLicense } from "@/components/license/LicenseProvider"
@@ -129,25 +125,13 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
 
 
 const NAV_SECONDARY: NavItem[] = [
-  { title: "My Profile", url: "/myprofile", icon: IconUserCircle },
   { title: "Notifications", url: "/notifications", icon: IconBell },
-  { title: "Settings", url: "/settings", icon: IconSettings },
   { title: "Get Help", url: "/gethelp", icon: IconHelpCircle },
   { title: "Our Team", url: "/our-team", icon: IconHeart },
 ]
 
 
 // ─── Theme options ────────────────────────────────────────────────────────────
-
-
-type ThemeOption = { value: string; label: string; icon: React.ComponentType<any> }
-
-
-const THEME_OPTIONS: ThemeOption[] = [
-  { value: "light", label: "Light", icon: IconSun },
-  { value: "dark", label: "Dark", icon: IconMoon },
-  { value: "system", label: "System", icon: IconDeviceLaptop },
-]
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -171,13 +155,9 @@ function safeAccountType(type: string | null | undefined): AccountType {
 
 
 export function NavUser({ user }: { user: UserProfile | null }) {
-  const { isMobile } = useSidebar()
+  const { isMobile, setOpenMobile } = useSidebar()
   const router = useRouter()
   const { onUserMenuOpenChange } = useSidebarHoverContext()
-  const { theme, setTheme } = useTheme()
-
-  const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => setMounted(true), [])
 
   const displayName = user?.full_name?.trim() || "User"
   const email = user?.email?.trim() || "No email"
@@ -214,21 +194,27 @@ export function NavUser({ user }: { user: UserProfile | null }) {
           <DropdownMenuTrigger asChild disabled={!user}>
             <SidebarMenuButton
               size="lg"
-              className="w-full text-sidebar-foreground group-data-[state=expanded]/sidebar-wrapper:bg-sidebar-border/50 group-data-[state=expanded]/sidebar-wrapper:border group-data-[state=expanded]/sidebar-wrapper:border-sidebar-border/80 group-data-[state=expanded]/sidebar-wrapper:shadow-2xs group-data-[state=expanded]/sidebar-wrapper:p-2.5 group/user transition-all duration-200 cursor-pointer rounded-xl group-data-[state=expanded]/sidebar-wrapper:hover:bg-sidebar-accent group-data-[state=expanded]/sidebar-wrapper:hover:text-sidebar-accent-foreground group-data-[state=expanded]/sidebar-wrapper:hover:border-transparent group-data-[state=expanded]/sidebar-wrapper:data-[state=open]:bg-sidebar-accent group-data-[state=expanded]/sidebar-wrapper:data-[state=open]:text-sidebar-accent-foreground group-data-[state=expanded]/sidebar-wrapper:data-[state=open]:border-transparent data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground data-[state=open]:border-transparent"
+              className={cn(
+                "w-full text-sidebar-foreground group/user cursor-pointer rounded-xl transition-all duration-200",
+                "bg-sidebar-border/50 border border-sidebar-border/80 shadow-2xs p-2",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-transparent",
+                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground data-[state=open]:border-transparent",
+                "group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:shadow-none"
+              )}
               asChild
             >
               <div className="flex items-center gap-2.5 w-full" suppressHydrationWarning>
                 {user ? (
                   <>
-                    <Avatar className="h-9 w-9 rounded-lg shrink-0 border border-sidebar-border group-hover/user:border-primary/20 group-data-[state=open]/user:border-primary/20 transition-all duration-200 group-hover/user:scale-105 group-data-[state=collapsed]/sidebar-wrapper:h-8 group-data-[state=collapsed]/sidebar-wrapper:w-8">
+                    <Avatar className="h-8 w-8 rounded-lg shrink-0 border border-sidebar-border group-hover/user:border-primary/20 group-data-[state=open]/user:border-primary/20 transition-all duration-200 group-hover/user:scale-105">
                       <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
                       <AvatarFallback className="rounded-lg bg-sidebar-border text-sidebar-foreground font-semibold">{initials}</AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col flex-1 text-left min-w-0 gap-1 group-data-[state=collapsed]/sidebar-wrapper:hidden">
+                    <div className="grid flex-1 text-left min-w-0 gap-0.5 group-data-[collapsible=icon]:hidden">
                       <span className="truncate font-semibold text-sm leading-none text-sidebar-foreground group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-colors duration-200">{displayName}</span>
                       <span className="truncate text-[11px] text-muted-foreground leading-none group-hover/user:text-sidebar-accent-foreground/80 group-data-[state=open]/user:text-sidebar-accent-foreground/80 transition-colors duration-200">{sidebarSubtitle}</span>
                     </div>
-                    <div className="relative ml-auto shrink-0 flex items-center justify-center group-data-[state=collapsed]/sidebar-wrapper:hidden">
+                    <div className="relative ml-auto shrink-0 flex items-center justify-center group-data-[collapsible=icon]:hidden">
                       <IconDotsVertical className="size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200" />
                       {hasUnread && (
                         <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500" />
@@ -237,12 +223,12 @@ export function NavUser({ user }: { user: UserProfile | null }) {
                   </>
                 ) : (
                   <>
-                    <Skeleton className="h-9 w-9 rounded-lg shrink-0 group-data-[state=collapsed]/sidebar-wrapper:h-8 group-data-[state=collapsed]/sidebar-wrapper:w-8" />
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0 group-data-[state=collapsed]/sidebar-wrapper:hidden">
+                    <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                    <div className="grid flex-1 min-w-0 gap-1.5 group-data-[collapsible=icon]:hidden">
                       <Skeleton className="h-3.5 w-28" />
                       <Skeleton className="h-3 w-36" />
                     </div>
-                    <Skeleton className="h-4 w-4 rounded shrink-0 group-data-[state=collapsed]/sidebar-wrapper:hidden" />
+                    <Skeleton className="h-4 w-4 rounded shrink-0 group-data-[collapsible=icon]:hidden" />
                   </>
                 )}
               </div>
@@ -275,36 +261,21 @@ export function NavUser({ user }: { user: UserProfile | null }) {
 
               <DropdownMenuSeparator />
 
-              {/* ── Theme selector ─────────────────────────── */}
-              <div className="px-2 py-1.5">
-                <span className="text-[11px] font-medium text-muted-foreground/80 block mb-1.5 px-1 uppercase tracking-wider">
-                  Appearance
-                </span>
-                <div className="flex items-center gap-1 bg-muted/50 p-0.5 rounded-lg border border-sidebar-border/40">
-                  {THEME_OPTIONS.map(({ value, label, icon: ThemeIcon }) => {
-                    const isActive = mounted && theme === value
-                    return (
-                      <button
-                        key={value}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setTheme(value)
-                        }}
-                        className={cn(
-                          "flex-1 flex items-center justify-center gap-1.5 py-1 px-1.5 text-xs rounded-md transition-all duration-200 cursor-pointer outline-none select-none",
-                          isActive
-                            ? "bg-background text-sidebar-foreground shadow-2xs font-medium"
-                            : "text-muted-foreground hover:bg-sidebar-border/30 hover:text-sidebar-foreground"
-                        )}
-                        title={label}
-                      >
-                        <ThemeIcon className={cn("size-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-[11px]">{label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+              {/* ── Account Links ────────────────────────────── */}
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/myprofile" onClick={() => setOpenMobile(false)}>
+                    <IconUserCircle className="size-4 shrink-0" />
+                    <span>My Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/settings" onClick={() => setOpenMobile(false)}>
+                    <IconSettings className="size-4 shrink-0" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
 
               <DropdownMenuSeparator />
 
@@ -616,7 +587,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="group/logo cursor-pointer hover:bg-transparent hover:text-current active:bg-transparent focus:bg-transparent group-data-[collapsible=icon]/sidebar-wrapper:p-1.5!"
+              className="group/logo cursor-pointer hover:bg-transparent hover:text-current active:bg-transparent focus:bg-transparent group-data-[collapsible=icon]:p-1.5!"
             >
               <Link href={user ? "/landing" : "/"}>
                 <Logo />

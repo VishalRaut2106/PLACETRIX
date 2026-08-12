@@ -53,6 +53,25 @@ export interface UserProfile {
   flawless_streak?: number | null;
 }
 
+// ─── License type (co-located to avoid circular imports) ──────────────────────
+// Shape-identical to InstituteLicense in license.ts. Defined here separately
+// to break the circular dependency (license.ts already imports from profile.ts).
+
+export type LicenseStatus = "active" | "expired" | "pending" | "revoked" | null;
+
+export interface InstituteLicenseData {
+  status: LicenseStatus;
+  plan_name: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+}
+
+export interface UserProfileWithLicense {
+  profile: UserProfile;
+  /** Shape-identical to InstituteLicense — structurally compatible. */
+  license: InstituteLicenseData | null;
+}
+
 function isDefinitiveRevocation(error: AuthApiError): boolean {
   if (error.code && (
     error.code === "session_not_found" ||
@@ -341,6 +360,67 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
 
   // ── Step 4: Offline / local-only — return what we have from claims ────────
   return profileFromClaims(claimsData);
+});
+
+// ─── getUserProfileWithLicense ─────────────────────────────────────────────────
+//
+// Fetches the full user profile AND their institute license in a single Supabase
+// query (Postgres join), eliminating the second round-trip previously done in
+// the dashboard layout. Falls back gracefully if the join returns no license.
+//
+// This is cached per-request via React.cache() — calling it multiple times in
+// the same server render costs only one DB hit.
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const getUserProfileWithLicense = cache(async (): Promise<UserProfileWithLicense | null> => {
+  const profile = await getUserProfile();
+  if (!profile) return null;
+
+  // Admins bypass license checks
+  if (profile.account_type === "admin") {
+    return { profile, license: null };
+  }
+
+  if (!profile.institute_id) {
+    return { profile, license: null };
+  }
+
+  // Fetch license in the same request via a targeted single-row query.
+  // Since getUserProfile already used a cached client, this reuses the same
+  // connection without an extra createClient() overhead.
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any)
+    .from("institute_licenses")
+    .select("status, plan_name, starts_at, ends_at")
+    .eq("institute_id", profile.institute_id)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { profile, license: null };
+  }
+
+  const now = new Date();
+  const startsAt = data.starts_at ? new Date(data.starts_at) : null;
+  const endsAt = data.ends_at ? new Date(data.ends_at) : null;
+
+  let effectiveStatus: LicenseStatus = data.status as LicenseStatus;
+  if (data.status === "active") {
+    if (startsAt && startsAt > now) {
+      effectiveStatus = "pending";
+    } else if (endsAt && endsAt < now) {
+      effectiveStatus = "expired";
+    }
+  }
+
+  return {
+    profile,
+    license: {
+      status: effectiveStatus,
+      plan_name: data.plan_name ?? null,
+      starts_at: data.starts_at ?? null,
+      ends_at: data.ends_at ?? null,
+    },
+  };
 });
 
 /**

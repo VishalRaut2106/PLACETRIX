@@ -203,19 +203,15 @@ export function LogicLabDashboardClient({
     return null; // Return null explicitly if no problem is matched, avoiding broken stub object
   }, [fullPotdProblem, potd, problems]);
 
-  const handleRandomProblem = async () => {
-    const toastId = toast.loading("Picking a random problem...")
-    try {
-      const res = await fetch("/api/logiclab/random")
-      const data = await res.json()
-      if (data.success && data.id) {
-        toast.dismiss(toastId)
-        router.push(`/logiclab/problems/${data.id}`)
-      } else {
-        throw new Error(data.error || "No problems available")
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to fetch random problem", { id: toastId })
+  const handleRandomProblem = () => {
+    if (!problems || problems.length === 0) {
+      toast.error("No problems available right now")
+      return
+    }
+    const randomIndex = Math.floor(Math.random() * problems.length)
+    const randomProb = problems[randomIndex]
+    if (randomProb?.id) {
+      router.push(`/logiclab/problems/${randomProb.id}`)
     }
   }
 

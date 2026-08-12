@@ -3,6 +3,7 @@ import { getUserProfile } from "@/lib/supabase/profile";
 import { getCurrentUserRankAction } from "@/app/(dashboard)/(licensed)/logiclab/leaderboard/actions";
 import { notFound } from "next/navigation";
 import { CandidateProfileReportView } from "./CandidateProfileReportView";
+import { getCachedGlobalSkills, getCachedGlobalBadges, getCachedGlobalTagCounts } from "@/lib/supabase/cached-queries";
 
 function categorizeTopic(topic: string): "Advanced" | "Intermediate" | "Fundamental" {
   const t = topic.toLowerCase();
@@ -82,11 +83,11 @@ export default async function UserReportPage({ params }: PageProps) {
     { data: candidateProjects },
     { data: candidateCertifications },
     { data: eventTickets },
-    { data: allSkills },
+    allSkills,
     { data: candidateSkillRows },
     { data: semesterGrades },
     { data: userBadges },
-    { data: allBadges },
+    allBadges,
     { data: instData },
     { data: activityRows },
     { data: streakRows },
@@ -97,7 +98,7 @@ export default async function UserReportPage({ params }: PageProps) {
     { data: recentDailyRaw },
     { data: memberRows },
     { data: attemptsRaw },
-    globalTagsRes,
+    cachedGlobalTags,
   ] = await Promise.all([
     (supabase as any)
       .from("candidate_academic_details")
@@ -130,7 +131,7 @@ export default async function UserReportPage({ params }: PageProps) {
       .eq("candidate_id", targetProfile.id)
       .eq("attendance_status", "Present")
       .eq("events.status", "Concluded"),
-    (supabase as any).from("skills").select("id, name, category").order("category").order("name"),
+    getCachedGlobalSkills(),
     (supabase as any)
       .from("candidate_skills")
       .select("skill_id")
@@ -145,7 +146,7 @@ export default async function UserReportPage({ params }: PageProps) {
       .select("earned_at, logiclab_badges(id, name, description, icon_name)")
       .eq("user_id", targetProfile.id)
       .order("earned_at", { ascending: false }),
-    (supabase as any).from("logiclab_badges").select("id, name, description, icon_name").order("name"),
+    getCachedGlobalBadges(),
     targetProfile.institute_id
       ? (supabase as any).from("institutes").select("institute_name").eq("id", targetProfile.institute_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -194,7 +195,7 @@ export default async function UserReportPage({ params }: PageProps) {
       .select("id, test_id, attempt_number, status, score, total_marks, percentage, passed, started_at, submitted_at, time_spent_seconds, tab_switch_count")
       .eq("candidate_id", targetProfile.id)
       .order("created_at", { ascending: false }),
-    (supabase as any).rpc("get_global_tags_count"),
+    getCachedGlobalTagCounts(),
   ]);
 
   const semestersCount = academicDetails?.course?.semesters_count ?? 8;
@@ -318,8 +319,8 @@ export default async function UserReportPage({ params }: PageProps) {
     }
   }
 
-  const totalTopicCounts: Record<string, number> = (globalTagsRes && typeof globalTagsRes.data === "object" && !Array.isArray(globalTagsRes.data))
-    ? (globalTagsRes.data as Record<string, number>)
+  const totalTopicCounts: Record<string, number> = (cachedGlobalTags && typeof cachedGlobalTags === "object" && !Array.isArray(cachedGlobalTags))
+    ? (cachedGlobalTags as Record<string, number>)
     : topicCounts;
 
   const sortedTopics = Object.entries(totalTopicCounts)

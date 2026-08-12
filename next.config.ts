@@ -3,7 +3,7 @@ import { execSync } from "child_process";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  serverExternalPackages: ["pdf-parse"],
+  serverExternalPackages: ["pdf-parse", "mammoth", "jspdf", "xlsx"],
   // ── Stable Build ID for Firebase App Hosting ─────────────────────────────
   // Next.js generates random server-action IDs per build. If a user is mid-test
   // when a new deploy goes out, their old IDs are invalid → "Server Action not
@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
       "@tabler/icons-react",
       "date-fns",
       "recharts",
+      "framer-motion",
+      "@google/genai",
+      "katex",
+      "prismjs",
     ],
   },
   images: {
@@ -35,6 +39,12 @@ const nextConfig: NextConfig = {
         hostname: "db.placetrix.app",
         port: "",
         pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "https",
+        hostname: "db.placetrix.app",
+        port: "",
+        pathname: "/storage/v1/render/image/public/**",
       },
     ],
   },

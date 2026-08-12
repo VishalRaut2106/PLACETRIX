@@ -149,6 +149,7 @@ export default async function HomePage() {
         .from("logiclab_daily_challenge_user_activity")
         .select("activity_date, submission_count, solved, easy_solved, medium_solved, hard_solved, easy_attempted, medium_attempted, hard_attempted")
         .eq("user_id", profile.id)
+        .gte("activity_date", cutOffStr20Weeks)
         .order("activity_date", { ascending: true })
     ]);
 

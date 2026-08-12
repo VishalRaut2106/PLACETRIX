@@ -33,7 +33,10 @@ export async function getCandidateTestsAction({
   if (!profile || profile.account_type !== "institute_candidate") {
     throw new Error("Unauthorized")
   }
-  return fetchCandidateTests(profile.id, now, page, size, search, tab)
+  if (!profile.institute_id) {
+    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
+  }
+  return fetchCandidateTests(profile.id, profile.institute_id, now, page, size, search, tab)
 }
 
 export async function getInstituteTestsAction({
@@ -68,6 +71,7 @@ export async function getInstituteTestsAction({
 
 async function fetchCandidateTests(
   userId: string,
+  instituteId: string,
   now: string,
   page: number,
   size: number,
@@ -80,16 +84,7 @@ async function fetchCandidateTests(
 }> {
   const supabase = await createClient()
 
-  // 1. Resolve the candidate's institute
-  const { data: profile } = await (supabase as any)
-    .from("profiles")
-    .select("institute_id")
-    .eq("id", userId)
-    .maybeSingle()
-
-  if (!profile?.institute_id) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
-  }
+  // institute_id is passed in directly from getUserProfile() — no extra DB call needed.
 
   // 2a. Find candidate's cohorts and eligible test IDs
   const { data: memberRows } = await (supabase as any)
@@ -134,13 +129,13 @@ async function fetchCandidateTests(
 
   const cohortFilter = (q: any) => q.in("id", eligibleTestIds)
 
-  // 3. Count parallel queries for each tab matching the search term
+  // 2. Count parallel queries for each tab matching the search term
   const allCountQuery = cohortFilter(searchFilter(
     (supabase as any)
       .from("tests")
       .select("id", { count: "exact", head: true })
       .eq("status", "published")
-      .eq("institute_id", profile.institute_id)
+      .eq("institute_id", instituteId)
   ))
 
   const liveCountQuery = cohortFilter(searchFilter(
@@ -148,7 +143,7 @@ async function fetchCandidateTests(
       .from("tests")
       .select("id", { count: "exact", head: true })
       .eq("status", "published")
-      .eq("institute_id", profile.institute_id)
+      .eq("institute_id", instituteId)
       .lte("available_from", now)
       .or(`available_until.gt.${now},available_until.is.null`)
   ))
@@ -161,7 +156,7 @@ async function fetchCandidateTests(
       .from("tests")
       .select("id", { count: "exact", head: true })
       .eq("status", "published")
-      .eq("institute_id", profile.institute_id)
+      .eq("institute_id", instituteId)
       .gt("available_from", now)
   ))
   if (submittedTestIds.length > 0) {
@@ -173,7 +168,7 @@ async function fetchCandidateTests(
       .from("tests")
       .select("id", { count: "exact", head: true })
       .eq("status", "published")
-      .eq("institute_id", profile.institute_id)
+      .eq("institute_id", instituteId)
   )
 
   if (submittedTestIds.length > 0) {
@@ -192,7 +187,7 @@ async function fetchCandidateTests(
         .from("tests")
         .select("id", { count: "exact", head: true })
         .eq("status", "published")
-        .eq("institute_id", profile.institute_id)
+        .eq("institute_id", instituteId)
         .in("id", attemptedTestIds)
     ))
   } else {
@@ -228,7 +223,7 @@ async function fetchCandidateTests(
       { count: "exact" }
     )
     .eq("status", "published")
-    .eq("institute_id", profile.institute_id)
+    .eq("institute_id", instituteId)
     .eq("test_attempts.candidate_id", userId)
     .in("id", eligibleTestIds)
 
@@ -295,7 +290,7 @@ async function fetchCandidateTests(
         { count: "exact" }
       )
       .eq("status", "published")
-      .eq("institute_id", profile.institute_id)
+      .eq("institute_id", instituteId)
       .eq("test_attempts.candidate_id", userId)
       .in("id", eligibleTestIds)
 

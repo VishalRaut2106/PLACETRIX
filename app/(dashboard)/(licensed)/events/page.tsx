@@ -12,22 +12,12 @@ export const metadata = {
 }
 
 async function fetchInstituteEvents(
-  userId: string
+  instituteId: string | null
 ): Promise<{
   events: EventListItem[]
   totalAttendeesCount: number
   totalCheckedInCount: number
 }> {
-  const supabase = await createClient()
-
-  // Find institute ID of the staff user
-  const { data: profile } = await (supabase as any)
-    .from("profiles")
-    .select("institute_id")
-    .eq("id", userId)
-    .maybeSingle()
-
-  const instituteId = profile?.institute_id
   if (!instituteId) {
     return {
       events: [],
@@ -35,6 +25,8 @@ async function fetchInstituteEvents(
       totalCheckedInCount: 0,
     }
   }
+
+  const supabase = await createClient()
 
   // Fetch all events for the institute joining their tickets and cohorts
   const { data: rawEvents } = await (supabase as any)
@@ -84,23 +76,16 @@ async function fetchInstituteEvents(
 }
 
 async function fetchCandidateEvents(
-  userId: string
+  userId: string,
+  instituteId: string | null
 ): Promise<{
   events: CandidateEventListItem[]
 }> {
-  const supabase = await createClient()
-
-  // 1. Resolve candidate profile details
-  const { data: profile } = await (supabase as any)
-    .from("profiles")
-    .select("institute_id")
-    .eq("id", userId)
-    .maybeSingle()
-
-  const instituteId = profile?.institute_id
   if (!instituteId) {
     return { events: [] }
   }
+
+  const supabase = await createClient()
 
   // 2. Find which cohorts this candidate belongs to
   const { data: memberRows } = await (supabase as any)
@@ -186,7 +171,7 @@ export default async function EventsPage() {
       events,
       totalAttendeesCount,
       totalCheckedInCount,
-    } = await fetchInstituteEvents(profile.id)
+    } = await fetchInstituteEvents(profile.institute_id)
 
     return (
       <EventsStaffClient
@@ -198,7 +183,7 @@ export default async function EventsPage() {
   }
 
   // ─── Candidate View ──────────────────────────────────────────────────────
-  const { events } = await fetchCandidateEvents(profile.id)
+  const { events } = await fetchCandidateEvents(profile.id, profile.institute_id)
 
   return (
     <EventsCandidateClient

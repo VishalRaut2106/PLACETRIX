@@ -12,6 +12,9 @@ export const metadata = {
   description: "Verify the authenticity of PlaceTrix course completion certificates",
 }
 
+// Revalidate certificate pages once per day (24 hours ISR)
+export const revalidate = 86400;
+
 export default async function VerifyCertificatePage({ params }: PageProps) {
   const { certificateId } = await params
 

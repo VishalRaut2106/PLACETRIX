@@ -60,7 +60,7 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { toast } from "sonner";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
-import { getProblemDataSPA, fetchProblemsInfinite } from "../../actions";
+import { getProblemDataSPA, fetchProblemsInfinite, runCodeAction, submitCodeAction, formatCodeAction } from "../../actions";
 import { getSubmissionCode } from "../../problems/[id]/notes-actions";
 // Prism is loaded lazily the first time syntax highlighting is needed to
 // avoid adding ~80KB of parse cost to the initial JS bundle.
@@ -557,12 +557,7 @@ export function ProblemWorkspaceClient({
     const currentLang = selectedLangRef.current.value;
     if (!currentCode || !currentLang) return;
     try {
-      const res = await fetch('/api/logiclab/format', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: currentCode, language: currentLang })
-      });
-      const data = await res.json();
+      const data = await formatCodeAction(currentCode, currentLang);
       if (data.warning) {
         toast.warning(data.warning);
       } else if (data.error) {
@@ -1217,28 +1212,16 @@ export function ProblemWorkspaceClient({
         processedCode = processedCode.replace(/public\s+class\s+/g, "class ");
       }
 
-      const res = await fetch("/api/logiclab/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_code: processedCode,
-          language_id: selectedLang.id,
-          problem_id: problem.id,
-          mode: "problem",
-          custom_cases: customInputs.map(ci => ci.trim()),
-          custom_expected: customExpectedOutputs,
-        }),
+      const data = await runCodeAction({
+        source_code: processedCode,
+        language_id: selectedLang.id,
+        problem_id: problem.id,
+        mode: "problem",
+        custom_cases: customInputs.map(ci => ci.trim()),
+        custom_expected: customExpectedOutputs,
       });
-      const textResponse = await res.text();
-      let data;
-      try {
-        data = JSON.parse(textResponse);
-      } catch {
-        throw new Error(
-          "Server returned an invalid response (possible timeout or gateway error).",
-        );
-      }
-      if (!res.ok) throw new Error(data.error || "Execution failed.");
+      if (!data) throw new Error("Execution failed with empty response.");
+      if (data.error) throw new Error(data.error);
 
       setRunResult(data);
     } catch (err: any) {
@@ -1282,27 +1265,14 @@ export function ProblemWorkspaceClient({
         processedCode = processedCode.replace(/public\s+class\s+/g, "class ");
       }
 
-      const res = await fetch("/api/logiclab/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          problem_id: problem.id,
-          code: processedCode,
-          language_id: selectedLang.id,
-          user_id: userId,
-          daily_challenge_id: isDailyChallenge ? dailyChallengeId : undefined,
-        }),
+      const data: any = await submitCodeAction({
+        problem_id: problem.id,
+        code: processedCode,
+        language_id: selectedLang.id,
+        daily_challenge_id: isDailyChallenge ? dailyChallengeId : undefined,
       });
-      const textResponse = await res.text();
-      let data;
-      try {
-        data = JSON.parse(textResponse);
-      } catch {
-        throw new Error(
-          "Server returned an invalid response (possible timeout or gateway error).",
-        );
-      }
-      if (!res.ok) throw new Error(data.error || "Submission failed.");
+      if (!data) throw new Error("Submission failed with empty response.");
+      if (data.error) throw new Error(data.error);
 
       // Inject the static snapshot so changing live code doesn't affect the submitted view
       data.submitted_code = code;

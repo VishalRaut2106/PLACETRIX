@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUserProfile } from "@/lib/supabase/profile";
-import { createClient as createServerClient } from "@/lib/supabase/server";
 import { ResumeGeneratorClient } from "./ResumeGeneratorClient";
 import type { ResumeFormData } from "./ResumePDFDocument";
+import { getCachedGlobalSkills, getCachedCandidateResumePrefill } from "@/lib/supabase/cached-queries";
 
 export const metadata: Metadata = {
   title: "Resume Generator",
@@ -15,70 +15,22 @@ export default async function ResumeGeneratorPage() {
   if (!profile) redirect("/auth/login");
   if (profile.account_type !== "institute_candidate" && profile.account_type !== "admin") redirect("/tools");
 
-  const supabase = await createServerClient();
-
-  // ── Parallel data fetch ────────────────────────────────────────────────────
-  const [
-    { data: academicDetails },
-    { data: candidateEducation },
-    { data: candidateExperiences },
-    { data: candidateProjects },
-    { data: candidateCertifications },
-    { data: allSkills },
-    { data: candidateSkillRows },
-    { data: semesterGrades },
-  ] = await Promise.all([
-    (supabase as any)
-      .from("candidate_academic_details")
-      .select("course_id, passout_year, university_prn, course:institute_courses(course_name)")
-      .eq("profile_id", profile.id)
-      .maybeSingle(),
-    (supabase as any)
-      .from("candidate_education")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("passout_year", { ascending: false }),
-    (supabase as any)
-      .from("candidate_experiences")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("start_date", { ascending: false }),
-    (supabase as any)
-      .from("candidate_projects")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("start_date", { ascending: false }),
-    (supabase as any)
-      .from("candidate_certifications")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("issue_date", { ascending: false }),
-    (supabase as any)
-      .from("skills")
-      .select("*")
-      .order("category")
-      .order("name"),
-    (supabase as any)
-      .from("candidate_skills")
-      .select("skill_id")
-      .eq("profile_id", profile.id),
-    (supabase as any)
-      .from("candidate_semester_grades")
-      .select("semester_number, sgpa")
-      .eq("profile_id", profile.id)
-      .order("semester_number"),
+  // ── Parallel cached data fetch ─────────────────────────────────────────────
+  const [prefillDataCached, allSkills] = await Promise.all([
+    getCachedCandidateResumePrefill(profile.id, profile.institute_id),
+    getCachedGlobalSkills(),
   ]);
 
-  // ── Resolve institute name ─────────────────────────────────────────────────
-  let instituteName: string | null = null;
-  if (profile.institute_id) {
-    const { data: inst } = await (supabase as any)
-      .from("institutes")
-      .select("institute_name")
-      .eq("id", profile.institute_id)
-      .maybeSingle();
-    instituteName = inst?.institute_name ?? null;
-  }
+  const {
+    academicDetails,
+    candidateEducation,
+    candidateExperiences,
+    candidateProjects,
+    candidateCertifications,
+    candidateSkillRows,
+    semesterGrades,
+    instituteName,
+  } = prefillDataCached;
 
   // ── Course name ───────────────────────────────────────────────────────────
   const courseName: string | null = Array.isArray(academicDetails?.course)

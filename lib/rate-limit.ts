@@ -53,6 +53,13 @@ export function rateLimit(
   }
 
   entry.timestamps.push(now)
+
+  // Lazy probabilistic cleanup — runs ~10% of the time to avoid unbounded memory
+  // growth without burning idle CPU on all instances with a setInterval timer.
+  if (Math.random() < 0.1) {
+    _lazyCleanup(windowMs)
+  }
+
   return {
     success: true,
     remaining: limit - entry.timestamps.length,
@@ -61,21 +68,15 @@ export function rateLimit(
 }
 
 /**
- * Periodically clean up expired entries to prevent unbounded memory growth.
- * Call once at module initialisation (runs every 5 minutes).
+ * Inline cleanup of fully-expired store entries.
+ * Called probabilistically by rateLimit() — no background timer needed.
+ * The cutoff uses 5× the provided window so even large windows are eventually cleaned.
  */
-let _cleanupScheduled = false
-function scheduleCleanup() {
-  if (_cleanupScheduled) return
-  _cleanupScheduled = true
-  setInterval(() => {
-    const now = Date.now()
-    for (const [key, entry] of store.entries()) {
-      // If all timestamps are old, drop the entry entirely
-      if (entry.timestamps.every((t) => t < now - 5 * 60_000)) {
-        store.delete(key)
-      }
+function _lazyCleanup(windowMs: number) {
+  const cutoff = Date.now() - Math.max(windowMs * 5, 5 * 60_000)
+  for (const [key, entry] of store.entries()) {
+    if (entry.timestamps.every((t) => t < cutoff)) {
+      store.delete(key)
     }
-  }, 5 * 60_000)
+  }
 }
-scheduleCleanup()

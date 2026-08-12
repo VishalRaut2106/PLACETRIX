@@ -7,6 +7,8 @@ import { InstituteProfileClient } from "./InstituteProfileClient"
 import { AdminProfileClient } from "./AdminProfileClient"
 import { StaffProfileClient } from "./StaffProfileClient"
 import { TpoProfileClient } from "./TpoProfileClient"
+import { getCachedGlobalSkills, getCachedGlobalInstitutes } from "@/lib/supabase/cached-queries"
+
 export default async function MyProfilePage() {
   const profile = await getUserProfile()
   if (!profile) return null
@@ -30,10 +32,10 @@ export default async function MyProfilePage() {
       { data: candidateProjects },
       { data: candidateCertifications },
       { data: eventTickets },
-      { data: allSkills },
+      allSkills,
       { data: candidateSkillRows },
       { data: semesterGrades },
-      { data: allInstitutes }
+      allInstitutes
     ] = await Promise.all([
       (supabase as any).from("candidate_academic_details").select("course_id, passout_year, university_prn, course:institute_courses(course_name)").eq("profile_id", profile.id).maybeSingle(),
       (supabase as any).from("candidate_education").select("*").eq("profile_id", profile.id).order("passout_year", { ascending: false }),
@@ -54,10 +56,10 @@ export default async function MyProfilePage() {
         .eq("candidate_id", profile.id)
         .eq("attendance_status", "Present")
         .eq("events.status", "Concluded"),
-      (supabase as any).from("skills").select("*").order("category").order("name"),
+      getCachedGlobalSkills(),
       (supabase as any).from("candidate_skills").select("skill_id").eq("profile_id", profile.id),
       (supabase as any).from("candidate_semester_grades").select("semester_number, sgpa").eq("profile_id", profile.id).order("semester_number"),
-      (supabase as any).from("institutes").select("id, institute_name, affiliation").order("institute_name"),
+      getCachedGlobalInstitutes(),
     ]);
 
     let semestersCount = 8;

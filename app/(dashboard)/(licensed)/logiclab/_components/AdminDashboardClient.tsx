@@ -1,5 +1,6 @@
 "use client"
 
+import { seedProblemsAction } from "../actions"
 import React, { useState, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -306,14 +307,7 @@ export function AdminDashboardClient({
 
       toast.loading(`Seeding ${problems.length} problems into database...`, { id: tId })
 
-      const seedRes = await fetch("/api/logiclab/seed-problems", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(problems),
-      })
-      const result = await seedRes.json()
-
-      if (!seedRes.ok) throw new Error(result.error || "Seed failed")
+      const result = await seedProblemsAction(problems);
 
       toast.success(
         `Seeded ${result.inserted} problems! ${result.skipped > 0 ? `(${result.skipped} already existed)` : ""}`,

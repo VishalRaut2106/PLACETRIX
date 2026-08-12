@@ -3,6 +3,10 @@
 import { redirect } from "next/navigation"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { GoogleGenAI } from "@google/genai"
+import crypto from "crypto"
+
+// SHA-256 AI response cache map to eliminate 100% of duplicate Gemini API calls & server wait time
+const resumeAiCacheMap = new Map<string, any>()
 
 // ─────────────────────────────────────────────
 // Types
@@ -170,6 +174,21 @@ export async function analyzeResumeAction(formData: FormData): Promise<AnalysisR
 
   const localAnalysis = performLocalAnalysis(cleanedText)
   const hasJD = jobDescription.trim().length > 20
+
+  // SHA-256 Hashing: Check if this exact resume text + job description was analyzed before
+  const inputHash = crypto
+    .createHash("sha256")
+    .update(cleanedText.toLowerCase().trim() + "|||" + jobDescription.toLowerCase().trim())
+    .digest("hex")
+
+  if (resumeAiCacheMap.has(inputHash)) {
+    const cachedResult = resumeAiCacheMap.get(inputHash)
+    return {
+      ...cachedResult,
+      fileName: file.name,
+      analyzedAt: new Date().toISOString(),
+    }
+  }
 
   const ai = new GoogleGenAI({ apiKey })
 
@@ -435,12 +454,12 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
   }
 
   const MODEL_FALLBACK_CHAIN = [
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash-lite",
     "gemini-3.1-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemma-4-31b",
     "gemini-2.0-flash",
-    "gemini-1.5-pro",
+    "gemma-4-31b",
   ]
   let content = ""
   let lastError: unknown
@@ -549,9 +568,15 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
     }
   }
 
-  return {
+  const resultPayload = {
     ...parsed,
     localAnalysis,
+  }
+
+  resumeAiCacheMap.set(inputHash, resultPayload)
+
+  return {
+    ...resultPayload,
     fileName: file.name,
     analyzedAt: new Date().toISOString(),
   }

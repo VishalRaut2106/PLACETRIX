@@ -30,46 +30,37 @@ import type {
 
 async function fetchCandidateView(
   testId: string,
-  userId: string
+  userId: string,
+  candidateInstituteId: string | null
 ): Promise<{ test: CandidateTestDetail; attempt: CandidateAttemptDetail | null }> {
   const supabase = await createClient()
 
-  // 1. Fetch user's institute profile and the test with its nested data in parallel.
-  // This reduces 7-8 sequential/parallel calls to just 2 master calls.
-  const [profileRes, testRes] = await Promise.all([
-    (supabase as any)
-      .from("profiles")
-      .select("institute_id")
-      .eq("id", userId)
-      .maybeSingle(),
-    (supabase as any)
-      .from("tests")
-      .select(`
-        id, title, description, instructions, time_limit_seconds, 
-        available_from, available_until, results_available, marks_available, status, institute_id,
-        shuffle_questions, shuffle_options, max_attempts,
-        institute:institutes(institute_name, logo_path),
-        test_questions (
-          id, question_text, marks, explanation, order_index,
-          test_question_options (id, option_text, is_correct, order_index),
-          question_tags (test_question_tags (id, name))
-        ),
-        test_attempts (
-          id, status, submitted_at, score, total_marks, percentage, 
-          time_spent_seconds, tab_switch_count,
-          test_attempt_answers (
-            question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
-          )
+  // Fetch test with its nested data for THIS student only
+  const testRes = await (supabase as any)
+    .from("tests")
+    .select(`
+      id, title, description, instructions, time_limit_seconds, 
+      available_from, available_until, results_available, marks_available, status, institute_id,
+      shuffle_questions, shuffle_options, max_attempts,
+      institute:institutes(institute_name, logo_path),
+      test_questions (
+        id, question_text, marks, explanation, order_index,
+        test_question_options (id, option_text, is_correct, order_index),
+        question_tags (test_question_tags (id, name))
+      ),
+      test_attempts (
+        id, status, submitted_at, score, total_marks, percentage, 
+        time_spent_seconds, tab_switch_count,
+        test_attempt_answers (
+          question_id, selected_option_ids, is_correct, marks_awarded, time_spent_seconds
         )
-      `)
-      .eq("id", testId)
-      // We filter attempts for THIS student only
-      .eq("test_attempts.candidate_id", userId)
-      .order("created_at", { foreignTable: "test_attempts", ascending: false })
-      .maybeSingle()
-  ])
+      )
+    `)
+    .eq("id", testId)
+    .eq("test_attempts.candidate_id", userId)
+    .order("created_at", { foreignTable: "test_attempts", ascending: false })
+    .maybeSingle()
 
-  const candidateProfile = profileRes.data
   let raw = testRes.data
 
   if (!raw && testRes.error) {
@@ -101,7 +92,7 @@ async function fetchCandidateView(
     raw = fallbackRes.data
   }
 
-  if (!candidateProfile?.institute_id || !raw || raw.status !== "published" || raw.institute_id !== candidateProfile.institute_id) {
+  if (!candidateInstituteId || !raw || raw.status !== "published" || raw.institute_id !== candidateInstituteId) {
     notFound()
   }
 
@@ -444,7 +435,7 @@ export default async function TestDetailPage({
   const serverNow = new Date().toISOString()
 
   if (profile.account_type === "institute_candidate") {
-    const { test, attempt } = await fetchCandidateView(testId, profile.id)
+    const { test, attempt } = await fetchCandidateView(testId, profile.id, profile.institute_id)
     return <CandidateTestDetailClient test={test} attempt={attempt} serverNow={serverNow} />
   }
 

@@ -117,9 +117,12 @@ function PasswordStrengthBar({ score }: { score: 0 | 1 | 2 | 3 | 4 }) {
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type Tab = "security" | "billing" | "notifications" | "history" | "privacy";
+import { AppearanceSettings } from "./_components/AppearanceSettings";
+
+type Tab = "appearance" | "security" | "billing" | "notifications" | "history" | "privacy";
 
 const TABS: { value: Tab; label: string }[] = [
+  { value: "appearance", label: "Appearance" },
   { value: "security", label: "Security" },
   { value: "billing", label: "Billing" },
   { value: "notifications", label: "Notifications" },
@@ -358,6 +361,11 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
         </div>
 
         <div className="mt-4">
+
+          {/* ── APPEARANCE TAB ── */}
+          <TabsContent value="appearance" className="space-y-6 mt-0">
+            <AppearanceSettings />
+          </TabsContent>
 
           {/* ── SECURITY TAB ── */}
           <TabsContent value="security" className="space-y-6 mt-0">

@@ -51,14 +51,14 @@ export type DiagnosticResultPayload = {
   error?: string
 }
 
-// ── Fallback chain DOES NOT include gemini-3.5-flash to preserve its quota for test generation
+// ── Fallback chain prioritizing fast Lite models to save Cloud Run CPU execution time
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash-lite",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemma-4-31b",
   "gemini-2.0-flash",
-  "gemini-1.5-pro",
+  "gemma-4-31b",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
@@ -83,6 +83,24 @@ export async function generateConceptualFeedbackAction(
   const profile = await getUserProfile()
   if (!profile) {
     return { error: "Authentication required." }
+  }
+
+  // 1. Instant Cache Check: If diagnosis was already generated and saved for this attemptId, return cached payload instantly!
+  if (input.attemptId) {
+    try {
+      const dbClient = await createClient()
+      const { data: attemptRow } = await (dbClient as any)
+        .from("test_attempts")
+        .select("ai_diagnosis")
+        .eq("id", input.attemptId)
+        .maybeSingle()
+
+      if (attemptRow?.ai_diagnosis && !attemptRow.ai_diagnosis.error && attemptRow.ai_diagnosis.overall_diagnosis) {
+        return attemptRow.ai_diagnosis as DiagnosticResultPayload
+      }
+    } catch (err) {
+      console.warn("[generateConceptualFeedbackAction] Cache lookup error:", err)
+    }
   }
 
   const apiKey = process.env.GEMINI_API_KEY
