@@ -280,7 +280,7 @@ export async function fetchProblemsInfinite({
 
   let query = supabase
     .from("logiclab_problems")
-    .select("id, number, title, difficulty, tags, created_at", { count: "exact" })
+    .select("id, number, title, difficulty, tags, created_at")
 
   if (search) {
     query = query.ilike("title", `%${search}%`)
@@ -292,21 +292,48 @@ export async function fetchProblemsInfinite({
     query = query.contains("tags", [tag])
   }
 
-  query = query.order("number", { ascending: sortBy !== "number-desc" }).range(offset, offset + limit - 1)
+  query = query.order("number", { ascending: sortBy !== "number-desc" })
 
-  const { data: rawProblems, count, error: fallErr } = await query
+  const { data: rawProblems, error: fallErr } = await query
 
   if (fallErr || !rawProblems) {
     console.error("[fetchProblemsInfinite] Fallback error:", fallErr)
     return { problems: [], hasMore: false, totalCount: 0 }
   }
 
+  let filteredProblems = rawProblems;
+
+  if (tab !== "all" && userId) {
+    if (tab === "solved" || tab === "unsolved") {
+      const { data: solved } = await supabase.from('logiclab_user_solved_problems').select('problem_id').eq('user_id', userId);
+      const solvedIds = new Set(solved?.map((s: any) => s.problem_id) || []);
+      
+      if (tab === "solved") {
+        filteredProblems = filteredProblems.filter((p: any) => solvedIds.has(p.id));
+      } else {
+        filteredProblems = filteredProblems.filter((p: any) => !solvedIds.has(p.id));
+      }
+    } else if (tab === "attempted") {
+      const { data: submissions } = await supabase.from('logiclab_problem_submissions').select('problem_id').eq('user_id', userId);
+      const { data: solved } = await supabase.from('logiclab_user_solved_problems').select('problem_id').eq('user_id', userId);
+      
+      const attemptedIds = new Set(submissions?.map((s: any) => s.problem_id) || []);
+      const solvedIds = new Set(solved?.map((s: any) => s.problem_id) || []);
+      
+      filteredProblems = filteredProblems.filter((p: any) => attemptedIds.has(p.id) && !solvedIds.has(p.id));
+    }
+  }
+
+  const paginatedProblems = filteredProblems.slice(offset, offset + limit);
+  const finalTotalCount = filteredProblems.length;
+  const finalHasMore = offset + limit < finalTotalCount;
+
   // Fetch user solved status and problem submission stats across all submission tables
   let solvedSet = new Set<string>()
   const statsMap: Record<string, { total: number; accepted: number }> = {}
 
-  if (rawProblems.length > 0) {
-    const pIds = rawProblems.map((p: any) => p.id)
+  if (paginatedProblems.length > 0) {
+    const pIds = paginatedProblems.map((p: any) => p.id)
     pIds.forEach((id: string) => {
       statsMap[id] = { total: 0, accepted: 0 }
     })
@@ -361,7 +388,7 @@ export async function fetchProblemsInfinite({
     if (allDSubs.data) allDSubs.data.forEach(addStat)
   }
 
-  const enriched = rawProblems.map((p: any) => {
+  const enriched = paginatedProblems.map((p: any) => {
     const st = statsMap[p.id] || { total: 0, accepted: 0 }
     const acceptanceRate = st.total > 0 ? Math.round((st.accepted / st.total) * 100) : null
     return {
@@ -369,14 +396,11 @@ export async function fetchProblemsInfinite({
       solved_status: solvedSet.has(p.id) ? "Accepted" : null,
       acceptance_rate: acceptanceRate,
       total_submissions: st.total,
-      total_count: count || rawProblems.length
+      total_count: finalTotalCount
     }
   })
 
-  const totalCount = count || enriched.length
-  const hasMore = offset + limit < totalCount
-
-  return { problems: enriched, hasMore, totalCount }
+  return { problems: enriched, hasMore: finalHasMore, totalCount: finalTotalCount }
 }
 
 // Cache execution-critical static data to eliminate DB reads on /run and /submit.

@@ -107,11 +107,63 @@ export default async function LogicLabPage() {
     }
   }
 
-  // 2. Read streak stats directly from the profile (updated natively by gamification engine)
-  const streakStats = { 
-    currentStreak: profile.current_streak || 0, 
-    maxStreak: profile.longest_streak || 0 
+  // 2. Fetch full activity history to compute accurate streaks on the fly
+  const { data: streakRows } = await (supabase as any)
+    .from("logiclab_daily_challenge_user_activity")
+    .select("activity_date, solved, submission_count")
+    .eq("user_id", profile.id)
+    .order("activity_date", { ascending: true });
+
+  const allActiveDates = new Map<string, boolean>();
+  for (const row of streakRows ?? []) {
+    if (row.activity_date && (row.solved || Number(row.submission_count) > 0)) {
+      allActiveDates.set(row.activity_date, true);
+    }
   }
+
+  const sortedDates = Array.from(allActiveDates.keys()).sort((a, b) => b.localeCompare(a));
+  let currentStreak = 0;
+  let maxStreak = 0;
+
+  if (sortedDates.length > 0) {
+    const ascDates = [...sortedDates].reverse();
+    let prevDate: Date | null = null;
+    let tempStreak = 0;
+
+    for (const dStr of ascDates) {
+      const currentDate = new Date(dStr);
+      if (!prevDate) {
+        tempStreak = 1;
+      } else {
+        const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 1) {
+          tempStreak++;
+        } else {
+          if (tempStreak > maxStreak) maxStreak = tempStreak;
+          tempStreak = 1;
+        }
+      }
+      prevDate = currentDate;
+    }
+    if (tempStreak > maxStreak) maxStreak = tempStreak;
+
+    const hasActiveStreak = allActiveDates.has(todayStr) || allActiveDates.has(yesterdayStr);
+    if (hasActiveStreak) {
+      const checkDate = allActiveDates.has(todayStr) ? new Date(today) : new Date(yesterdayDate);
+      let checkStr = checkDate.toISOString().split("T")[0];
+      while (allActiveDates.has(checkStr)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+        checkStr = checkDate.toISOString().split("T")[0];
+      }
+    }
+  }
+
+  const streakStats = { 
+    currentStreak, 
+    maxStreak 
+  };
 
   const activityCalendar: any[] = []
   const daysToGenerate = 140 // 20 weeks * 7 days

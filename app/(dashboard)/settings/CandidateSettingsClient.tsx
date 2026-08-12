@@ -157,6 +157,31 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
+
+  // ── Privacy state ──
+  const [privacySettings, setPrivacySettings] = useState<Record<string, boolean>>(
+    userProfile.privacy_settings || { is_private: false, hide_logiclab: false, hide_education: false, hide_experience: false }
+  );
+  const [isPrivacyPending, startPrivacyTransition] = useTransition();
+
+  const handleUpdatePrivacy = async (key: string, newVal: boolean) => {
+    const updatedSettings = { ...privacySettings, [key]: newVal };
+    setPrivacySettings(updatedSettings);
+    startPrivacyTransition(async () => {
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ privacy_settings: updatedSettings })
+        .eq('id', userProfile.id);
+      
+      if (error) {
+        toast.error("Failed to update privacy settings");
+        setPrivacySettings(privacySettings); // revert on error
+      } else {
+        toast.success("Privacy settings updated");
+      }
+    });
+  };
+
   const [pwShowCurrent, setPwShowCurrent] = useState(false);
   const [pwShowNew, setPwShowNew] = useState(false);
   const [pwShowConfirm, setPwShowConfirm] = useState(false);
@@ -725,12 +750,18 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
               <CardHeader><CardTitle>Privacy Controls</CardTitle><CardDescription>Manage your data privacy</CardDescription></CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { label: "Public Profile", desc: "Make your profile visible to recruiters" },
-                  { label: "Allow Data Usage", desc: "Help improve platform with usage data" },
-                ].map(({ label, desc }) => (
+                  { label: "Private Profile", key: "is_private", desc: "Hide your profile completely from recruiters and public" },
+                  { label: "Hide LogicLab Stats", key: "hide_logiclab", desc: "Hide your problem solving stats and score" },
+                  { label: "Hide Education", key: "hide_education", desc: "Hide your academic details and grades" },
+                  { label: "Hide Work Experience", key: "hide_experience", desc: "Hide your professional experience" },
+                ].map(({ label, key, desc }) => (
                   <div key={label} className="flex items-center justify-between">
                     <div><Label>{label}</Label><p className="text-sm text-muted-foreground">{desc}</p></div>
-                    <Switch />
+                    <Switch 
+                      checked={privacySettings[key] ?? false}
+                      onCheckedChange={(val) => handleUpdatePrivacy(key, val)}
+                      disabled={isPrivacyPending || (key !== "is_private" && privacySettings.is_private === true)}
+                    />
                   </div>
                 ))}
               </CardContent>

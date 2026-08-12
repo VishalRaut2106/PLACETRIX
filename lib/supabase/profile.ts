@@ -29,6 +29,7 @@ export interface UserProfile {
   institute_id: string | null;
   signature_path?: string | null;
   profile_updated?: boolean | null;
+  privacy_settings?: Record<string, boolean> | null;
 
   // Generic profile columns
   bio?: string | null;

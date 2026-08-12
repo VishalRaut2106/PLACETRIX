@@ -4162,28 +4162,27 @@ export function ProblemWorkspaceClient({
               {/* THE CARD ITSELF (Only this gets captured by html-to-image) */}
               <div
                 ref={badgeCardRef}
-                className={cn('w-full', 'flex', 'flex-col', 'items-center', 'rounded-xl', 'shadow-2xl', 'p-8', 'pb-6', 'border')}
-                style={{ backgroundColor: '#09090b', borderColor: '#27272a' }} // Explicit Dark Mode to fix CSS variables dropout
+                className={cn('w-full', 'flex', 'flex-col', 'items-center', 'rounded-xl', 'shadow-2xl', 'p-8', 'pb-6', 'border', 'bg-background', 'border-border')}
               >
                 {/* Watermark for download */}
                 <div className={cn('w-full', 'text-left', 'mb-6')}>
-                  <div className={cn('text-[10px]', 'tracking-widest', 'uppercase', 'font-bold', 'select-none', 'whitespace-nowrap')} style={{ color: '#71717a' }}>
+                  <div className={cn('text-[10px]', 'tracking-widest', 'uppercase', 'font-bold', 'select-none', 'whitespace-nowrap', 'text-muted-foreground')}>
                     PLACETRIX.APP — LOGICLAB
                   </div>
                 </div>
 
                 <div className={cn('w-full', 'text-center', 'mb-8', 'block')}>
-                  <h2 className={cn('text-2xl', 'font-bold', 'mb-2', 'block')} style={{ color: '#fafafa' }}>
+                  <h2 className={cn('text-2xl', 'font-bold', 'mb-2', 'block', 'text-foreground')}>
                     Achievement Unlocked
                   </h2>
-                  <p className={cn('text-sm', 'font-medium', 'block')} style={{ color: '#a1a1aa' }}>
+                  <p className={cn('text-sm', 'font-medium', 'block', 'text-muted-foreground')}>
                     Congratulations, {userProfile?.full_name?.split(' ')[0] || userProfile?.username || "Coder"}!
                   </p>
                 </div>
 
                 <div className={cn('relative', 'mb-8', 'flex', 'justify-center', 'w-full')}>
                   {/* Subtle glow */}
-                  <div className={cn('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-32', 'h-32', 'rounded-full', 'pointer-events-none')} style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', filter: 'blur(30px)' }} />
+                  <div className={cn('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-32', 'h-32', 'rounded-full', 'pointer-events-none', 'bg-primary/15')} style={{ filter: 'blur(30px)' }} />
 
                   <motion.div
                     initial={{ rotateY: 90, scale: 0.8 }}
@@ -4199,27 +4198,27 @@ export function ProblemWorkspaceClient({
                         className={cn('w-full', 'h-full', 'object-contain', 'block')}
                       />
                     ) : (
-                      <div className={cn('w-full', 'h-full', 'rounded-full', 'border-4', 'flex', 'items-center', 'justify-center')} style={{ backgroundColor: '#18181b', borderColor: 'rgba(52, 211, 153, 0.2)' }}>
-                        <IconSparkles className={cn('h-12', 'w-12')} style={{ color: '#34d399' }} />
+                      <div className={cn('w-full', 'h-full', 'rounded-full', 'border-4', 'flex', 'items-center', 'justify-center', 'bg-muted', 'border-primary/20')}>
+                        <IconSparkles className={cn('h-12', 'w-12', 'text-primary')} />
                       </div>
                     )}
                   </motion.div>
                 </div>
 
                 <div className={cn('w-full', 'text-center', 'mb-6', 'block')}>
-                  <h3 className={cn('text-xl', 'font-bold', 'mb-2', 'block')} style={{ color: '#fafafa' }}>
+                  <h3 className={cn('text-xl', 'font-bold', 'mb-2', 'block', 'text-foreground')}>
                     {unlockedBadgeModal.name}
                   </h3>
 
                   {unlockedBadgeModal.description && (
-                    <p className={cn('text-sm', 'font-medium', 'block')} style={{ color: '#a1a1aa' }}>
+                    <p className={cn('text-sm', 'font-medium', 'block', 'text-muted-foreground')}>
                       {unlockedBadgeModal.description}
                     </p>
                   )}
                 </div>
 
                 {/* Earned Date */}
-                <div className={cn('text-[8px]', 'tracking-wider', 'font-bold', 'mt-2', 'whitespace-nowrap')} style={{ color: '#71717a' }}>
+                <div className={cn('text-[8px]', 'tracking-wider', 'font-bold', 'mt-2', 'whitespace-nowrap', 'text-muted-foreground')}>
                   EARNED ON {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
                 </div>
               </div>

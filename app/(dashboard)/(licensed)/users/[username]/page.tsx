@@ -24,6 +24,7 @@ const AUTHORIZED_ACCOUNT_TYPES = [
   "institute_primary",
   "institute_staff",
   "institute_placement_officer",
+  "institute_candidate",
 ];
 
 export default async function UserReportPage({ params }: PageProps) {
@@ -40,21 +41,35 @@ export default async function UserReportPage({ params }: PageProps) {
   // 2. Look up target candidate profile
   const { data: targetProfile } = await (supabase as any)
     .from("profiles")
-    .select("id, full_name, first_name, last_name, email, username, avatar_path, bio, gender, linkedin_url, github_url, portfolio_links, institute_id, logiclab_points, account_type")
+    .select("id, full_name, first_name, last_name, email, username, avatar_path, bio, gender, linkedin_url, github_url, portfolio_links, institute_id, logiclab_points, account_type, privacy_settings")
     .eq("username", username)
     .eq("account_type", "institute_candidate")
     .maybeSingle();
 
   if (!targetProfile) return notFound();
 
-  // 3. Enforce institute security boundary
+  // 3. Enforce institute security boundary & privacy settings
   const isAdmin = viewer.account_type === "admin";
+  const isStaff = viewer.account_type === "institute_staff" || viewer.account_type === "institute_primary" || viewer.account_type === "institute_placement_officer";
+  const isOwner = viewer.id === targetProfile.id;
   const isSameInstitute =
     viewer.institute_id &&
     targetProfile.institute_id &&
     viewer.institute_id === targetProfile.institute_id;
 
   if (!isAdmin && !isSameInstitute) return notFound();
+
+  const privacySettings = targetProfile.privacy_settings || {};
+
+  // Privacy block: If profile is fully private, only the owner, admins, or staff can view it.
+  if (privacySettings.is_private === true && !isOwner && !isAdmin && !isStaff) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center flex-col gap-4">
+        <h1 className="text-4xl font-bold tracking-tight">Private Profile</h1>
+        <p className="text-muted-foreground">This user has chosen to keep their profile private.</p>
+      </div>
+    );
+  }
 
   // 4. Batch query target candidate data in parallel
   const cutOffDate20Weeks = new Date(Date.now() - 140 * 24 * 60 * 60 * 1000);
@@ -550,6 +565,10 @@ export default async function UserReportPage({ params }: PageProps) {
     testsList,
   };
 
+  // Enforce granular privacy settings for external viewers
+  const hideFromViewer = !isOwner && !isAdmin && !isStaff;
+  const hideEdu = hideFromViewer && privacySettings.hide_education;
+
   const publicData = {
     profile_id: targetProfile.id,
     full_name: targetProfile.full_name,
@@ -563,25 +582,25 @@ export default async function UserReportPage({ params }: PageProps) {
     linkedin_url: targetProfile.linkedin_url,
     github_url: targetProfile.github_url,
     portfolio_links: targetProfile.portfolio_links,
-    course_name: courseName,
-    passout_year: academicDetails?.passout_year ?? null,
-    university_prn: academicDetails?.university_prn ?? null,
-    institute_name: instituteName,
-    sgpa_semesters: sgpaArray,
+    course_name: hideEdu ? null : courseName,
+    passout_year: hideEdu ? null : (academicDetails?.passout_year ?? null),
+    university_prn: hideEdu ? null : (academicDetails?.university_prn ?? null),
+    institute_name: hideEdu ? null : instituteName,
+    sgpa_semesters: hideEdu ? [] : sgpaArray,
   };
-
+  
   return (
     <CandidateProfileReportView
       publicData={publicData}
-      educationData={candidateEducation ?? []}
-      experienceData={candidateExperiences ?? []}
+      educationData={hideFromViewer && privacySettings.hide_education ? [] : (candidateEducation ?? [])}
+      experienceData={hideFromViewer && privacySettings.hide_experience ? [] : (candidateExperiences ?? [])}
       projectsData={candidateProjects ?? []}
       certificationsData={candidateCertifications ?? []}
       eventCertificates={eventCertificates}
       allSkills={allSkills ?? []}
       selectedSkillIds={selectedSkillIds}
       semestersCount={semestersCount}
-      logicLabData={logicLabData}
+      logicLabData={hideFromViewer && privacySettings.hide_logiclab ? null : logicLabData}
       assignedTestsData={assignedTestsData}
     />
   );
