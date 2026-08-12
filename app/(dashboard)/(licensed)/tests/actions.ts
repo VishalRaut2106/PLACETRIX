@@ -57,11 +57,11 @@ export async function getInstituteTestsAction({
   tabCounts: { all: number; live: number; upcoming: number; past: number; drafts: number }
 }> {
   const profile = await getUserProfile()
-  if (!profile || !["institute_staff", "institute_placement_officer", "institute_primary"].includes(profile.account_type)) {
+  if (!profile || !["admin", "institute_staff", "institute_placement_officer", "institute_primary"].includes(profile.account_type)) {
     throw new Error("Unauthorized")
   }
-  const instituteId = profile.institute_id
-  if (!instituteId) {
+  const instituteId = profile.institute_id ?? (profile.account_type === "admin" ? "" : null)
+  if (instituteId === null) {
     throw new Error("No institute associated with profile")
   }
   return fetchInstituteTests(instituteId, now, page, size, search, tab)
@@ -388,7 +388,7 @@ async function fetchCandidateTests(
 // ─── Institute data helper ───────────────────────────────────────────────────
 
 async function fetchInstituteTests(
-  userId: string,
+  instituteId: string,
   now: string,
   page: number,
   size: number,
@@ -410,12 +410,14 @@ async function fetchInstituteTests(
   }
 
   // 1. Count parallel queries for each tab matching the search term
+  const filterInst = (q: any) => instituteId ? q.eq("institute_id", instituteId) : q
+
   const [countAllRes, countDraftsRes, countLiveRes, countUpcomingRes, countPastRes] = await Promise.all([
-    searchFilter((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }).eq("institute_id", userId)),
-    searchFilter((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "draft")),
-    searchFilter((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").or(`available_from.lte.${now},available_from.is.null`).or(`available_until.gt.${now},available_until.is.null`)),
-    searchFilter((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").gt("available_from", now)),
-    searchFilter((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }).eq("institute_id", userId).eq("status", "published").lt("available_until", now)),
+    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }))),
+    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "draft")),
+    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").or(`available_from.lte.${now},available_from.is.null`).or(`available_until.gt.${now},available_until.is.null`)),
+    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").gt("available_from", now)),
+    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").lt("available_until", now)),
   ])
 
   const tabCounts = {
@@ -427,10 +429,7 @@ async function fetchInstituteTests(
   }
 
   // 2. Main Paginated query
-  let query = (supabase as any)
-    .from("view_test_summary")
-    .select("*", { count: "exact" })
-    .eq("institute_id", userId)
+  let query = filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact" }))
 
   const activeTab = ["all", "live", "upcoming", "past", "drafts"].includes(tab) ? tab : "all"
 

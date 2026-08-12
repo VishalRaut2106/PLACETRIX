@@ -251,7 +251,7 @@ function mapAttemptRow(a: any): InstituteAttemptRow {
 
 async function fetchInstituteView(
   testId: string,
-  userId: string
+  instituteId: string
 ): Promise<InstituteTestDetail> {
   const supabase = await createClient()
 
@@ -270,7 +270,7 @@ async function fetchInstituteView(
       )
     `)
     .eq("id", testId)
-    .eq("institute_id", userId)
+    .eq("institute_id", instituteId)
     .maybeSingle()
 
   if (!raw && error) {
@@ -289,7 +289,7 @@ async function fetchInstituteView(
         )
       `)
       .eq("id", testId)
-      .eq("institute_id", userId)
+      .eq("institute_id", instituteId)
       .maybeSingle()
     raw = fallbackRes.data
     error = fallbackRes.error

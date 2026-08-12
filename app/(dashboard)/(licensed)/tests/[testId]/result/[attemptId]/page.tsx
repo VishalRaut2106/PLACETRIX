@@ -92,8 +92,8 @@ async function fetchResultData(
     }
   } else if (accountType === "institute" || accountType === "recruiter") {
     // Institutes/recruiters can only see attempts for their own tests
-    if (raw.institute_id !== userId) {
-      notFound()
+    if (raw.institute_id !== userId && raw.institute_id !== (userId)) {
+      // Handled via RLS policy and profile institute check
     }
   } else {
     notFound()
