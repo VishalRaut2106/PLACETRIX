@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IdeSettings } from "../../_types";
 import { DEFAULT_IDE_SETTINGS } from "../../_constants";
@@ -25,6 +26,7 @@ interface IdeSettingsModalProps {
   settings: IdeSettings;
   onSettingsChange: (settings: IdeSettings) => void;
   onPreviewFontSize?: (size: number) => void;
+  onOpenShortcuts?: () => void;
   trigger?: React.ReactNode;
 }
 
@@ -34,6 +36,7 @@ export function IdeSettingsModal({
   settings,
   onSettingsChange,
   onPreviewFontSize,
+  onOpenShortcuts,
   trigger,
 }: IdeSettingsModalProps) {
   const safeSettings = { ...DEFAULT_IDE_SETTINGS, ...settings };
@@ -197,7 +200,7 @@ export function IdeSettingsModal({
                   <SelectTrigger className="w-24 h-8 bg-zinc-950 border-zinc-800 text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent position="popper" className="bg-zinc-950 border-zinc-800 text-zinc-200">
+                  <SelectContent position="popper" className="bg-zinc-950 border-zinc-800 text-zinc-200 z-[100000]">
                     {[12, 13, 14, 15, 16, 17, 18, 19, 20].map((size) => (
                       <SelectItem 
                         key={size} 
@@ -225,6 +228,22 @@ export function IdeSettingsModal({
                   checked={safeSettings.wordWrap === "on"}
                   onCheckedChange={(c) => updateSetting("wordWrap", c ? "on" : "off")}
                 />
+              </div>
+              <div 
+                className="flex items-center justify-between cursor-pointer group py-1 -mx-2 px-2 rounded-md hover:bg-zinc-800/50 transition-colors"
+                onClick={() => {
+                  if (onOpenShortcuts) onOpenShortcuts();
+                  onOpenChange(false);
+                }}
+              >
+                <div>
+                  <Label className="text-sm font-medium text-zinc-300 cursor-pointer group-hover:text-white transition-colors">Keyboard Shortcuts</Label>
+                  <p className="text-xs text-zinc-500 mt-0.5">View all editor shortcuts</p>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-500 group-hover:text-zinc-300 transition-colors">
+                  <span className="text-xs font-medium">View</span>
+                  <ChevronRight className="h-4 w-4" />
+                </div>
               </div>
             </TabsContent>
           </div>

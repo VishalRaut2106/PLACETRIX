@@ -176,19 +176,19 @@ const renderTestcaseValue = (valStr: string) => {
     // 2D Array
     if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
       return (
-        <div className="mt-2 mb-3 overflow-x-auto w-full">
-          <div className="inline-flex flex-col items-center gap-[2px] py-1">
+        <div className={cn('mt-2', 'mb-3', 'overflow-x-auto', 'w-full')}>
+          <div className={cn('inline-flex', 'flex-col', 'items-center', 'gap-[2px]', 'py-1')}>
             {parsed.map((row, i) => (
-              <div key={i} className="flex gap-[2px]">
+              <div key={i} className={cn('flex', 'gap-[2px]')}>
                 {Array.isArray(row) ? row.map((cell: any, j: number) => (
                   <div
                     key={j}
-                    className="flex items-center justify-center min-w-[2.5rem] h-9 px-2 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-[4px] font-mono text-[15px] text-zinc-800 dark:text-zinc-200 shadow-sm"
+                    className={cn('flex', 'items-center', 'justify-center', 'min-w-[2.5rem]', 'h-9', 'px-2', 'bg-white', 'dark:bg-zinc-950/60', 'border', 'border-zinc-200', 'dark:border-zinc-800', 'rounded-[4px]', 'font-mono', 'text-[15px]', 'text-zinc-800', 'dark:text-zinc-200', 'shadow-sm')}
                   >
                     {(typeof cell === 'string' && cell === '.') || cell === null ? <span className="text-zinc-400">{cell === null ? 'null' : '.'}</span> : String(cell)}
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-9 px-3 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-[4px] font-mono text-[15px] text-zinc-800 dark:text-zinc-200 shadow-sm">
+                  <div className={cn('flex', 'items-center', 'justify-center', 'h-9', 'px-3', 'bg-white', 'dark:bg-zinc-950/60', 'border', 'border-zinc-200', 'dark:border-zinc-800', 'rounded-[4px]', 'font-mono', 'text-[15px]', 'text-zinc-800', 'dark:text-zinc-200', 'shadow-sm')}>
                     {String(row)}
                   </div>
                 )}
@@ -202,15 +202,15 @@ const renderTestcaseValue = (valStr: string) => {
     // 1D Array
     if (Array.isArray(parsed)) {
       if (parsed.length === 0) {
-        return <span className="font-mono text-zinc-500">[]</span>;
+        return <span className={cn('font-mono', 'text-zinc-500')}>[]</span>;
       }
       return (
-        <div className="mt-2 mb-3 overflow-x-auto w-full">
-          <div className="inline-flex flex-row gap-[2px] py-1">
+        <div className={cn('mt-2', 'mb-3', 'overflow-x-auto', 'w-full')}>
+          <div className={cn('inline-flex', 'flex-row', 'gap-[2px]', 'py-1')}>
             {parsed.map((cell: any, j: number) => (
               <div
                 key={j}
-                className="flex items-center justify-center min-w-[2.5rem] h-9 px-2 bg-white dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-[4px] font-mono text-[15px] text-zinc-800 dark:text-zinc-200 shadow-sm"
+                className={cn('flex', 'items-center', 'justify-center', 'min-w-[2.5rem]', 'h-9', 'px-2', 'bg-white', 'dark:bg-zinc-950/60', 'border', 'border-zinc-200', 'dark:border-zinc-800', 'rounded-[4px]', 'font-mono', 'text-[15px]', 'text-zinc-800', 'dark:text-zinc-200', 'shadow-sm')}
               >
                 {(typeof cell === 'string' && cell === '.') || cell === null ? <span className="text-zinc-400">{cell === null ? 'null' : '.'}</span> : String(cell)}
               </div>
@@ -222,19 +222,19 @@ const renderTestcaseValue = (valStr: string) => {
 
     // Fallback for strings and primitives: add a nice styling for strings to show quotes
     if (typeof parsed === 'string') {
-      return <span className="break-all whitespace-pre-wrap font-mono text-emerald-600 dark:text-emerald-400">"{parsed}"</span>;
+      return <span className={cn('break-all', 'whitespace-pre-wrap', 'font-mono', 'text-emerald-600', 'dark:text-emerald-400')}>"{parsed}"</span>;
     }
 
     // Booleans and numbers
     if (typeof parsed === 'boolean') {
-      return <span className="font-mono text-blue-600 dark:text-blue-400">{String(parsed)}</span>;
+      return <span className={cn('font-mono', 'text-blue-600', 'dark:text-blue-400')}>{String(parsed)}</span>;
     }
     if (typeof parsed === 'number') {
-      return <span className="font-mono text-amber-600 dark:text-amber-400">{String(parsed)}</span>;
+      return <span className={cn('font-mono', 'text-amber-600', 'dark:text-amber-400')}>{String(parsed)}</span>;
     }
 
   } catch (e) { }
-  return <span className="break-all whitespace-pre-wrap">{valStr}</span>;
+  return <span className={cn('break-all', 'whitespace-pre-wrap')}>{valStr}</span>;
 };
 
 export function ProblemWorkspaceClient({
@@ -278,6 +278,8 @@ export function ProblemWorkspaceClient({
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [showDiffView, setShowDiffView] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+  const [saveStatus, setSaveStatus] = useState<"Saved" | "Saving..." | "Unsaved" | "">("Saved");
 
   const jumpToEditorLine = (lineNum: number) => {
     if (!editorRef.current || !lineNum || lineNum <= 0) return;
@@ -285,7 +287,7 @@ export function ProblemWorkspaceClient({
       editorRef.current.revealLineInCenter(lineNum);
       editorRef.current.setPosition({ lineNumber: lineNum, column: 1 });
       editorRef.current.focus();
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Fetch the image as a blob to completely bypass html2canvas CORS issues
@@ -497,6 +499,21 @@ export function ProblemWorkspaceClient({
 
   const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
   const selectedLangRef = React.useRef(LANGUAGES[0]);
+
+  // Load preferred language from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem("logiclab_preferred_language");
+      if (savedLang) {
+        const lang = LANGUAGES.find((l) => l.value === savedLang);
+        if (lang) {
+          setSelectedLang(lang);
+        }
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   useEffect(() => {
     selectedLangRef.current = selectedLang;
@@ -926,20 +943,30 @@ export function ProblemWorkspaceClient({
     parsedBoilerplates,
   ]);
 
-  // Save code to local storage
+  // Debounced Save code to local storage
   React.useEffect(() => {
-    if (code) {
-      const key = isDailyChallenge
-        ? `logiclab_daily_challenge_${dailyChallengeId}_code_${selectedLang.value}`
-        : `logiclab_problem_${problem.id}_code_${selectedLang.value}`;
-      localStorage.setItem(key, JSON.stringify({
-        code,
-        timestamp: Date.now()
-      }));
-      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }
-  }, [code, problem.id, dailyChallengeId, isDailyChallenge, selectedLang.value]);
+    if (!code) return;
 
+    // Wait for a 2.5-second pause before initiating the save sequence
+    const timeoutId = setTimeout(() => {
+      // Briefly show saving indicator
+      setSaveStatus("Saving...");
+      
+      setTimeout(() => {
+        const key = isDailyChallenge
+          ? `logiclab_daily_challenge_${dailyChallengeId}_code_${selectedLang.value}`
+          : `logiclab_problem_${problem.id}_code_${selectedLang.value}`;
+        localStorage.setItem(key, JSON.stringify({
+          code,
+          timestamp: Date.now()
+        }));
+        setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        setSaveStatus("Saved");
+      }, 400); // 400ms fake saving delay for visual feedback
+    }, 2500);
+
+    return () => clearTimeout(timeoutId);
+  }, [code, problem.id, dailyChallengeId, isDailyChallenge, selectedLang.value]);
   // Console resizing state removed (replaced by react-resizable-panels)
 
   // Helper to extract parameter names from the selected language's boilerplate code
@@ -1070,7 +1097,7 @@ export function ProblemWorkspaceClient({
       if (!cancelled) setHighlightedCode(html);
     });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewingCode, viewingSubmission?.language_id]);
 
   const handleViewPastSubmission = async (sub: Submission) => {
@@ -1148,6 +1175,9 @@ export function ProblemWorkspaceClient({
     const lang = LANGUAGES.find((l) => l.value === langVal);
     if (lang) {
       setSelectedLang(lang);
+      try {
+        localStorage.setItem("logiclab_preferred_language", langVal);
+      } catch (e) {}
       // useEffect handles restoring or boilerplating code when selectedLang changes
     }
   };
@@ -1297,7 +1327,7 @@ export function ProblemWorkspaceClient({
         },
         ...prev,
       ]);
-      
+
       console.log("Submission Response Data:", data);
 
       if (data.newly_unlocked_badges && data.newly_unlocked_badges.length > 0) {
@@ -1508,7 +1538,7 @@ export function ProblemWorkspaceClient({
                     e.currentTarget.blur();
                   }}
                 >
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={cn('absolute', 'inset-0', 'flex', 'items-center', 'justify-center')}>
                     <span
                       className={cn(
                         "absolute flex items-center justify-center transition-all duration-300 ease-in-out",
@@ -1758,9 +1788,9 @@ export function ProblemWorkspaceClient({
         </TabsList>
 
         {/* Tab Content */}
-        <div className="flex-1 w-full min-h-0 flex flex-col relative">
+        <div className={cn('flex-1', 'w-full', 'min-h-0', 'flex', 'flex-col', 'relative')}>
           <TabsContent value="description" className={cn('mt-0', 'outline-none', 'flex-1', 'w-full', 'min-h-0', 'flex', 'flex-col')}>
-            <div className="flex-1 w-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className={cn('flex-1', 'w-full', 'overflow-y-auto', '[&::-webkit-scrollbar]:hidden', '[-ms-overflow-style:none]', '[scrollbar-width:none]')}>
               <div className="p-5">
                 {isTransitioning ? (
                   <div className={cn('flex', 'flex-col', 'w-full', 'space-y-4', 'pt-2')}>
@@ -1817,21 +1847,21 @@ export function ProblemWorkspaceClient({
                                 <div className={cn('pl-3', 'border-l-2', 'border-zinc-300 dark:border-muted-foreground/30', 'py-1.5', 'font-mono', 'text-[13px]', 'text-zinc-900 dark:text-foreground/90', 'space-y-1.5', 'bg-zinc-100/40 dark:bg-muted/5', 'rounded-r-md')}>
                                   <div>
                                     <span className="font-bold">Input: </span>
-                                    <div className="flex flex-col space-y-2 mt-1">
+                                    <div className={cn('flex', 'flex-col', 'space-y-2', 'mt-1')}>
                                       {tc.input.trim().split("\n").map((val: string, i: number) => (
                                         <div key={i} className={val.startsWith("[") ? "flex flex-col mt-1" : "flex items-center"}>
-                                          <span className="font-semibold mr-2 text-zinc-700 dark:text-muted-foreground whitespace-nowrap">{paramNames[i] || `param${i + 1}`} =</span>
+                                          <span className={cn('font-semibold', 'mr-2', 'text-zinc-700', 'dark:text-muted-foreground', 'whitespace-nowrap')}>{paramNames[i] || `param${i + 1}`} =</span>
                                           {renderTestcaseValue(val)}
                                         </div>
                                       ))}
                                     </div>
                                   </div>
                                   <div>
-                                    <span className="font-bold mr-2 block mb-1">Output:</span>
+                                    <span className={cn('font-bold', 'mr-2', 'block', 'mb-1')}>Output:</span>
                                     {renderTestcaseValue(tc.expected_output)}
                                   </div>
                                   {tc.explanation && (
-                                    <div className="text-zinc-650 dark:text-muted-foreground/90">
+                                    <div className={cn('text-zinc-650', 'dark:text-muted-foreground/90')}>
                                       <span className={cn('font-bold', 'text-zinc-900 dark:text-foreground/90')}>
                                         Explanation:{" "}
                                       </span>
@@ -1863,14 +1893,14 @@ export function ProblemWorkspaceClient({
                           </div>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-4 pt-2">
+                        <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-4', 'pt-2')}>
                           {problem.time_limit && (
-                            <div className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
+                            <div className={cn('text-[13px]', 'font-mono', 'text-zinc-600', 'dark:text-zinc-400')}>
                               Time Limit: {problem.time_limit}s
                             </div>
                           )}
                           {problem.memory_limit && (
-                            <div className="text-[13px] font-mono text-zinc-600 dark:text-zinc-400">
+                            <div className={cn('text-[13px]', 'font-mono', 'text-zinc-600', 'dark:text-zinc-400')}>
                               Memory Limit: {problem.memory_limit}MB
                             </div>
                           )}
@@ -1883,7 +1913,7 @@ export function ProblemWorkspaceClient({
             </div>
           </TabsContent>
           <TabsContent value="submissions" className={cn('container-pane-submissions', 'mt-0', 'outline-none', 'flex-1', 'w-full', 'min-h-0', 'flex', 'flex-col')}>
-            <ScrollArea className="flex-1 w-full [&_[data-slot=scroll-area-scrollbar]]:hidden">
+            <ScrollArea className={cn('flex-1', 'w-full', '[&_[data-slot=scroll-area-scrollbar]]:hidden')}>
               <div className="p-5">
                 {isTransitioning ? (
                   <div className={cn('flex', 'flex-col', 'w-full', 'space-y-4', 'pt-2')}>
@@ -2020,14 +2050,14 @@ export function ProblemWorkspaceClient({
                                         className={cn('bg-emerald-500/10', 'hover:bg-emerald-500/20', 'text-emerald-500', 'border', 'border-emerald-500/20', 'p-1.5', 'rounded-md', 'transition-all', 'shadow-sm')}
                                         title="Restore"
                                       >
-                                        <IconRefresh className="h-4 w-4" />
+                                        <IconRefresh className={cn('h-4', 'w-4')} />
                                       </button>
                                       <button
                                         onClick={() => handleCopyToClipboard(viewingCode)}
                                         className={cn('bg-muted', 'hover:bg-accent', 'text-foreground', 'border', 'border-border', 'p-1.5', 'rounded-md', 'transition-all', 'shadow-sm')}
                                         title="Copy"
                                       >
-                                        <IconCopy className="h-4 w-4" />
+                                        <IconCopy className={cn('h-4', 'w-4')} />
                                       </button>
                                     </div>
                                   </div>
@@ -2054,8 +2084,8 @@ export function ProblemWorkspaceClient({
             value="submission_result"
             className={cn('mt-0', 'outline-none', 'flex-1', 'w-full', 'min-h-0', 'flex', 'flex-col')}
           >
-            <div className="flex-1 w-full overflow-y-auto">
-              <div className="p-5 flex flex-col min-h-full">
+            <div className={cn('flex-1', 'w-full', 'overflow-y-auto')}>
+              <div className={cn('p-5', 'flex', 'flex-col', 'min-h-full')}>
                 {submitting ? (
                   <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'py-20', 'gap-4', 'animate-pulse', 'select-none')}>
                     <div className="relative">
@@ -2320,11 +2350,11 @@ export function ProblemWorkspaceClient({
 
                         {/* SVG Algorithmic Scaling Curve */}
                         <div className={cn('bg-zinc-100/80 dark:bg-zinc-900/20', 'border', 'border-border/50', 'rounded-lg', 'p-4', 'space-y-3.5', 'relative', 'overflow-hidden', 'select-none')}>
-                          <div className="flex items-center justify-between">
+                          <div className={cn('flex', 'items-center', 'justify-between')}>
                             <p className={cn('text-[9px]', 'text-zinc-500 dark:text-muted-foreground/60', 'uppercase', 'tracking-widest', 'font-extrabold')}>
                               Algorithmic Scaling Curve (Time vs. Input)
                             </p>
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
+                            <span className={cn('text-[10px]', 'text-emerald-600', 'dark:text-emerald-400', 'font-extrabold', 'bg-emerald-500/10', 'px-2', 'py-0.5', 'rounded', 'border', 'border-emerald-500/25')}>
                               {estimatedComplexity}
                             </span>
                           </div>
@@ -2354,14 +2384,14 @@ export function ProblemWorkspaceClient({
                                       y2={y}
                                       stroke="currentColor"
                                       strokeDasharray="4 4"
-                                      className="text-zinc-200 dark:text-zinc-800/80"
+                                      className={cn('text-zinc-200', 'dark:text-zinc-800/80')}
                                       strokeWidth="1"
                                     />
                                     <text
                                       x={paddingLeft - 8}
                                       y={y + 3}
                                       textAnchor="end"
-                                      className="text-[8px] font-mono fill-zinc-400"
+                                      className={cn('text-[8px]', 'font-mono', 'fill-zinc-400')}
                                     >
                                       {tickVal}ms
                                     </text>
@@ -2376,7 +2406,7 @@ export function ProblemWorkspaceClient({
                                     x={getX(calibratedPoints[0], 0)}
                                     y={svgHeight - 10}
                                     textAnchor="middle"
-                                    className="text-[8px] font-mono fill-zinc-400"
+                                    className={cn('text-[8px]', 'font-mono', 'fill-zinc-400')}
                                   >
                                     N={minX}
                                   </text>
@@ -2384,7 +2414,7 @@ export function ProblemWorkspaceClient({
                                     x={getX(calibratedPoints[calibratedPoints.length - 1], calibratedPoints.length - 1)}
                                     y={svgHeight - 10}
                                     textAnchor="middle"
-                                    className="text-[8px] font-mono fill-zinc-400"
+                                    className={cn('text-[8px]', 'font-mono', 'fill-zinc-400')}
                                   >
                                     N={maxX}
                                   </text>
@@ -2468,36 +2498,36 @@ export function ProblemWorkspaceClient({
                           </div>
 
                           {/* Interactive Profiler Summary Bar */}
-                          <div className="grid grid-cols-4 grid-summary-accepted gap-2 pt-2.5 border-t border-border/40 text-center text-xs select-none">
-                            <div className="flex flex-col items-center">
-                              <span className="text-zinc-500 dark:text-muted-foreground/60 text-[9px] uppercase font-bold tracking-wider">
+                          <div className={cn('grid', 'grid-cols-4', 'grid-summary-accepted', 'gap-2', 'pt-2.5', 'border-t', 'border-border/40', 'text-center', 'text-xs', 'select-none')}>
+                            <div className={cn('flex', 'flex-col', 'items-center')}>
+                              <span className={cn('text-zinc-500', 'dark:text-muted-foreground/60', 'text-[9px]', 'uppercase', 'font-bold', 'tracking-wider')}>
                                 {hoveredScalingPoint ? `Test Case #${activeDetailPoint.index}` : "Peak Test Case"}
                               </span>
-                              <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">
+                              <span className={cn('font-mono', 'font-bold', 'text-zinc-700', 'dark:text-zinc-300', 'mt-0.5')}>
                                 N = {activeDetailPoint?.inputSize ?? "—"}
                               </span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-zinc-500 dark:text-muted-foreground/60 text-[9px] uppercase font-bold tracking-wider">
+                            <div className={cn('flex', 'flex-col', 'items-center')}>
+                              <span className={cn('text-zinc-500', 'dark:text-muted-foreground/60', 'text-[9px]', 'uppercase', 'font-bold', 'tracking-wider')}>
                                 Execution Time
                               </span>
-                              <span className="font-mono font-extrabold text-emerald-500 mt-0.5">
+                              <span className={cn('font-mono', 'font-extrabold', 'text-emerald-500', 'mt-0.5')}>
                                 {activeDetailPoint ? `${activeDetailPoint.time} ms` : "—"}
                               </span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-zinc-500 dark:text-muted-foreground/60 text-[9px] uppercase font-bold tracking-wider">
+                            <div className={cn('flex', 'flex-col', 'items-center')}>
+                              <span className={cn('text-zinc-500', 'dark:text-muted-foreground/60', 'text-[9px]', 'uppercase', 'font-bold', 'tracking-wider')}>
                                 Memory Footprint
                               </span>
-                              <span className="font-mono font-bold text-indigo-500 mt-0.5">
+                              <span className={cn('font-mono', 'font-bold', 'text-indigo-500', 'mt-0.5')}>
                                 {activeDetailPoint ? formatMemory(activeDetailPoint.memory, false) : "—"}
                               </span>
                             </div>
-                            <div className="flex flex-col items-center">
-                              <span className="text-zinc-500 dark:text-muted-foreground/60 text-[9px] uppercase font-bold tracking-wider">
+                            <div className={cn('flex', 'flex-col', 'items-center')}>
+                              <span className={cn('text-zinc-500', 'dark:text-muted-foreground/60', 'text-[9px]', 'uppercase', 'font-bold', 'tracking-wider')}>
                                 Scaling Growth
                               </span>
-                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                              <span className={cn('font-extrabold', 'text-emerald-600', 'dark:text-emerald-400', 'mt-0.5')}>
                                 {estimatedComplexity.split(" - ")[0]}
                               </span>
                             </div>
@@ -2526,7 +2556,7 @@ export function ProblemWorkspaceClient({
                             </div>
                             {/* Editor */}
                             <div className={cn('flex-1', 'relative', 'min-h-[300px]', 'overflow-hidden', 'bg-background')}>
-                              <div className="absolute inset-0">
+                              <div className={cn('absolute', 'inset-0')}>
                                 <Editor
                                   height="100%"
                                   language={
@@ -2678,7 +2708,7 @@ export function ProblemWorkspaceClient({
                         </div>
                         {/* Editor */}
                         <div className={cn('flex-1', 'relative', 'min-h-[300px]', 'overflow-hidden', 'bg-background')}>
-                          <div className="absolute inset-0">
+                          <div className={cn('absolute', 'inset-0')}>
                             <Editor
                               height="100%"
                               language={
@@ -2752,42 +2782,16 @@ export function ProblemWorkspaceClient({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {lastSavedTime && (
-            <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] text-muted-foreground font-medium bg-muted/40 rounded-full border border-border/40 select-none" title={`Auto-saved draft at ${lastSavedTime}`}>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Draft saved
-            </span>
-          )}
+
         </div>
         {/* Format & Reset & Copy & Shortcuts & Settings Buttons */}
         <div className={cn('flex', 'items-center', 'gap-1', 'pr-2')}>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Copy Code"
-            className={cn('h-7', 'w-7', 'text-zinc-500 dark:text-muted-foreground', 'hover:text-foreground', 'shrink-0')}
-            onClick={() => {
-              navigator.clipboard.writeText(code);
-              toast.success("Code copied to clipboard!");
-            }}
-          >
-            <IconCopy className={cn('h-4', 'w-4')} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Keyboard Shortcuts (Shift+?)"
-            className={cn('h-7', 'w-7', 'text-zinc-500 dark:text-muted-foreground', 'hover:text-foreground', 'shrink-0')}
-            onClick={() => setIsShortcutsOpen(true)}
-          >
-            <IconKeyboard className={cn('h-4', 'w-4')} />
-          </Button>
           <IdeSettingsModal
             open={isSettingsOpen}
             onOpenChange={setIsSettingsOpen}
             settings={ideSettings}
             onSettingsChange={setIdeSettings}
+            onOpenShortcuts={() => setIsShortcutsOpen(true)}
             onPreviewFontSize={(size) => {
               if (editorRef.current) {
                 editorRef.current.updateOptions({ fontSize: size });
@@ -2971,6 +2975,11 @@ export function ProblemWorkspaceClient({
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.US_QUOTE, () => {
               if (runRef.current) runRef.current();
             });
+
+            // Track Cursor Position
+            editor.onDidChangeCursorPosition((e) => {
+              setCursorPos({ line: e.position.lineNumber, col: e.position.column });
+            });
           }}
           loading={
             <div className={cn('flex', 'flex-col', 'w-full', 'h-full', 'p-4', 'space-y-3', 'bg-background', 'font-mono', 'opacity-60')}>
@@ -3032,6 +3041,16 @@ export function ProblemWorkspaceClient({
             </ButtonGroup>
           </div>
         )}
+      </div>
+
+      {/* Editor Status Bar Footer */}
+      <div className={cn('flex', 'items-center', 'justify-between', 'px-4', 'py-0.5', 'shrink-0', 'text-[10px]', 'text-zinc-500 dark:text-zinc-400', 'font-medium', 'select-none', 'bg-white dark:bg-[#1e1e1e]')}>
+        <div className={cn('flex', 'items-center', 'gap-2')}>
+          <span>{saveStatus}</span>
+        </div>
+        <div>
+          Ln {cursorPos.line}, Col {cursorPos.col}
+        </div>
       </div>
     </div>
   );
@@ -3470,27 +3489,27 @@ export function ProblemWorkspaceClient({
       )}
     >
       {/* Mobile/Tablet Screen Workspace */}
-      <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden bg-zinc-100 dark:bg-zinc-950">
+      <div className={cn('flex', 'md:hidden', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden', 'bg-zinc-100', 'dark:bg-zinc-950')}>
         {/* Sticky Mobile Header */}
-        <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2 bg-zinc-100 dark:bg-zinc-950 border-b border-border/50 shrink-0 select-none">
-          <div className="flex items-center gap-2">
+        <div className={cn('sticky', 'top-0', 'z-20', 'flex', 'items-center', 'justify-between', 'px-4', 'py-2', 'bg-zinc-100', 'dark:bg-zinc-950', 'border-b', 'border-border/50', 'shrink-0', 'select-none')}>
+          <div className={cn('flex', 'items-center', 'gap-2')}>
             <Button
               variant="outline"
               size="icon"
               asChild
-              className="h-8 w-8"
+              className={cn('h-8', 'w-8')}
               title={isDailyChallenge ? "Back to Daily Challenges" : "Back to Problems"}
             >
               <Link href={isDailyChallenge ? "/logiclab/dailychallenges" : "/logiclab"}>
-                <IconArrowLeft className="h-4 w-4" />
+                <IconArrowLeft className={cn('h-4', 'w-4')} />
               </Link>
             </Button>
-            <span className="text-sm font-bold text-foreground truncate max-w-[180px]">
+            <span className={cn('text-sm', 'font-bold', 'text-foreground', 'truncate', 'max-w-[180px]')}>
               {problem.number ? `${problem.number}. ` : ""}{problem.title}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className={cn('flex', 'items-center', 'gap-1.5')}>
             <span
               className={cn(
                 "px-2 py-0.5 rounded-full text-[10px] font-semibold border",
@@ -3507,7 +3526,7 @@ export function ProblemWorkspaceClient({
         </div>
 
         {/* Mobile Tab Selector */}
-        <div className="flex bg-card shrink-0 border-b border-border/50">
+        <div className={cn('flex', 'bg-card', 'shrink-0', 'border-b', 'border-border/50')}>
           <button
             onClick={() => setMobileActiveTab("description")}
             className={cn(
@@ -3517,7 +3536,7 @@ export function ProblemWorkspaceClient({
                 : "text-muted-foreground border-transparent hover:text-foreground"
             )}
           >
-            <IconFileDescription className="h-3.5 w-3.5 mr-1" />
+            <IconFileDescription className={cn('h-3.5', 'w-3.5', 'mr-1')} />
             Desc
           </button>
           <button
@@ -3529,7 +3548,7 @@ export function ProblemWorkspaceClient({
                 : "text-muted-foreground border-transparent hover:text-foreground"
             )}
           >
-            <IconHistory className="h-3.5 w-3.5 mr-1" />
+            <IconHistory className={cn('h-3.5', 'w-3.5', 'mr-1')} />
             Submits ({submissions.length})
           </button>
           <button
@@ -3541,7 +3560,7 @@ export function ProblemWorkspaceClient({
                 : "text-muted-foreground border-transparent hover:text-foreground"
             )}
           >
-            <IconFileText className="h-3.5 w-3.5 mr-1" />
+            <IconFileText className={cn('h-3.5', 'w-3.5', 'mr-1')} />
             Notes
           </button>
         </div>
@@ -3549,7 +3568,7 @@ export function ProblemWorkspaceClient({
         {/* Mobile Panel Content */}
         {mobileActiveTab === "notes" ? (
           /* Notes tab: no padding, no scroll wrapper — ProblemNotes manages its own layout */
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className={cn('flex-1', 'min-h-0', 'flex', 'flex-col', 'overflow-hidden')}>
             <ProblemNotes
               problemId={problem.id}
               currentCode={code}
@@ -3559,17 +3578,17 @@ export function ProblemWorkspaceClient({
             />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto min-h-0 bg-card p-4">
+          <div className={cn('flex-1', 'overflow-y-auto', 'min-h-0', 'bg-card', 'p-4')}>
             {mobileActiveTab === "description" && (
               <div className="space-y-6">
                 {/* Title & Tags */}
                 <div className="space-y-3">
-                  <h1 className="text-lg font-bold text-foreground leading-tight">
+                  <h1 className={cn('text-lg', 'font-bold', 'text-foreground', 'leading-tight')}>
                     {problem.number ? `${problem.number}. ` : ""}{problem.title}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-1.5 select-none">
+                  <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-1.5', 'select-none')}>
                     {problem.tags && problem.tags.length > 0 && problem.tags.map((tag: string, i: number) => (
-                      <span key={i} className="px-2 py-0.5 bg-muted/60 border border-border/50 text-zinc-650 dark:text-muted-foreground rounded-full text-[10px] font-semibold">
+                      <span key={i} className={cn('px-2', 'py-0.5', 'bg-muted/60', 'border', 'border-border/50', 'text-zinc-650', 'dark:text-muted-foreground', 'rounded-full', 'text-[10px]', 'font-semibold')}>
                         {tag}
                       </span>
                     ))}
@@ -3577,40 +3596,40 @@ export function ProblemWorkspaceClient({
                 </div>
 
                 {/* Description Markdown */}
-                <div className="text-sm text-zinc-900 dark:text-foreground/90 leading-relaxed mt-2 select-text">
+                <div className={cn('text-sm', 'text-zinc-900', 'dark:text-foreground/90', 'leading-relaxed', 'mt-2', 'select-text')}>
                   <ProblemDescriptionViewer content={problem.description} />
                 </div>
 
                 {/* Sample Test Cases */}
                 {sampleTestCases.length > 0 && (
-                  <div className="space-y-4 pt-4 border-t border-border/40">
-                    <h3 className="text-sm font-bold text-foreground">Examples</h3>
+                  <div className={cn('space-y-4', 'pt-4', 'border-t', 'border-border/40')}>
+                    <h3 className={cn('text-sm', 'font-bold', 'text-foreground')}>Examples</h3>
                     {sampleTestCases.map((tc, idx) => {
                       const paramNames = getParamNames();
                       return (
                         <div key={tc.id} className="space-y-2.5">
-                          <p className="text-xs font-bold text-zinc-550 dark:text-muted-foreground">
+                          <p className={cn('text-xs', 'font-bold', 'text-zinc-550', 'dark:text-muted-foreground')}>
                             Example {idx + 1}:
                           </p>
-                          <div className="pl-3 border-l-2 border-zinc-300 dark:border-muted-foreground/30 py-1.5 font-mono text-[12px] text-zinc-900 dark:text-foreground/90 space-y-1.5 bg-zinc-100/40 dark:bg-muted/5 rounded-r-md">
+                          <div className={cn('pl-3', 'border-l-2', 'border-zinc-300', 'dark:border-muted-foreground/30', 'py-1.5', 'font-mono', 'text-[12px]', 'text-zinc-900', 'dark:text-foreground/90', 'space-y-1.5', 'bg-zinc-100/40', 'dark:bg-muted/5', 'rounded-r-md')}>
                             <div>
-                              <span className="font-bold text-zinc-850 dark:text-zinc-300">Input: </span>
-                              <div className="flex flex-col space-y-1.5 mt-1">
+                              <span className={cn('font-bold', 'text-zinc-850', 'dark:text-zinc-300')}>Input: </span>
+                              <div className={cn('flex', 'flex-col', 'space-y-1.5', 'mt-1')}>
                                 {tc.input.trim().split("\n").map((val: string, i: number) => (
                                   <div key={i} className={val.startsWith("[") ? "flex flex-col mt-1" : "flex items-center"}>
-                                    <span className="font-semibold mr-1.5 text-zinc-550 dark:text-muted-foreground whitespace-nowrap">{paramNames[i] || `param${i + 1}`} =</span>
+                                    <span className={cn('font-semibold', 'mr-1.5', 'text-zinc-550', 'dark:text-muted-foreground', 'whitespace-nowrap')}>{paramNames[i] || `param${i + 1}`} =</span>
                                     {renderTestcaseValue(val)}
                                   </div>
                                 ))}
                               </div>
                             </div>
                             <div>
-                              <span className="font-bold text-zinc-850 dark:text-zinc-300 mr-1.5 block mb-1">Output:</span>
+                              <span className={cn('font-bold', 'text-zinc-850', 'dark:text-zinc-300', 'mr-1.5', 'block', 'mb-1')}>Output:</span>
                               {renderTestcaseValue(tc.expected_output)}
                             </div>
                             {tc.explanation && (
-                              <div className="text-zinc-650 dark:text-muted-foreground/90">
-                                <span className="font-bold text-zinc-850 dark:text-zinc-300">
+                              <div className={cn('text-zinc-650', 'dark:text-muted-foreground/90')}>
+                                <span className={cn('font-bold', 'text-zinc-850', 'dark:text-zinc-300')}>
                                   Explanation:{" "}
                                 </span>
                                 <span>{tc.explanation}</span>
@@ -3624,16 +3643,16 @@ export function ProblemWorkspaceClient({
                 )}
 
                 {/* Constraints */}
-                <div className="space-y-3.5 pt-4 border-t border-border/40">
+                <div className={cn('space-y-3.5', 'pt-4', 'border-t', 'border-border/40')}>
                   {problem.constraints && problem.constraints.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-bold text-foreground">
+                      <p className={cn('text-xs', 'font-bold', 'text-foreground')}>
                         Constraints:
                       </p>
-                      <ul className="list-disc pl-5 space-y-1.5 text-xs text-zinc-800 dark:text-foreground/80">
+                      <ul className={cn('list-disc', 'pl-5', 'space-y-1.5', 'text-xs', 'text-zinc-800', 'dark:text-foreground/80')}>
                         {problem.constraints.map((c: string, i: number) => (
                           <li key={i}>
-                            <code className="px-1.5 py-0.5 bg-zinc-100 dark:bg-muted/40 rounded-md text-[11px] font-mono border border-border/50">
+                            <code className={cn('px-1.5', 'py-0.5', 'bg-zinc-100', 'dark:bg-muted/40', 'rounded-md', 'text-[11px]', 'font-mono', 'border', 'border-border/50')}>
                               {c}
                             </code>
                           </li>
@@ -3642,14 +3661,14 @@ export function ProblemWorkspaceClient({
                     </div>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-3', 'pt-1')}>
                     {problem.time_limit && (
-                      <div className="text-xs font-mono text-zinc-650 dark:text-zinc-400">
+                      <div className={cn('text-xs', 'font-mono', 'text-zinc-650', 'dark:text-zinc-400')}>
                         Time Limit: {problem.time_limit}s
                       </div>
                     )}
                     {problem.memory_limit && (
-                      <div className="text-xs font-mono text-zinc-650 dark:text-zinc-400">
+                      <div className={cn('text-xs', 'font-mono', 'text-zinc-650', 'dark:text-zinc-400')}>
                         Memory Limit: {problem.memory_limit}MB
                       </div>
                     )}
@@ -3659,7 +3678,7 @@ export function ProblemWorkspaceClient({
             )}
 
             {mobileActiveTab === "submissions" && (
-              <div className="container-pane-submissions space-y-2 select-text">
+              <div className={cn('container-pane-submissions', 'space-y-2', 'select-text')}>
                 {submissions.length > 0 ? (
                   submissions.map((sub) => {
                     const isExpanded = viewingSubmission?.id === sub.id;
@@ -3678,57 +3697,57 @@ export function ProblemWorkspaceClient({
                           }}
                           className={`flex items-center justify-between row-submission-item p-3 rounded-lg border ${sub.status === "Accepted" ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/5 cursor-pointer" : "bg-card border-border hover:bg-muted/60"} transition-all group`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className={cn('flex', 'items-center', 'gap-3')}>
                             {sub.status === "Accepted" ? (
-                              <IconCircleCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                              <IconCircleCheck className={cn('h-4', 'w-4', 'text-emerald-500', 'shrink-0')} />
                             ) : (
-                              <IconCircleX className="h-4 w-4 text-rose-500 shrink-0" />
+                              <IconCircleX className={cn('h-4', 'w-4', 'text-rose-500', 'shrink-0')} />
                             )}
                             <div>
                               <p className={`text-xs font-bold ${sub.status === "Accepted" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"} flex items-center gap-1`}>
                                 {sub.status}
                                 {canViewCode && (
-                                  <span className="text-[9px] text-muted-foreground font-normal">
+                                  <span className={cn('text-[9px]', 'text-muted-foreground', 'font-normal')}>
                                     {isExpanded ? "(Hide)" : "(View code)"}
                                   </span>
                                 )}
                               </p>
-                              <p className="text-[10px] text-muted-foreground/85">
+                              <p className={cn('text-[10px]', 'text-muted-foreground/85')}>
                                 {sub.passed_count}/{sub.total_count} passed ·{" "}
                                 {LANGUAGES.find((l) => l.id === sub.language_id)?.name || "Unknown"}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <div className={cn('flex', 'items-center', 'gap-2', 'text-[10px]', 'text-muted-foreground')}>
                               {sub.runtime !== null && (
-                                <span className="flex items-center gap-0.5">
-                                  <IconClock className="h-3 w-3" />
+                                <span className={cn('flex', 'items-center', 'gap-0.5')}>
+                                  <IconClock className={cn('h-3', 'w-3')} />
                                   {sub.runtime}s
                                 </span>
                               )}
                               {sub.memory !== null && (
-                                <span className="flex items-center gap-0.5">
-                                  <IconCpu className="h-3 w-3" />
+                                <span className={cn('flex', 'items-center', 'gap-0.5')}>
+                                  <IconCpu className={cn('h-3', 'w-3')} />
                                   {formatMemory(sub.memory, true)}
                                 </span>
                               )}
                             </div>
-                            <p className="text-[8px] text-muted-foreground/60 mt-0.5">
+                            <p className={cn('text-[8px]', 'text-muted-foreground/60', 'mt-0.5')}>
                               {new Date(sub.created_at).toLocaleString()}
                             </p>
                           </div>
                         </div>
 
                         {isExpanded && (
-                          <div className="border border-border/60 rounded-lg overflow-hidden shadow-sm mt-1">
+                          <div className={cn('border', 'border-border/60', 'rounded-lg', 'overflow-hidden', 'shadow-sm', 'mt-1')}>
                             {loadingCode ? (
-                              <div className="p-4 text-center text-[10px] uppercase tracking-widest font-bold text-muted-foreground animate-pulse bg-zinc-50 dark:bg-zinc-950">
+                              <div className={cn('p-4', 'text-center', 'text-[10px]', 'uppercase', 'tracking-widest', 'font-bold', 'text-muted-foreground', 'animate-pulse', 'bg-zinc-50', 'dark:bg-zinc-950')}>
                                 Loading code...
                               </div>
                             ) : (
-                              <div className="w-full relative bg-zinc-50 dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800/80 rounded-lg overflow-hidden">
-                                <pre className="p-4 overflow-auto font-mono text-[11.5px] text-black dark:text-zinc-100 max-h-[300px] whitespace-pre-wrap break-all">
+                              <div className={cn('w-full', 'relative', 'bg-zinc-50', 'dark:bg-[#0a0a0a]', 'border', 'border-zinc-200', 'dark:border-zinc-800/80', 'rounded-lg', 'overflow-hidden')}>
+                                <pre className={cn('p-4', 'overflow-auto', 'font-mono', 'text-[11.5px]', 'text-black', 'dark:text-zinc-100', 'max-h-[300px]', 'whitespace-pre-wrap', 'break-all')}>
                                   <code
                                     className={`language-${LANGUAGES.find((l) => l.id === sub.language_id)?.value || "javascript"
                                       }`}
@@ -3737,7 +3756,7 @@ export function ProblemWorkspaceClient({
                                     }}
                                   />
                                 </pre>
-                                <div className="absolute top-2 right-2 flex gap-1.5 opacity-85 hover:opacity-100 transition-opacity">
+                                <div className={cn('absolute', 'top-2', 'right-2', 'flex', 'gap-1.5', 'opacity-85', 'hover:opacity-100', 'transition-opacity')}>
                                   <button
                                     onClick={() => {
                                       const lang = LANGUAGES.find((l) => l.id === viewingSubmission?.language_id);
@@ -3751,17 +3770,17 @@ export function ProblemWorkspaceClient({
                                       setCode(viewingCode);
                                       toast.success("Restored to workspace!");
                                     }}
-                                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 p-1.5 rounded transition-all shadow-sm"
+                                    className={cn('bg-emerald-500/10', 'hover:bg-emerald-500/20', 'text-emerald-500', 'border', 'border-emerald-500/20', 'p-1.5', 'rounded', 'transition-all', 'shadow-sm')}
                                     title="Restore"
                                   >
-                                    <IconRefresh className="h-3.5 w-3.5" />
+                                    <IconRefresh className={cn('h-3.5', 'w-3.5')} />
                                   </button>
                                   <button
                                     onClick={() => handleCopyToClipboard(viewingCode)}
-                                    className="bg-muted hover:bg-accent text-foreground border border-border p-1.5 rounded transition-all shadow-sm"
+                                    className={cn('bg-muted', 'hover:bg-accent', 'text-foreground', 'border', 'border-border', 'p-1.5', 'rounded', 'transition-all', 'shadow-sm')}
                                     title="Copy"
                                   >
-                                    <IconCopy className="h-3.5 w-3.5" />
+                                    <IconCopy className={cn('h-3.5', 'w-3.5')} />
                                   </button>
                                 </div>
                               </div>
@@ -3772,9 +3791,9 @@ export function ProblemWorkspaceClient({
                     );
                   })
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 gap-2 select-none">
-                    <IconHistory className="h-8 w-8 text-muted-foreground/20" />
-                    <p className="text-[10px] text-muted-foreground/45 uppercase font-bold tracking-widest">
+                  <div className={cn('flex', 'flex-col', 'items-center', 'justify-center', 'py-12', 'gap-2', 'select-none')}>
+                    <IconHistory className={cn('h-8', 'w-8', 'text-muted-foreground/20')} />
+                    <p className={cn('text-[10px]', 'text-muted-foreground/45', 'uppercase', 'font-bold', 'tracking-widest')}>
                       No submissions yet
                     </p>
                   </div>
@@ -3788,7 +3807,7 @@ export function ProblemWorkspaceClient({
       </div>
 
       {/* Large Screen Desktop IDE */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className={cn('hidden', 'md:flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')}>
         {topNavbarContent}
         <div className={cn('flex-1', 'p-2', 'min-h-0', 'overflow-hidden')}>
           {!isMounted ? (
@@ -3956,7 +3975,7 @@ export function ProblemWorkspaceClient({
       {/* PROBLEM LIST DRAWER */}
       {isProblemListOpen && (
         <div
-          className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-[9998]"
+          className={cn('absolute', 'inset-0', 'bg-background/40', 'backdrop-blur-[1px]', 'z-[9998]')}
           onClick={() => setIsProblemListOpen(false)}
         />
       )}
@@ -3966,40 +3985,40 @@ export function ProblemWorkspaceClient({
           isProblemListOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="border-b px-4 py-3 shrink-0 relative flex items-center justify-between pr-8">
-          <h2 className="font-bold text-lg">Problem List</h2>
-          <span className="text-xs text-muted-foreground font-semibold tracking-wide">
+        <div className={cn('border-b', 'px-4', 'py-3', 'shrink-0', 'relative', 'flex', 'items-center', 'justify-between', 'pr-8')}>
+          <h2 className={cn('font-bold', 'text-lg')}>Problem List</h2>
+          <span className={cn('text-xs', 'text-muted-foreground', 'font-semibold', 'tracking-wide')}>
             {totalProblemsCount} Problems
           </span>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2 h-7 w-7 rounded-md opacity-70 transition-opacity hover:opacity-100 text-muted-foreground"
+            className={cn('absolute', 'right-2', 'top-2', 'h-7', 'w-7', 'rounded-md', 'opacity-70', 'transition-opacity', 'hover:opacity-100', 'text-muted-foreground')}
             onClick={() => setIsProblemListOpen(false)}
           >
-            <IconX className="h-4 w-4" />
+            <IconX className={cn('h-4', 'w-4')} />
             <span className="sr-only">Close</span>
           </Button>
         </div>
 
-        <div className="p-3 border-b shrink-0 bg-muted/20 flex flex-col gap-2">
+        <div className={cn('p-3', 'border-b', 'shrink-0', 'bg-muted/20', 'flex', 'flex-col', 'gap-2')}>
           {/* Search and filter controls */}
-          <div className="relative w-full">
-            <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <div className={cn('relative', 'w-full')}>
+            <IconSearch className={cn('absolute', 'left-2.5', 'top-1/2', '-translate-y-1/2', 'size-4', 'text-muted-foreground')} />
             <Input
               type="text"
               placeholder="Search by title or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-background"
+              className={cn('pl-8', 'h-8', 'text-xs', 'bg-background')}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className={cn('flex', 'items-center', 'gap-2')}>
             <Select
               value={statusFilter}
               onValueChange={(v: any) => setStatusFilter(v)}
             >
-              <SelectTrigger size="sm" className="flex-1 text-xs font-medium">
+              <SelectTrigger size="sm" className={cn('flex-1', 'text-xs', 'font-medium')}>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent
@@ -4018,7 +4037,7 @@ export function ProblemWorkspaceClient({
               value={difficultyFilter}
               onValueChange={(v: any) => setDifficultyFilter(v)}
             >
-              <SelectTrigger size="sm" className="flex-1 text-xs font-medium">
+              <SelectTrigger size="sm" className={cn('flex-1', 'text-xs', 'font-medium')}>
                 <SelectValue placeholder="Difficulty" />
               </SelectTrigger>
               <SelectContent
@@ -4039,7 +4058,7 @@ export function ProblemWorkspaceClient({
 
         <ScrollArea
           id="problem-list-scroll-area"
-          className="flex-1 w-full min-h-0"
+          className={cn('flex-1', 'w-full', 'min-h-0')}
         >
           <div className="py-2">
             {isLoadingProblems ? (
@@ -4082,9 +4101,9 @@ export function ProblemWorkspaceClient({
                 ))}
 
                 {/* Infinite Scroll Sentinel */}
-                <div ref={sentinelRef} className="h-10 flex items-center justify-center">
+                <div ref={sentinelRef} className={cn('h-10', 'flex', 'items-center', 'justify-center')}>
                   {isNextPageLoading && (
-                    <div className="size-4 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className={cn('size-4', 'border-2', 'border-emerald-500/20', 'border-t-emerald-500', 'rounded-full', 'animate-spin')} />
                   )}
                 </div>
               </>
@@ -4104,7 +4123,7 @@ export function ProblemWorkspaceClient({
               {hasRun ? "Ready to submit?" : "Haven't run your code yet"}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm">
+              <div className={cn('space-y-2', 'text-sm')}>
                 {!hasRun ? (
                   <>
                     <p>You haven't used <span className="font-semibold">Run</span> to test your code against the sample cases.</p>
@@ -4130,101 +4149,101 @@ export function ProblemWorkspaceClient({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/50"
+            className={cn('fixed', 'inset-0', 'z-[9999]', 'flex', 'flex-col', 'items-center', 'justify-center', 'bg-black/50')}
             onClick={() => setUnlockedBadgeModal(null)}
           >
             <motion.div
               initial={{ scale: 0.95, y: 10, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative flex flex-col items-center w-full max-w-sm"
+              className={cn('relative', 'flex', 'flex-col', 'items-center', 'w-full', 'max-w-sm')}
               onClick={(e) => e.stopPropagation()}
             >
               {/* THE CARD ITSELF (Only this gets captured by html-to-image) */}
-              <div 
-                ref={badgeCardRef} 
-                className="w-full flex flex-col items-center rounded-xl shadow-2xl p-8 pb-6 border"
+              <div
+                ref={badgeCardRef}
+                className={cn('w-full', 'flex', 'flex-col', 'items-center', 'rounded-xl', 'shadow-2xl', 'p-8', 'pb-6', 'border')}
                 style={{ backgroundColor: '#09090b', borderColor: '#27272a' }} // Explicit Dark Mode to fix CSS variables dropout
               >
                 {/* Watermark for download */}
-                <div className="w-full text-left mb-6">
-                  <div className="text-[10px] tracking-widest uppercase font-bold select-none whitespace-nowrap" style={{ color: '#71717a' }}>
+                <div className={cn('w-full', 'text-left', 'mb-6')}>
+                  <div className={cn('text-[10px]', 'tracking-widest', 'uppercase', 'font-bold', 'select-none', 'whitespace-nowrap')} style={{ color: '#71717a' }}>
                     PLACETRIX.APP — LOGICLAB
                   </div>
                 </div>
 
-                <div className="w-full text-center mb-8 block">
-                  <h2 className="text-2xl font-bold mb-2 block" style={{ color: '#fafafa' }}>
+                <div className={cn('w-full', 'text-center', 'mb-8', 'block')}>
+                  <h2 className={cn('text-2xl', 'font-bold', 'mb-2', 'block')} style={{ color: '#fafafa' }}>
                     Achievement Unlocked
                   </h2>
-                  <p className="text-sm font-medium block" style={{ color: '#a1a1aa' }}>
+                  <p className={cn('text-sm', 'font-medium', 'block')} style={{ color: '#a1a1aa' }}>
                     Congratulations, {userProfile?.full_name?.split(' ')[0] || userProfile?.username || "Coder"}!
                   </p>
                 </div>
 
-                <div className="relative mb-8 flex justify-center w-full">
+                <div className={cn('relative', 'mb-8', 'flex', 'justify-center', 'w-full')}>
                   {/* Subtle glow */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full pointer-events-none" style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', filter: 'blur(30px)' }} />
-                  
+                  <div className={cn('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'w-32', 'h-32', 'rounded-full', 'pointer-events-none')} style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', filter: 'blur(30px)' }} />
+
                   <motion.div
                     initial={{ rotateY: 90, scale: 0.8 }}
                     animate={{ rotateY: 0, scale: 1 }}
                     transition={{ delay: 0.1, duration: 0.6, type: "spring", damping: 15 }}
-                    className="relative w-36 h-36 z-10 drop-shadow-2xl"
+                    className={cn('relative', 'w-36', 'h-36', 'z-10', 'drop-shadow-2xl')}
                   >
                     {unlockedBadgeModal.icon_name ? (
                       <img
                         src={badgeDataUrl || unlockedBadgeModal.icon_name}
                         alt={unlockedBadgeModal.name}
                         crossOrigin="anonymous"
-                        className="w-full h-full object-contain block"
+                        className={cn('w-full', 'h-full', 'object-contain', 'block')}
                       />
                     ) : (
-                      <div className="w-full h-full rounded-full border-4 flex items-center justify-center" style={{ backgroundColor: '#18181b', borderColor: 'rgba(52, 211, 153, 0.2)' }}>
-                        <IconSparkles className="h-12 w-12" style={{ color: '#34d399' }} />
+                      <div className={cn('w-full', 'h-full', 'rounded-full', 'border-4', 'flex', 'items-center', 'justify-center')} style={{ backgroundColor: '#18181b', borderColor: 'rgba(52, 211, 153, 0.2)' }}>
+                        <IconSparkles className={cn('h-12', 'w-12')} style={{ color: '#34d399' }} />
                       </div>
                     )}
                   </motion.div>
                 </div>
-                
-                <div className="w-full text-center mb-6 block">
-                  <h3 className="text-xl font-bold mb-2 block" style={{ color: '#fafafa' }}>
+
+                <div className={cn('w-full', 'text-center', 'mb-6', 'block')}>
+                  <h3 className={cn('text-xl', 'font-bold', 'mb-2', 'block')} style={{ color: '#fafafa' }}>
                     {unlockedBadgeModal.name}
                   </h3>
-                  
+
                   {unlockedBadgeModal.description && (
-                    <p className="text-sm font-medium block" style={{ color: '#a1a1aa' }}>
+                    <p className={cn('text-sm', 'font-medium', 'block')} style={{ color: '#a1a1aa' }}>
                       {unlockedBadgeModal.description}
                     </p>
                   )}
                 </div>
 
                 {/* Earned Date */}
-                <div className="text-[8px] tracking-wider font-bold mt-2 whitespace-nowrap" style={{ color: '#71717a' }}>
+                <div className={cn('text-[8px]', 'tracking-wider', 'font-bold', 'mt-2', 'whitespace-nowrap')} style={{ color: '#71717a' }}>
                   EARNED ON {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
                 </div>
               </div>
 
               {/* Action Buttons (OUTSIDE THE CARD) */}
-              <div className="flex flex-col gap-3 w-full mt-4">
-                <button 
+              <div className={cn('flex', 'flex-col', 'gap-3', 'w-full', 'mt-4')}>
+                <button
                   onClick={() => {
                     console.log("Continue clicked!");
                     setUnlockedBadgeModal(null);
-                  }} 
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 rounded-md font-medium transition-colors"
+                  }}
+                  className={cn('w-full', 'bg-primary', 'text-primary-foreground', 'hover:bg-primary/90', 'h-11', 'px-8', 'rounded-md', 'font-medium', 'transition-colors')}
                 >
                   Continue
                 </button>
-                <button 
+                <button
                   onClick={(e) => {
                     e.preventDefault();
                     console.log("Download clicked!");
                     handleDownloadBadge();
-                  }} 
-                  className="w-full border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8 rounded-md font-medium text-muted-foreground flex items-center justify-center transition-colors"
+                  }}
+                  className={cn('w-full', 'border', 'border-input', 'bg-background', 'hover:bg-accent', 'hover:text-accent-foreground', 'h-11', 'px-8', 'rounded-md', 'font-medium', 'text-muted-foreground', 'flex', 'items-center', 'justify-center', 'transition-colors')}
                 >
-                  <IconDownload className="mr-2 h-4 w-4" />
+                  <IconDownload className={cn('mr-2', 'h-4', 'w-4')} />
                   Download Badge
                 </button>
               </div>
@@ -4235,55 +4254,55 @@ export function ProblemWorkspaceClient({
 
       {/* Keyboard Shortcuts Dialog */}
       <Dialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen}>
-        <DialogContent className="sm:max-w-md select-none border-border/80 bg-background shadow-2xl">
+        <DialogContent className={cn('sm:max-w-md', 'select-none', 'border-border/80', 'bg-background', 'shadow-2xl')}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-              <IconKeyboard className="h-5 w-5 text-emerald-500" />
+            <DialogTitle className={cn('flex', 'items-center', 'gap-2', 'text-base', 'font-bold', 'text-foreground')}>
+              <IconKeyboard className={cn('h-5', 'w-5', 'text-emerald-500')} />
               Keyboard Shortcuts
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className={cn('text-xs', 'text-muted-foreground')}>
               Master speed shortcuts to code faster in LogicLab.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2.5 py-2 text-xs">
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Run Test Cases</span>
+          <div className={cn('space-y-2.5', 'py-2', 'text-xs')}>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Run Test Cases</span>
               <KbdGroup>
                 <Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Submit Solution</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Submit Solution</span>
               <KbdGroup>
                 <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Enter</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Format Code</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Format Code</span>
               <KbdGroup>
                 <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>F</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Next Problem</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Next Problem</span>
               <KbdGroup>
                 <Kbd>Alt</Kbd> + <Kbd>N</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Previous Problem</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Previous Problem</span>
               <KbdGroup>
                 <Kbd>Alt</Kbd> + <Kbd>P</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-border/40">
-              <span className="font-medium text-foreground">Zoom In / Zoom Out</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5', 'border-b', 'border-border/40')}>
+              <span className={cn('font-medium', 'text-foreground')}>Zoom In / Zoom Out</span>
               <KbdGroup>
                 <Kbd>Ctrl</Kbd> + <Kbd>+</Kbd> / <Kbd>-</Kbd>
               </KbdGroup>
             </div>
-            <div className="flex items-center justify-between py-1.5">
-              <span className="font-medium text-foreground">Open Shortcuts Menu</span>
+            <div className={cn('flex', 'items-center', 'justify-between', 'py-1.5')}>
+              <span className={cn('font-medium', 'text-foreground')}>Open Shortcuts Menu</span>
               <KbdGroup>
                 <Kbd>Shift</Kbd> + <Kbd>?</Kbd>
               </KbdGroup>
