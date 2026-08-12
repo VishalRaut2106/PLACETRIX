@@ -335,21 +335,20 @@ const DIFFICULTY_MARKS: Record<AiGenerateForm["difficulty"], number> = Object.fr
 })
 
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemini-3.5-flash",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemma-4-31b",
   "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
   "gemini-1.5-pro",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase()
-    return /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+    return /429|rate.?limit|too many|quota|503|502|504|overloaded|404|not found|no longer available|deprecated|400|invalid/.test(msg)
   }
-  return false
+  return true
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, baseDelayMs = 600): Promise<T> {

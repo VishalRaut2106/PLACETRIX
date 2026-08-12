@@ -454,12 +454,12 @@ Focus suggestions on bridging the gap between this resume and the target Job Des
   }
 
   const MODEL_FALLBACK_CHAIN = [
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash-lite",
     "gemini-3.1-flash-lite",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemma-4-31b",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-pro",
   ]
   let content = ""
   let lastError: unknown
@@ -638,9 +638,9 @@ Return the new question in JSON.`
   const MODEL_FALLBACK_CHAIN = [
     "gemini-3.1-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemma-4-31b",
     "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
     "gemini-1.5-pro",
   ]
   let content = ""

@@ -51,22 +51,22 @@ export type DiagnosticResultPayload = {
   error?: string
 }
 
-// ── Fallback chain prioritizing fast Lite models to save Cloud Run CPU execution time
+// ── Fallback chain prioritizing high-throughput, low-latency Gemini Flash & Lite models
 const MODEL_FALLBACK_CHAIN: readonly string[] = Object.freeze([
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash-lite",
   "gemini-3.1-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
-  "gemma-4-31b",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+  "gemini-1.5-pro",
 ])
 
 function isRetryableOnNextModel(err: unknown): boolean {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase()
-    return /429|rate.?limit|too many|quota|503|502|overloaded/.test(msg)
+    return /429|rate.?limit|too many|quota|503|502|504|overloaded|404|not found|no longer available|deprecated|400|invalid/.test(msg)
   }
-  return false
+  return true
 }
 
 function stripCodeFences(text: string): string {
