@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
 import { execSync } from "child_process";
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   devIndicators: false,
   serverExternalPackages: ["pdf-parse", "mammoth", "jspdf", "xlsx"],
   // ── Stable Build ID for Firebase App Hosting ─────────────────────────────
@@ -12,10 +12,10 @@ const nextConfig: NextConfig = {
   // same code won't break in-flight sessions.
   generateBuildId: async () => {
     try {
-      return execSync("git rev-parse HEAD").toString().trim()
+      return execSync("git rev-parse HEAD").toString().trim();
     } catch {
       // Fallback for environments without git (CI, Docker, etc.)
-      return `build-${Date.now()}`
+      return `build-${Date.now()}`;
     }
   },
   experimental: {
