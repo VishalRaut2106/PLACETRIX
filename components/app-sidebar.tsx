@@ -25,6 +25,7 @@ import { useLicense } from "@/components/license/LicenseProvider"
 import type { AccountType, UserProfile } from "@/lib/supabase/profile"
 import { Logo } from "@/components/logo"
 import { Badge } from "@/components/ui/badge"
+import { version } from "@/package.json"
 
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
@@ -235,7 +236,7 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
                   variant="secondary"
                   className="h-4 px-1.5 text-[9px] font-mono font-normal tracking-tight text-muted-foreground border-border/60"
                 >
-                  v1.4.24
+                  v{version}
                 </Badge>
               </div>
               <span className="whitespace-nowrap text-[9px] text-muted-foreground/60 font-normal leading-tight">
