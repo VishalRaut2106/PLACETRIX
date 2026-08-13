@@ -1029,7 +1029,7 @@ const socialLinks = [
   },
   {
     icon: <InstagramIcon />,
-    link: "https://www.instagram.com/4grid.tech/",
+    link: "https://www.instagram.com/agilique.com/",
   },
   {
     icon: <GithubIcon />,
@@ -1105,7 +1105,7 @@ function Footer() {
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
             &copy; {new Date().getFullYear()},{" "}
             <a
-              href="https://4grid.tech"
+              href="https://agilique.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline font-medium"

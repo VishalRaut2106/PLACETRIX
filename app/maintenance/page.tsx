@@ -465,7 +465,7 @@ function MaintenanceBodySection() {
       id: "stay-updated",
       title: "Stay updated.",
       paragraphs: [
-        "For real-time status updates, reach out to us at 360viewtech@gmail.com or follow our social channels. We will notify users when the platform is back online and ready to use.",
+        "For real-time status updates, reach out to us at agilique.solutions@gmail.com or follow our social channels. We will notify users when the platform is back online and ready to use.",
         "If maintenance takes longer than expected, we will communicate the reason and revised timeline as promptly as possible. Transparency is important to us, especially when it affects your time.",
       ],
     },
@@ -559,7 +559,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:360viewtech@gmail.com">
+                <a href="mailto:agilique.solutions@gmail.com">
                   <MailIcon className="mr-2 size-4" />
                   Email Support
                 </a>
@@ -598,7 +598,7 @@ const socialLinks = [
   },
   {
     icon: <InstagramIcon />,
-    link: "https://www.instagram.com/4grid.tech/",
+    link: "https://www.instagram.com/agilique.com/",
   },
   {
     icon: <GithubIcon />,
@@ -670,7 +670,7 @@ function Footer() {
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
             &copy; {new Date().getFullYear()},{" "}
             <a
-              href="https://4grid.tech"
+              href="https://agilique.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline font-medium"

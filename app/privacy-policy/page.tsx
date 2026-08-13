@@ -437,7 +437,7 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     paragraphs: [
       "We store data using secure infrastructure and apply reasonable technical and organisational safeguards to protect personal information from unauthorised access, misuse, disclosure, or destruction.",
       "This includes HTTPS encryption, authenticated storage access, access controls, and internal restrictions based on least-privilege principles. Basically, not everyone gets the keys to the castle.",
-      "That said, no digital system is 100% invincible. If you think your account has been compromised, email us immediately at 360viewtech@gmail.com so we can investigate quickly and help lock things down.",
+      "That said, no digital system is 100% invincible. If you think your account has been compromised, email us immediately at agilique.solutions@gmail.com so we can investigate quickly and help lock things down.",
     ],
   },
   {
@@ -473,7 +473,7 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     paragraphs: [
       "You can request access to your personal information, ask us to correct inaccurate data, request deletion of your account, or contact us about how your data is being used.",
       "Where applicable, you may also have rights related to data portability, objections to certain processing, or withdrawal of consent for optional communications.",
-      "To make a privacy-related request, email 360viewtech@gmail.com. We may need to verify your identity before acting on some requests, because privacy would be a bit awkward if we handed your data to the wrong person.",
+      "To make a privacy-related request, email agilique.solutions@gmail.com. We may need to verify your identity before acting on some requests, because privacy would be a bit awkward if we handed your data to the wrong person.",
     ],
   },
   {
@@ -489,24 +489,24 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     id: "contact-us",
     title: "Contact Us",
     paragraphs: [
-      "Questions, concerns, privacy requests, or just need clarification without legal-sounding gymnastics? Reach us at 360viewtech@gmail.com and we will do our best to respond within a reasonable time.",
+      "Questions, concerns, privacy requests, or just need clarification without legal-sounding gymnastics? Reach us at agilique.solutions@gmail.com and we will do our best to respond within a reasonable time.",
     ],
   },
 ];
 
 function renderParagraph(paragraph: string) {
-  if (!paragraph.includes("360viewtech@gmail.com")) return paragraph;
+  if (!paragraph.includes("agilique.solutions@gmail.com")) return paragraph;
 
-  const parts = paragraph.split("360viewtech@gmail.com");
+  const parts = paragraph.split("agilique.solutions@gmail.com");
 
   return (
     <>
       {parts[0]}
       <a
-        href="mailto:360viewtech@gmail.com"
+        href="mailto:agilique.solutions@gmail.com"
         className="font-medium text-zinc-900 underline underline-offset-2 dark:text-white"
       >
-        360viewtech@gmail.com
+        agilique.solutions@gmail.com
       </a>
       {parts[1]}
     </>
@@ -641,7 +641,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:360viewtech@gmail.com">Email Us</a>
+                <a href="mailto:agilique.solutions@gmail.com">Email Us</a>
               </Button>
               <Button
                 size="lg"
@@ -677,7 +677,7 @@ const socialLinks = [
   },
   {
     icon: <InstagramIcon />,
-    link: "https://www.instagram.com/4grid.tech/",
+    link: "https://www.instagram.com/agilique.com/",
   },
   {
     icon: <GithubIcon />,
@@ -749,7 +749,7 @@ function Footer() {
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
             &copy; {new Date().getFullYear()},{" "}
             <a
-              href="https://4grid.tech"
+              href="https://agilique.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline font-medium"

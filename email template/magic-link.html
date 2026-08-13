@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,54 +17,67 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: #131517;
     }
-    table, td {
+
+    table,
+    td {
       border-collapse: collapse;
     }
+
     p {
       margin: 0 0 16px 0;
     }
+
     a {
       color: #386de8;
       text-decoration: none !important;
     }
-    
+
     /* Dark Mode and Advanced selectors placed at the bottom to prevent old parsers from discarding the stylesheet */
     :root {
       color-scheme: light dark;
       supported-color-schemes: light dark;
     }
-    
+
     @media (prefers-color-scheme: dark) {
       body {
         background-color: #131517 !important;
         color: #f9fafb !important;
       }
+
       .email-container {
         color: #f9fafb !important;
       }
+
       .brand-text {
         color: #f9fafb !important;
       }
+
       .title-subtitle {
         color: #737577 !important;
       }
+
       .title-main {
         color: #f9fafb !important;
       }
+
       .divider-line {
         border-top: 1px solid #2c2e30 !important;
       }
+
       .content-body {
         color: #f9fafb !important;
       }
+
       .card-block {
         background-color: #1c1e20 !important;
         border-color: #2c2e30 !important;
         color: #e1e2e3 !important;
       }
+
       .text-muted {
         color: #a3a5a7 !important;
       }
+
       .btn-primary {
         background-color: #f9fafb !important;
         color: #131517 !important;
@@ -71,63 +85,95 @@
     }
   </style>
 </head>
-<body style="word-spacing:normal;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100% !important;margin:0 auto;max-width:600px;">
+
+<body
+  style="word-spacing:normal;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation"
+    style="width:100% !important;margin:0 auto;max-width:600px;">
     <tbody>
       <tr>
-        <td class="email-container" style="direction:ltr;padding:32px 16px;font-size:16px;line-height:1.6;text-align:left;color:#131517;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-          
+        <td class="email-container"
+          style="direction:ltr;padding:32px 16px;font-size:16px;line-height:1.6;text-align:left;color:#131517;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
           <!-- Header -->
-          <table border="0" style="padding-bottom:16px;display:block;width:100%;" cellpadding="0" cellspacing="0" role="presentation" align="left">
+          <table border="0" style="padding-bottom:16px;display:block;width:100%;" cellpadding="0" cellspacing="0"
+            role="presentation" align="left">
             <tbody>
               <tr>
                 <td style="vertical-align:middle;">
-                  <div class="brand-text" style="font-size:18px;color:#131517;font-weight:700;line-height:1.2;letter-spacing:-0.5px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">PlaceTrix</div>
+                  <div class="brand-text"
+                    style="font-size:18px;color:#131517;font-weight:700;line-height:1.2;letter-spacing:-0.5px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                    PlaceTrix</div>
                 </td>
               </tr>
             </tbody>
           </table>
-          
+
           <div style="clear:both;height:12px;"></div>
 
           <!-- Title Block -->
           <div style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            <div class="title-subtitle" style="font-size:22px;color:#b3b5b7;font-weight:400;margin-top:0;margin-bottom:3px;line-height:1.25;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Login Access</div>
-            <div class="title-main" style="font-size:22px;color:#131517;font-weight:600;margin-top:0;margin-bottom:0;line-height:1.25;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your sign-in link</div>
+            <div class="title-subtitle"
+              style="font-size:22px;color:#b3b5b7;font-weight:400;margin-top:0;margin-bottom:3px;line-height:1.25;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              Login Access</div>
+            <div class="title-main"
+              style="font-size:22px;color:#131517;font-weight:600;margin-top:0;margin-bottom:0;line-height:1.25;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              Your sign-in link</div>
           </div>
 
           <hr class="divider-line" style="border:0;border-top:1px solid #ebeced;margin:20px 0;" />
 
           <!-- Body -->
-          <div class="content-body" style="font-size:16px;line-height:1.6;color:#131517;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <div class="content-body"
+            style="font-size:16px;line-height:1.6;color:#131517;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
             <!-- Device Hint Box -->
-            <div class="card-block" style="background-color:#f7f8f9;border:1px solid #ebeced;border-radius:12px;padding:14px 18px;font-size:13px;color:#555555;line-height:1.7;margin-bottom:20px;box-sizing:border-box;width:100%;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-              For security, if you are signing in from a new device, click the link on the <strong>same device</strong> where you initiated the login request.
+            <div class="card-block"
+              style="background-color:#f7f8f9;border:1px solid #ebeced;border-radius:12px;padding:14px 18px;font-size:13px;color:#555555;line-height:1.7;margin-bottom:20px;box-sizing:border-box;width:100%;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              For security, if you are signing in from a new device, click the link on the <strong>same device</strong>
+              where you initiated the login request.
             </div>
 
-            <p style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Click the button below to sign in to your PlaceTrix account. This link can only be used once.</p>
+            <p style="font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              Click the button below to sign in to your PlaceTrix account. This link can only be used once.</p>
 
             <!-- CTA -->
-            <div style="margin:24px 0 8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-              <a class="btn-primary" href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/home" style="display:inline-block;background-color:#131517;color:#ffffff;font-size:15px;line-height:1;text-decoration:none;border-radius:8px;font-weight:600;padding:12px 20px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Sign In to PlaceTrix</a>
+            <div
+              style="margin:24px 0 8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <a class="btn-primary"
+                href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/home"
+                style="display:inline-block;background-color:#131517;color:#ffffff;font-size:15px;line-height:1;text-decoration:none;border-radius:8px;font-weight:600;padding:12px 20px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Sign
+                In to PlaceTrix</a>
             </div>
-            <p class="text-muted" style="font-size:13px;color:#737577;margin-top:8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Link expires in <strong>10 minutes</strong> &middot; Single-use only.</p>
+            <p class="text-muted"
+              style="font-size:13px;color:#737577;margin-top:8px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              Link expires in <strong>10 minutes</strong> &middot; Single-use only.</p>
           </div>
 
           <hr class="divider-line" style="border:0;border-top:1px solid #ebeced;margin:32px 0 16px;" />
 
           <!-- Footer -->
-          <table width="100%" cellspacing="0" cellpadding="0" border="0" style="vertical-align:middle;width:100% !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <table width="100%" cellspacing="0" cellpadding="0" border="0"
+            style="vertical-align:middle;width:100% !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
             <tbody>
               <tr>
-                <td width="50%" align="left" valign="middle" style="width:50% !important;font-size:12px;color:#b3b5b7;line-height:1.5;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                  &copy; <a href="https://4grid.tech" target="_blank" rel="noopener noreferrer" style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Agilique Solutions LLP</a>. All rights reserved.<br />
-                  <span class="text-muted" style="font-size:11px;color:#c0c2c4;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Magic link requested for <strong>{{ .Email }}</strong>.</span>
+                <td width="50%" align="left" valign="middle"
+                  style="width:50% !important;font-size:12px;color:#b3b5b7;line-height:1.5;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  &copy; <a href="https://agilique.com" target="_blank" rel="noopener noreferrer"
+                    style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Agilique
+                    Solutions LLP</a>. All rights reserved.<br />
+                  <span class="text-muted"
+                    style="font-size:11px;color:#c0c2c4;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Magic
+                    link requested for <strong>{{ .Email }}</strong>.</span>
                 </td>
-                <td width="50%" align="right" valign="middle" style="width:50% !important;font-size:12px;color:#b3b5b7;line-height:1.5;white-space:nowrap;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                  <a href="https://placetrix.app/privacy-policy" style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Privacy Policy</a>
+                <td width="50%" align="right" valign="middle"
+                  style="width:50% !important;font-size:12px;color:#b3b5b7;line-height:1.5;white-space:nowrap;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  <a href="https://placetrix.app/privacy-policy"
+                    style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Privacy
+                    Policy</a>
                   &nbsp;&middot;&nbsp;
-                  <a href="https://placetrix.app/terms-of-service" style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Terms of Service</a>
+                  <a href="https://placetrix.app/terms-of-service"
+                    style="color:#b3b5b7 !important;text-decoration:underline !important;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Terms
+                    of Service</a>
                 </td>
               </tr>
             </tbody>
@@ -138,4 +184,5 @@
     </tbody>
   </table>
 </body>
+
 </html>

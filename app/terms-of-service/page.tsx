@@ -516,24 +516,24 @@ const TERMS_SECTIONS: TermsContentSection[] = [
     id: "contact-us",
     title: "Contact Us",
     paragraphs: [
-      "If you have questions about these Terms and Conditions, account use, platform rules, or anything else that sounds legal enough to deserve a proper answer, contact us at 360viewtech@gmail.com.",
+      "If you have questions about these Terms and Conditions, account use, platform rules, or anything else that sounds legal enough to deserve a proper answer, contact us at agilique.solutions@gmail.com.",
     ],
   },
 ];
 
 function renderParagraph(paragraph: string) {
-  if (!paragraph.includes("360viewtech@gmail.com")) return paragraph;
+  if (!paragraph.includes("agilique.solutions@gmail.com")) return paragraph;
 
-  const parts = paragraph.split("360viewtech@gmail.com");
+  const parts = paragraph.split("agilique.solutions@gmail.com");
 
   return (
     <>
       {parts[0]}
       <a
-        href="mailto:360viewtech@gmail.com"
+        href="mailto:agilique.solutions@gmail.com"
         className="font-medium text-zinc-900 underline underline-offset-2 dark:text-white"
       >
-        360viewtech@gmail.com
+        agilique.solutions@gmail.com
       </a>
       {parts[1]}
     </>
@@ -670,7 +670,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:360viewtech@gmail.com">Email Us</a>
+                <a href="mailto:agilique.solutions@gmail.com">Email Us</a>
               </Button>
               <Button
                 size="lg"
@@ -706,7 +706,7 @@ const socialLinks = [
   },
   {
     icon: <InstagramIcon />,
-    link: "https://www.instagram.com/4grid.tech/",
+    link: "https://www.instagram.com/agilique.com/",
   },
   {
     icon: <GithubIcon />,
@@ -778,7 +778,7 @@ function Footer() {
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
             &copy; {new Date().getFullYear()},{" "}
             <a
-              href="https://4grid.tech"
+              href="https://agilique.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline font-medium"

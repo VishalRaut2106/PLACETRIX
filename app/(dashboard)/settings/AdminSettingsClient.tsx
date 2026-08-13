@@ -681,7 +681,7 @@ export function AdminSettingsClient({ userProfile }: Props) {
                   variant="outline"
                   onClick={() =>
                     toast.info(
-                      "To export your account data, please contact our support team at 360viewtech@gmail.com."
+                      "To export your account data, please contact our support team at agilique.solutions@gmail.com."
                     )
                   }
                 >
@@ -692,7 +692,7 @@ export function AdminSettingsClient({ userProfile }: Props) {
                   className="text-destructive hover:text-destructive"
                   onClick={() =>
                     toast.info(
-                      "To request deletion of your account, please contact our support team at 360viewtech@gmail.com."
+                      "To request deletion of your account, please contact our support team at agilique.solutions@gmail.com."
                     )
                   }
                 >

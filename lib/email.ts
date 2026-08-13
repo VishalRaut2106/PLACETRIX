@@ -528,7 +528,7 @@ export async function sendNewSupportTicketNotification(ticket: {
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
       console.warn("⚠️ [EMAIL SERVICE] SMTP configuration is incomplete. Skipping notification email.")
       console.log("[MOCK] New support ticket notification:")
-      console.log(`  To: 4grid.tech@gmail.com`)
+      console.log(`  To: agilique.solutions@gmail.com`)
       console.log(`  Subject: ${subject}`)
       console.log(`  Ticket ID: ${ticket.id}`)
       return { success: true, mock: true }
@@ -544,7 +544,7 @@ export async function sendNewSupportTicketNotification(ticket: {
 
     await transporter.sendMail({
       from: `"${smtpSenderName}" <${smtpSenderEmail}>`,
-      to: "4grid.tech@gmail.com",
+      to: "agilique.solutions@gmail.com",
       subject,
       html,
     })

@@ -172,7 +172,7 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
         .from('profiles')
         .update({ privacy_settings: updatedSettings })
         .eq('id', userProfile.id);
-      
+
       if (error) {
         toast.error("Failed to update privacy settings");
         setPrivacySettings(privacySettings); // revert on error
@@ -757,7 +757,7 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
                 ].map(({ label, key, desc }) => (
                   <div key={label} className="flex items-center justify-between">
                     <div><Label>{label}</Label><p className="text-sm text-muted-foreground">{desc}</p></div>
-                    <Switch 
+                    <Switch
                       checked={privacySettings[key] ?? false}
                       onCheckedChange={(val) => handleUpdatePrivacy(key, val)}
                       disabled={isPrivacyPending || (key !== "is_private" && privacySettings.is_private === true)}
@@ -773,7 +773,7 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
                   variant="outline"
                   onClick={() =>
                     toast.info(
-                      "To export your account data, please contact our support team at 360viewtech@gmail.com."
+                      "To export your account data, please contact our support team at agilique.solutions@gmail.com."
                     )
                   }
                 >
@@ -784,7 +784,7 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
                   className="text-destructive hover:text-destructive"
                   onClick={() =>
                     toast.info(
-                      "To request deletion of your account, please contact our support team at 360viewtech@gmail.com."
+                      "To request deletion of your account, please contact our support team at agilique.solutions@gmail.com."
                     )
                   }
                 >

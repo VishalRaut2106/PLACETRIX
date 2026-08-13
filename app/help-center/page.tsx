@@ -495,17 +495,17 @@ function HelpBodySection() {
                   Cannot sign in? Having issues with two-factor authentication (MFA), account activation, password resets, or general inquiries?
                   Don&apos;t worry. You can reach our support team directly via email at{" "}
                   <a
-                    href="mailto:360viewtech@gmail.com"
+                    href="mailto:agilique.solutions@gmail.com"
                     className="font-medium text-zinc-900 underline underline-offset-2 dark:text-white"
                   >
-                    360viewtech@gmail.com
+                    agilique.solutions@gmail.com
                   </a>
                   . Please provide your registered email and a detailed description of the problem.
                 </p>
               </div>
               <div className="mt-8">
                 <Button size="lg" variant="outline" className={cn("w-full rounded-full font-medium", NAV_BUTTON)} asChild>
-                  <a href="mailto:360viewtech@gmail.com">
+                  <a href="mailto:agilique.solutions@gmail.com">
                     Email Support
                   </a>
                 </Button>
@@ -561,7 +561,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:360viewtech@gmail.com">Email Us</a>
+                <a href="mailto:agilique.solutions@gmail.com">Email Us</a>
               </Button>
               <Button
                 size="lg"
@@ -597,7 +597,7 @@ const socialLinks = [
   },
   {
     icon: <InstagramIcon />,
-    link: "https://www.instagram.com/4grid.tech/",
+    link: "https://www.instagram.com/agilique.com/",
   },
   {
     icon: <GithubIcon />,
@@ -669,7 +669,7 @@ function Footer() {
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
             &copy; {new Date().getFullYear()},{" "}
             <a
-              href="https://4grid.tech"
+              href="https://agilique.com"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline font-medium"

@@ -689,7 +689,7 @@ function CompanySection() {
 
 						<div className="mt-8">
 							<Button className="group rounded-full font-medium" asChild>
-								<a href="https://4grid.tech" target="_blank" rel="noopener noreferrer">
+								<a href="https://agilique.com" target="_blank" rel="noopener noreferrer">
 									Explore Agilique Solutions LLP
 								</a>
 							</Button>
@@ -772,7 +772,7 @@ const socialLinks = [
 	},
 	{
 		icon: <InstagramIcon />,
-		link: "https://www.instagram.com/4grid.tech/",
+		link: "https://www.instagram.com/agilique.com/",
 	},
 	{
 		icon: <GithubIcon />,
@@ -852,7 +852,7 @@ function Footer() {
 					<p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
 						&copy; {new Date().getFullYear()},{" "}
 						<a
-							href="https://4grid.tech"
+							href="https://agilique.com"
 							target="_blank"
 							rel="noopener noreferrer"
 							className="hover:underline font-medium"
