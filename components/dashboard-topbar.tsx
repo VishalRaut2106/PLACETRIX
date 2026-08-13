@@ -103,7 +103,7 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
 
   const handleLogout = async () => {
     const supabase = createClient()
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: "local" })
     router.push("/auth/login")
     router.refresh()
   }

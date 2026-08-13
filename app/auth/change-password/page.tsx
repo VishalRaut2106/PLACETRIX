@@ -115,7 +115,7 @@ function ChangePasswordContent() {
       if (error) throw error;
 
       // Invalidate the recovery session so the link cannot be reused.
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       setPageState("success");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");

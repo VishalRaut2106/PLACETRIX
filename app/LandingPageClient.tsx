@@ -175,7 +175,7 @@ function UserAvatarMenu({ user }: { user: UserProfile }) {
     try {
       setIsLoggingOut(true);
       const supabase = createClient();
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       router.push("/");
       router.refresh();
     } catch (err) {
@@ -358,7 +358,7 @@ function MobileNav({
                           closeMenu();
                           try {
                             const supabase = createClient();
-                            await supabase.auth.signOut();
+                            await supabase.auth.signOut({ scope: "local" });
                             window.location.href = "/";
                           } catch (err) {
                             console.error("Logout error:", err);

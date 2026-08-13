@@ -169,7 +169,7 @@ export default function ResetPasswordPage() {
       if (error) throw error;
 
       // Invalidate the one-time recovery session so it cannot be reused.
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       setPageState("success");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
