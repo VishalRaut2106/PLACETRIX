@@ -28,7 +28,7 @@ const fontMono = Source_Code_Pro({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://placetrix.app"),
   title: {
-    default: "PlaceTrix - Educational Assessment Platform",
+    default: "PlaceTrix",
     template: "%s | PlaceTrix",
   },
   description:
@@ -47,13 +47,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "PlaceTrix - Educational Assessment Platform",
+    title: "PlaceTrix",
     description: "Practice mock tests, join study groups, and track your progress with PlaceTrix.",
     siteName: "PlaceTrix",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PlaceTrix - Educational Assessment Platform",
+    title: "PlaceTrix",
     description: "Practice mock tests, join study groups, and track your progress with PlaceTrix.",
   },
   robots: {

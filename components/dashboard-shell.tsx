@@ -1,183 +1,63 @@
 "use client"
 
 import * as React from "react"
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
-import { SiteHeader } from "@/components/site-header"
 import { usePathname } from "next/navigation"
-import { WhatsNewModal } from "@/components/changelog/whats-new-modal"
-
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-
-const HOVER_OPEN_DELAY = 180   // ms
-const HOVER_CLOSE_DELAY = 140  // ms
-
-
-// ─── Hover Context ────────────────────────────────────────────────────────────
-
-
-import { SidebarHoverContext, type SidebarHoverContextValue } from "./sidebar-hover-context"
-
-
-// ─── Mobile Hover Guard ───────────────────────────────────────────────────────
-// Must be inside SidebarProvider to access useSidebar.
-
-
-function MobileHoverGuard({
-  suspendHoverRef,
-}: {
-  suspendHoverRef: React.MutableRefObject<boolean>
-}) {
-  const { isMobile } = useSidebar()
-
-  React.useEffect(() => {
-    suspendHoverRef.current = !!isMobile
-  }, [isMobile, suspendHoverRef])
-
-  return null
-}
+import { DashboardTopbar } from "@/components/dashboard-topbar"
+import { AppSidebarNav } from "@/components/app-sidebar"
+import type { UserProfile } from "@/lib/supabase/profile"
 
 
 // ─── DashboardShell ───────────────────────────────────────────────────────────
 
 
-export function DashboardShell({
-  sidebar,
-  children,
-}: {
-  sidebar: React.ReactNode
+interface DashboardShellProps {
+  user: UserProfile | null
   children: React.ReactNode
-}) {
-  const [open, setOpen] = React.useState(false)
-  const pathname = usePathname()
-  const insetRef = React.useRef<HTMLElement>(null)
+}
 
-  // Reset scroll on navigation
+export function DashboardShell({ user, children }: DashboardShellProps) {
+  const pathname = usePathname()
+  const contentRef = React.useRef<HTMLDivElement>(null)
+  const [mobileOpen, setMobileOpen] = React.useState(false)
+
+  // Reset scroll on route change; close mobile sidebar on navigate
   React.useEffect(() => {
-    if (insetRef.current) {
-      insetRef.current.scrollTo(0, 0)
+    if (contentRef.current) {
+      contentRef.current.scrollTo(0, 0)
     }
-    window.scrollTo(0, 0)
+    setMobileOpen(false)
   }, [pathname])
 
-  const manualModeRef = React.useRef(false)
-  const hoverOpenedRef = React.useRef(false)
-  const suspendHoverRef = React.useRef(false)
-  const intentTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastIntentRef = React.useRef<"open" | "close" | null>(null)
-
-  const setOpenRef = React.useRef(setOpen)
-  React.useEffect(() => { setOpenRef.current = setOpen }, [setOpen])
-
-  const clearIntentTimer = React.useCallback(() => {
-    if (intentTimerRef.current) clearTimeout(intentTimerRef.current)
-    intentTimerRef.current = null
-    lastIntentRef.current = null
-  }, [])
-
-  React.useEffect(() => () => clearIntentTimer(), [clearIntentTimer])
-
-  const commitIntent = React.useCallback((intent: "open" | "close") => {
-    if (manualModeRef.current || suspendHoverRef.current) return
-    if (intent === "open") {
-      hoverOpenedRef.current = true
-      setOpenRef.current(true)
-    } else {
-      if (!hoverOpenedRef.current) return
-      hoverOpenedRef.current = false
-      setOpenRef.current(false)
-    }
-  }, [])
-
-  const scheduleIntent = React.useCallback((intent: "open" | "close") => {
-    if (manualModeRef.current || suspendHoverRef.current) return
-    if (lastIntentRef.current === intent) return
-    lastIntentRef.current = intent
-    if (intentTimerRef.current) clearTimeout(intentTimerRef.current)
-    const delay = intent === "open" ? HOVER_OPEN_DELAY : HOVER_CLOSE_DELAY
-    intentTimerRef.current = setTimeout(() => {
-      commitIntent(intent)
-      intentTimerRef.current = null
-      lastIntentRef.current = null
-    }, delay)
-  }, [commitIntent])
-
-  const onManualToggle = React.useCallback(() => {
-    clearIntentTimer()
-    hoverOpenedRef.current = false
-    setOpenRef.current((prev) => {
-      if (prev) {
-        manualModeRef.current = true
-      } else {
-        manualModeRef.current = false
-      }
-      return prev
-    })
-  }, [clearIntentTimer])
-
-  React.useEffect(() => {
-    if (open && manualModeRef.current) {
-      manualModeRef.current = false
-    }
-  }, [open])
-
-  const handleUserMenuOpenChange = React.useCallback(
-    (menuOpen: boolean) => {
-      suspendHoverRef.current = menuOpen
-      if (menuOpen) {
-        clearIntentTimer()
-        setOpenRef.current(true)
-      }
-    },
-    [clearIntentTimer],
-  )
-
-  const hoverProps = React.useMemo(() => ({
-    onPointerEnter: (e: React.PointerEvent) => {
-      if (e.pointerType !== "mouse") return
-      scheduleIntent("open")
-    },
-    onPointerLeave: (e: React.PointerEvent) => {
-      if (e.pointerType !== "mouse") return
-      scheduleIntent("close")
-    },
-  }), [scheduleIntent])
-
-  const contextValue = React.useMemo<SidebarHoverContextValue>(
-    () => ({
-      onUserMenuOpenChange: handleUserMenuOpenChange,
-      hoverProps,
-    }),
-    [handleUserMenuOpenChange, hoverProps],
-  )
-
   return (
-    <SidebarHoverContext.Provider value={contextValue}>
-      <SidebarProvider
-        open={open}
-        onOpenChange={setOpen}
-      >
-        {sidebar}
+    <div className="relative flex h-svh w-full overflow-hidden bg-background">
+      {/* ── Sidebar (full screen height on left edge) ── */}
+      <AppSidebarNav
+        user={user}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
 
-        {/* ✅ flex flex-col added so flex-1 children respond correctly */}
-        <SidebarInset ref={insetRef} className="min-h-svh md:h-svh overflow-y-visible md:overflow-y-auto flex flex-col">
-          <div className="sticky z-30 top-0 w-full bg-background border-b md:hidden">
-            <SiteHeader onManualToggle={onManualToggle} />
-          </div>
+      {/* ── Main Column (sits to the right of sidebar) ── */}
+      <div className="flex flex-1 flex-col min-w-0 h-svh overflow-hidden md:ml-12">
+        {/* ── Topbar ─────────────────────────────────── */}
+        <DashboardTopbar
+          user={user}
+          onMenuClick={() => setMobileOpen((v) => !v)}
+          mobileOpen={mobileOpen}
+        />
 
-          {/* ✅ min-h-0 prevents flex child from overflowing the parent */}
-          <div className="flex flex-1 flex-col min-h-0">
-            <div className="@container/main flex flex-1 flex-col gap-2 min-h-0">
-              <div className="flex flex-1 flex-col gap-4 min-h-0">
-                {children}
-              </div>
+        {/* ── Page content ──────────────────────────── */}
+        <main
+          ref={contentRef}
+          className="flex flex-1 flex-col min-w-0 overflow-y-auto"
+        >
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-1 flex-col gap-4">
+              {children}
             </div>
           </div>
-        </SidebarInset>
-
-        <MobileHoverGuard suspendHoverRef={suspendHoverRef} />
-      </SidebarProvider>
-    </SidebarHoverContext.Provider>
+        </main>
+      </div>
+    </div>
   )
 }

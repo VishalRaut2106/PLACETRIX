@@ -447,7 +447,7 @@ export function CandidateTestsClient({
       <div className="flex flex-col gap-1.5">
         <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">Tests</h1>
         <p className="text-sm text-muted-foreground">
-          Browse and attempt your mock tests
+          Browse and attempt your tests
         </p>
       </div>
 

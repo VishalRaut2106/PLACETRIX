@@ -407,7 +407,7 @@ export function CandidateDashboardClient({
                   {greeting}, {profileName}!
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                  Track your Placements, Mock Tests, and Progress in Coding Challenges all from One Dashboard.
+                  Track your Placements, Tests, and Progress in Coding Challenges all from One Dashboard.
                 </p>
               </div>
 
@@ -527,7 +527,7 @@ export function CandidateDashboardClient({
           <Card className="bg-card border border-border/40 shadow-md rounded-2xl flex flex-col p-0 gap-0 h-full">
             <CardContent className="p-5 flex flex-col justify-between flex-1 gap-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Mock Test Performance
+                Test Performance
               </div>
 
               <div className="flex items-center justify-between gap-4 flex-1">
@@ -736,7 +736,7 @@ export function CandidateDashboardClient({
                       <div className="flex flex-row items-center justify-between pb-1">
                         <Link href="/tests" className="hover:opacity-80 transition-opacity cursor-pointer">
                           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                            Mock Tests<ChevronRight className="size-3" />
+                            Tests<ChevronRight className="size-3" />
                           </div>
                         </Link>
                         {displayTest && (
@@ -776,7 +776,7 @@ export function CandidateDashboardClient({
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
                           <span className="text-sm font-semibold">No Active Tests</span>
-                          <span className="text-xs">No active or upcoming mock tests assigned.</span>
+                          <span className="text-xs">No active or upcoming tests assigned.</span>
                         </div>
                       )}
                     </div>

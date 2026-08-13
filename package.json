@@ -1,7 +1,7 @@
 {
   "name": "placetrix",
-  "version": "1.4.23",
-  "description": "Placetrix - Educational Assessment Platform",
+  "version": "1.4.24",
+  "description": "Placetrix",
   "private": true,
   "scripts": {
     "dev": "next dev",

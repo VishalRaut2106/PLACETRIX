@@ -16,7 +16,6 @@ const PROTECTED_PATHS = [
   "/analytics",
   "/support",
   "/candidates",
-  "/notifications",
   "/settings",
   "/gethelp",
   "/groups",

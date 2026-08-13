@@ -1,74 +1,38 @@
 "use client"
+
 import * as React from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  IconSmartHome,
-  IconTerminal2,
-  IconBook,
-  IconClipboardCheck,
-  IconUsers,
-  IconUsersGroup,
-  IconCalendarEvent,
-  IconBriefcase,
-  IconTools,
-  IconBuildingSkyscraper,
-  IconShieldCheck,
-  IconHelpCircle,
-  IconUserCircle,
-  IconBell,
-  IconSettings,
-  IconHeart,
-  IconLock,
-  IconChevronRight,
-  IconChevronUp,
-  IconDotsVertical,
-  IconLogout,
-  IconHistory,
-} from "@tabler/icons-react"
-import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton,
-  SidebarMenuItem, SidebarMenuSkeleton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton,
-  SidebarSeparator, useSidebar, SidebarMenuBadge,
-} from "@/components/ui/sidebar"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "./ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
+  Home,
+  Terminal,
+  BookOpen,
+  ClipboardCheck,
+  Users,
+  FolderKanban,
+  Calendar,
+  Briefcase,
+  Wrench,
+  Building2,
+  ShieldCheck,
+  HelpCircle,
+  Heart,
+  Lock,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
-import { hasUnreadChangelog, LATEST_VERSION } from "@/lib/changelog"
-import { WhatsNewModal } from "@/components/changelog/whats-new-modal"
-
-
-import { AccountType, UserProfile } from "@/lib/supabase/profile"
-
-import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { useSidebarHoverContext } from "@/components/sidebar-hover-context"
-import { buildStorageUrl } from "@/lib/storage"
-import { version } from "@/package.json"
-import { useLicense } from "@/components/license/LicenseProvider"
 import { toast } from "sonner"
+import { useLicense } from "@/components/license/LicenseProvider"
+import type { AccountType, UserProfile } from "@/lib/supabase/profile"
+import { Logo } from "@/components/logo"
+
+
+// ─── Nav definitions ──────────────────────────────────────────────────────────
 
 
 type NavItem = {
   title: string
   url: string
   icon: React.ComponentType<any>
-  items?: {
-    title: string
-    url: string
-  }[]
-  badge?: string
 }
 
 const VALID_ACCOUNT_TYPES: AccountType[] = [
@@ -79,70 +43,54 @@ const VALID_ACCOUNT_TYPES: AccountType[] = [
   "institute_placement_officer",
 ]
 
-
 const NAV_MAIN: Record<AccountType, NavItem[]> = {
   institute_candidate: [
-    { title: "Home", url: "/home", icon: IconSmartHome },
-    { title: "Logic Lab", url: "/logiclab", icon: IconTerminal2 },
-    { title: "Courses", url: "/courses", icon: IconBook },
-    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
-    { title: "Cohorts", url: "/cohorts", icon: IconUsersGroup },
-    { title: "Events", url: "/events", icon: IconCalendarEvent },
-    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
-    { title: "Tools", url: "/tools", icon: IconTools },
+    { title: "Home", url: "/home", icon: Home },
+    { title: "Logic Lab", url: "/logiclab", icon: Terminal },
+    { title: "Courses", url: "/courses", icon: BookOpen },
+    { title: "Tests", url: "/tests", icon: ClipboardCheck },
+    { title: "Cohorts", url: "/cohorts", icon: FolderKanban },
+    { title: "Events", url: "/events", icon: Calendar },
+    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
+    { title: "Tools", url: "/tools", icon: Wrench },
   ],
   institute_primary: [
-    { title: "Home", url: "/home", icon: IconSmartHome },
-    { title: "Users", url: "/users", icon: IconUsers },
-    { title: "Cohorts", url: "/cohorts", icon: IconUsersGroup },
-    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
-    { title: "Events", url: "/events", icon: IconCalendarEvent },
-    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
-    { title: "Companies", url: "/companies", icon: IconBuildingSkyscraper },
+    { title: "Home", url: "/home", icon: Home },
+    { title: "Users", url: "/users", icon: Users },
+    { title: "Cohorts", url: "/cohorts", icon: FolderKanban },
+    { title: "Tests", url: "/tests", icon: ClipboardCheck },
+    { title: "Events", url: "/events", icon: Calendar },
+    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
+    { title: "Companies", url: "/companies", icon: Building2 },
   ],
   institute_staff: [
-    { title: "Home", url: "/home", icon: IconSmartHome },
-    { title: "Cohorts", url: "/cohorts", icon: IconUsersGroup },
-    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
-    { title: "Events", url: "/events", icon: IconCalendarEvent },
+    { title: "Home", url: "/home", icon: Home },
+    { title: "Cohorts", url: "/cohorts", icon: FolderKanban },
+    { title: "Tests", url: "/tests", icon: ClipboardCheck },
+    { title: "Events", url: "/events", icon: Calendar },
   ],
   institute_placement_officer: [
-    { title: "Home", url: "/home", icon: IconSmartHome },
-    { title: "Cohorts", url: "/cohorts", icon: IconUsersGroup },
-    { title: "Tests", url: "/tests", icon: IconClipboardCheck },
-    { title: "Events", url: "/events", icon: IconCalendarEvent },
-    { title: "Opportunities", url: "/opportunities", icon: IconBriefcase },
-    { title: "Companies", url: "/companies", icon: IconBuildingSkyscraper },
+    { title: "Home", url: "/home", icon: Home },
+    { title: "Cohorts", url: "/cohorts", icon: FolderKanban },
+    { title: "Tests", url: "/tests", icon: ClipboardCheck },
+    { title: "Events", url: "/events", icon: Calendar },
+    { title: "Opportunities", url: "/opportunities", icon: Briefcase },
+    { title: "Companies", url: "/companies", icon: Building2 },
   ],
   admin: [
-    { title: "Home", url: "/home", icon: IconSmartHome },
-    { title: "Licenses", url: "/licenses", icon: IconShieldCheck },
-    { title: "Courses", url: "/courses", icon: IconBook },
-    { title: "LogicLab", url: "/logiclab/admin", icon: IconTerminal2 },
-    { title: "Support Queue", url: "/support", icon: IconHelpCircle },
+    { title: "Home", url: "/home", icon: Home },
+    { title: "Licenses", url: "/licenses", icon: ShieldCheck },
+    { title: "Courses", url: "/courses", icon: BookOpen },
+    { title: "LogicLab", url: "/logiclab/admin", icon: Terminal },
+    { title: "Support Queue", url: "/support", icon: HelpCircle },
   ],
 }
 
-
 const NAV_SECONDARY: NavItem[] = [
-  { title: "Notifications", url: "/notifications", icon: IconBell },
-  { title: "Get Help", url: "/gethelp", icon: IconHelpCircle },
-  { title: "Our Team", url: "/our-team", icon: IconHeart },
+  { title: "Our Team", url: "/our-team", icon: Heart },
 ]
 
-
-// ─── Theme options ────────────────────────────────────────────────────────────
-
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-
 const VALID_ACCOUNT_TYPE_SET = new Set<string>(VALID_ACCOUNT_TYPES)
-
-const MAX_PRIMARY_NAV_COUNT = Math.max(
-  ...VALID_ACCOUNT_TYPES.map((t) => NAV_MAIN[t].length)
-)
-
 
 function safeAccountType(type: string | null | undefined): AccountType {
   return VALID_ACCOUNT_TYPE_SET.has(type ?? "")
@@ -151,499 +99,190 @@ function safeAccountType(type: string | null | undefined): AccountType {
 }
 
 
-// ─── NavUser ──────────────────────────────────────────────────────────────────
+// ─── NavItem button ───────────────────────────────────────────────────────────
 
 
-export function NavUser({ user }: { user: UserProfile | null }) {
-  const { isMobile, setOpenMobile } = useSidebar()
-  const router = useRouter()
-  const { onUserMenuOpenChange } = useSidebarHoverContext()
+interface NavItemButtonProps {
+  item: NavItem
+  isActive: boolean
+  isLocked?: boolean
+  lockReason?: string
+}
 
-  const displayName = user?.full_name?.trim() || "User"
-  const email = user?.email?.trim() || "No email"
-  const sidebarSubtitle = user?.username?.trim()
-    ? `@${user.username.trim()}`
-    : email
-  const accountType = safeAccountType(user?.account_type)
-  const initials = user?.full_name?.trim()
-    ? displayName.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : (user?.email?.trim()[0]?.toUpperCase() ?? "?")
+function NavItemButton({ item, isActive, isLocked, lockReason }: NavItemButtonProps) {
+  const Icon = isLocked ? Lock : item.icon
 
-  const avatarUrl = buildStorageUrl("avatars", user?.avatar_path ?? null)
-  const [whatsNewOpen, setWhatsNewOpen] = React.useState(false)
-  const [hasUnread, setHasUnread] = React.useState(false)
+  const inner = (
+    <div
+      className={cn(
+        "group/navbtn flex h-9 w-full items-center rounded-sm transition-colors duration-150 ease-out cursor-pointer",
+        isActive && !isLocked
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : !isLocked && "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+        isLocked && "opacity-50 cursor-not-allowed text-sidebar-foreground/50 hover:bg-transparent",
+      )}
+    >
+      {/* Icon outer container — 36x36px square, perfectly centered icon */}
+      <div className="flex size-9 shrink-0 items-center justify-center">
+        <Icon className="size-4 shrink-0 transition-transform duration-150 group-hover/navbtn:scale-105" />
+      </div>
 
-  React.useEffect(() => {
-    setHasUnread(hasUnreadChangelog())
-  }, [whatsNewOpen])
+      {/* Label — fades in on desktop hover or mobile open */}
+      <span className="whitespace-nowrap text-[15px] leading-none opacity-0 group-hover/sidebar:opacity-100 group-data-[mobile-open=true]/sidebar:opacity-100 transition-opacity duration-100 delay-75 select-none pr-2">
+        {item.title}
+      </span>
+    </div>
+  )
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/auth/login")
-    router.refresh()
+  const focusClasses = "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sidebar-ring focus-visible:ring-inset rounded-sm"
+
+  if (isLocked) {
+    return (
+      <button
+        className={cn("w-full text-left block", focusClasses)}
+        onClick={() => {
+          toast.error("Feature Locked", { description: lockReason })
+        }}
+      >
+        {inner}
+      </button>
+    )
   }
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu
-          onOpenChange={onUserMenuOpenChange}
-          modal={false}
-        >
-          <DropdownMenuTrigger asChild disabled={!user}>
-            <SidebarMenuButton
-              size="lg"
-              className={cn(
-                "w-full text-sidebar-foreground group/user cursor-pointer rounded-xl transition-all duration-200",
-                "bg-sidebar-border/50 border border-sidebar-border/80 shadow-2xs p-2",
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-transparent",
-                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground data-[state=open]:border-transparent",
-                "group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:shadow-none"
-              )}
-              asChild
-            >
-              <div className="flex items-center gap-2.5 w-full" suppressHydrationWarning>
-                {user ? (
-                  <>
-                    <Avatar className="h-8 w-8 rounded-lg shrink-0 border border-sidebar-border group-hover/user:border-primary/20 group-data-[state=open]/user:border-primary/20 transition-all duration-200 group-hover/user:scale-105">
-                      <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
-                      <AvatarFallback className="rounded-lg bg-sidebar-border text-sidebar-foreground font-semibold">{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left min-w-0 gap-0.5 group-data-[collapsible=icon]:hidden">
-                      <span className="truncate font-semibold text-sm leading-none text-sidebar-foreground group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-colors duration-200">{displayName}</span>
-                      <span className="truncate text-[11px] text-muted-foreground leading-none group-hover/user:text-sidebar-accent-foreground/80 group-data-[state=open]/user:text-sidebar-accent-foreground/80 transition-colors duration-200">{sidebarSubtitle}</span>
-                    </div>
-                    <div className="relative ml-auto shrink-0 flex items-center justify-center group-data-[collapsible=icon]:hidden">
-                      <IconDotsVertical className="size-4 text-muted-foreground/80 group-hover/user:text-sidebar-accent-foreground group-data-[state=open]/user:text-sidebar-accent-foreground transition-all group-hover/user:translate-x-0.5 duration-200" />
-                      {hasUnread && (
-                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500" />
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
-                    <div className="grid flex-1 min-w-0 gap-1.5 group-data-[collapsible=icon]:hidden">
-                      <Skeleton className="h-3.5 w-28" />
-                      <Skeleton className="h-3 w-36" />
-                    </div>
-                    <Skeleton className="h-4 w-4 rounded shrink-0 group-data-[collapsible=icon]:hidden" />
-                  </>
-                )}
-              </div>
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-
-          {user && (
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg [&_svg]:stroke-[2.5]"
-              side={isMobile ? "bottom" : "right"}
-              align="end"
-              sideOffset={8}
-              onPointerEnter={() => onUserMenuOpenChange(true)}
-              onPointerLeave={() => onUserMenuOpenChange(false)}
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              {/* ── User identity header ───────────────────── */}
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
-                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{displayName}</span>
-                    <span className="truncate text-xs text-muted-foreground">{email}</span>
-                  </div>
-                </div>
-              </DropdownMenuLabel>
-
-              <DropdownMenuSeparator />
-
-              {/* ── Account Links ────────────────────────────── */}
-              <DropdownMenuGroup>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/myprofile" onClick={() => setOpenMobile(false)}>
-                    <IconUserCircle className="size-4 shrink-0" />
-                    <span>My Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/settings" onClick={() => setOpenMobile(false)}>
-                    <IconSettings className="size-4 shrink-0" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-
-              <DropdownMenuSeparator />
-
-              {/* ── What's New / Changelog ───────────────────────── */}
-              <DropdownMenuItem
-                onClick={() => setWhatsNewOpen(true)}
-                className="cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <IconHistory className="size-4 shrink-0 text-blue-500 dark:text-blue-400" />
-                  <span>What's New</span>
-                </div>
-                {hasUnread ? (
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30">
-                    New
-                  </Badge>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    v{LATEST_VERSION}
-                  </span>
-                )}
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              {/* ── Logout ─────────────────────────────────── */}
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={handleLogout}
-                className="cursor-pointer"
-              >
-                <IconLogout className="size-4 shrink-0" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          )}
-        </DropdownMenu>
-
-        <WhatsNewModal open={whatsNewOpen} onOpenChange={setWhatsNewOpen} />
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <Link href={item.url} className={cn("w-full block", focusClasses)}>
+      {inner}
+    </Link>
   )
 }
 
 
-export function NavMain({ items }: { items: NavItem[] }) {
+// ─── AppSidebarNav ─────────────────────────────────────────────────────────────
+// Compact icon sidebar that expands on hover (Supabase Studio style).
+// Positioned absolutely so content area never shifts.
+
+
+interface AppSidebarNavProps {
+  user: UserProfile | null
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
+
+export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNavProps) {
   const pathname = usePathname()
-  const { setOpenMobile } = useSidebar()
-  const { isActive: isLicenseActive, isAdmin, user } = useLicense()
+  const { isActive: isLicenseActive, isAdmin, user: licenseUser } = useLicense()
 
-  const isProfileComplete = !user || 
-    (user.account_type !== "institute_candidate" && 
-     user.account_type !== "institute_staff" && 
-     user.account_type !== "institute_placement_officer") || 
-    user.profile_updated === true
+  const accountType = safeAccountType(user?.account_type)
+  const mainNav = user ? NAV_MAIN[accountType] : []
 
-  const hasAccess = isAdmin || (isLicenseActive && isProfileComplete)
+  const isProfileComplete =
+    !licenseUser ||
+    (licenseUser.account_type !== "institute_candidate" &&
+      licenseUser.account_type !== "institute_staff" &&
+      licenseUser.account_type !== "institute_placement_officer") ||
+    licenseUser.profile_updated === true
+
+  const secondaryNav = NAV_SECONDARY
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          {items.map((item, index) => {
+    <>
+      {/* ── Mobile backdrop ─────────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={onMobileClose}
+          aria-hidden
+        />
+      )}
+
+      {/* ── Sidebar ──────────────────────────────────
+          Desktop: absolute icon strip, hover-expands (group/sidebar)
+          Mobile:  fixed overlay, slides in from left via translate
+      */}
+      <nav
+        data-mobile-open={mobileOpen}
+        className={cn(
+          "group/sidebar flex flex-col overflow-hidden border-r border-sidebar-border bg-sidebar",
+          // ── Desktop: absolute strip (48px matching topbar 48px height) ──
+          "md:absolute md:inset-y-0 md:left-0 md:z-40",
+          "md:w-12 md:hover:w-48",
+          "md:[transition:width_200ms_ease-out]",
+          "md:translate-x-0 md:shadow-none hover:md:shadow-lg",
+          // ── Mobile: fixed overlay, toggled ─────────
+          "fixed inset-y-0 left-0 z-50 w-48",
+          mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full",
+          "transition-transform duration-300 ease-out md:transition-none",
+        )}
+        aria-label="Main navigation"
+      >
+        {/* ── Sidebar Branding Header (48px x 48px square cell when collapsed) ── */}
+        <div className="flex h-12 shrink-0 items-center p-1.5 border-b border-sidebar-border overflow-hidden">
+          <Link
+            href="/home"
+            className="flex h-9 w-full items-center rounded-sm transition-colors duration-150 group/logo focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sidebar-ring focus-visible:ring-inset"
+            onClick={onMobileClose}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center">
+              <Logo />
+            </div>
+            <span className="whitespace-nowrap text-sm font-semibold tracking-tight leading-none opacity-0 group-hover/sidebar:opacity-100 group-data-[mobile-open=true]/sidebar:opacity-100 transition-opacity duration-100 delay-75 select-none pr-2">
+              PlaceTrix
+            </span>
+          </Link>
+        </div>
+
+        {/* ── Primary nav ──────────────────────────────── */}
+        <div className="flex flex-col flex-1 gap-1 p-1.5 overflow-y-auto overflow-x-hidden">
+          {mainNav.map((item) => {
             const isPremium = item.url !== "/home"
             const isLicenseLocked = isPremium && !isAdmin && !isLicenseActive
             const isProfileLocked = isPremium && !isAdmin && !isProfileComplete
             const isLocked = isLicenseLocked || isProfileLocked
-            const lockReason = isProfileLocked 
+            const lockReason = isProfileLocked
               ? "Please complete your profile to unlock this feature."
               : "Your institution does not have an active license."
+            const isActive =
+              pathname === item.url || pathname.startsWith(item.url + "/")
 
-            if (item.items && item.items.length > 0) {
-              return (
-                <Collapsible
-                  key={item.title}
-                  asChild
-                  disabled={isLocked}
-                  defaultOpen={!isLocked && item.items.some(
-                    (subItem) =>
-                      pathname === subItem.url ||
-                      pathname.startsWith(subItem.url + "/")
-                  )}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem
-                    style={{ "--i": index } as React.CSSProperties}
-                    className="animate-nav-in"
-                  >
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton 
-                        tooltip={item.title}
-                        onClick={(e) => {
-                          if (isLocked) {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            toast.error(`Feature Locked`, {
-                              description: lockReason
-                            })
-                          }
-                        }}
-                        className={cn(isLocked && "opacity-60 cursor-not-allowed")}
-                      >
-                        {isLocked ? (
-                          <IconLock className="size-4 text-muted-foreground shrink-0" />
-                        ) : (
-                          <item.icon className="transition-transform duration-200" />
-                        )}
-                        <span className={cn(isLocked && "text-muted-foreground font-normal")}>{item.title}</span>
-                        {!isLocked && <IconChevronRight className="ml-auto transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] group-data-[state=open]/collapsible:rotate-90 size-4 shrink-0" />}
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    {!isLocked && (
-                      <CollapsibleContent className="collapsible-content" suppressHydrationWarning>
-                        <SidebarMenuSub suppressHydrationWarning>
-                          {item.items.map((subItem) => {
-                            const isSubActive = pathname === subItem.url || pathname.startsWith(subItem.url + "/")
-                            return (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={isSubActive}
-                                 className={cn(
-                                    "transition-all duration-200",
-                                    isSubActive &&
-                                    "bg-sidebar-accent/50 text-sidebar-accent-foreground font-semibold"
-                                  )}
-                                >
-                                  <Link href={subItem.url} onClick={() => setOpenMobile(false)}>
-                                    <span>{subItem.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            )
-                          })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    )}
-                  </SidebarMenuItem>
-                </Collapsible>
-              )
-            }
-            const isActive = pathname === item.url || pathname.startsWith(item.url + "/")
             return (
-              <SidebarMenuItem
-                key={item.title}
-                style={{ "--i": index } as React.CSSProperties}
-                className="animate-nav-in"
-              >
-                <SidebarMenuButton
-                  tooltip={item.title}
-                  asChild={!isLocked}
-                  isActive={isActive && !isLocked}
-                  onClick={(e) => {
-                    if (isLocked) {
-                      e.preventDefault()
-                      toast.error(`Feature Locked`, {
-                        description: lockReason
-                      })
-                    }
-                  }}
-                  className={cn(
-                    "transition-all duration-200",
-                    isActive && !isLocked &&
-                    "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold",
-                    isLocked && "opacity-60 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground"
-                  )}
-                >
-                  {isLocked ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <IconLock className="size-4 text-muted-foreground shrink-0" />
-                      <span className="truncate text-muted-foreground font-normal">{item.title}</span>
-                    </div>
-                  ) : (
-                    <Link href={item.url} onClick={() => setOpenMobile(false)}>
-                      <item.icon className="transition-transform duration-200" />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
-                  )}
-                </SidebarMenuButton>
-                {item.badge && !isLocked && (
-                  <SidebarMenuBadge className="italic">
-                    {item.badge}
-                  </SidebarMenuBadge>
-                )}
-              </SidebarMenuItem>
+              <NavItemButton
+                key={item.url}
+                item={item}
+                isActive={isActive}
+                isLocked={isLocked}
+                lockReason={lockReason}
+              />
             )
           })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
 
+          {/* Skeleton placeholders while user loads */}
+          {!user &&
+            Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-9 w-full rounded-sm bg-muted/40 animate-pulse"
+              />
+            ))}
+        </div>
 
-// ─── NavSecondary ─────────────────────────────────────────────────────────────
+        {/* ── Divider ──────────────────────────────────── */}
+        <div className="mx-2 my-0.5 border-t border-sidebar-border" />
 
-
-export function NavSecondary({
-  items,
-  ...props
-}: {
-  items: NavItem[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
-  const pathname = usePathname()
-  const { setOpenMobile } = useSidebar()
-
-  return (
-    <SidebarGroup {...props}>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => {
-            const isActive = pathname === item.url || pathname.startsWith(item.url + "/")
+        {/* ── Secondary nav ────────────────────────────── */}
+        <div className="flex flex-col gap-1 p-1.5 overflow-x-hidden">
+          {secondaryNav.map((item) => {
+            const isActive =
+              pathname === item.url || pathname.startsWith(item.url + "/")
             return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={item.title}
-                  isActive={isActive}
-                  className={cn(
-                    "transition-all duration-200",
-                    isActive &&
-                    "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold"
-                  )}
-                >
-                  <Link
-                    href={item.url}
-                    onClick={() => setOpenMobile(false)}
-                  >
-                    <item.icon className="transition-transform duration-200" />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-                {item.badge && (
-                  <SidebarMenuBadge>
-                    {item.badge}
-                  </SidebarMenuBadge>
-                )}
-              </SidebarMenuItem>
+              <NavItemButton
+                key={item.url}
+                item={item}
+                isActive={isActive}
+              />
             )
           })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
-
-// ─── AppSidebar ───────────────────────────────────────────────────────────────
-
-
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  user: UserProfile | null
-}
-
-const Logo = React.memo(() => (
-  <div className="shrink-0 size-5 flex items-center justify-center transition-transform duration-300 group-hover/logo:scale-110">
-    <svg
-      viewBox="0 0 234 139"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="size-full"
-    >
-      <path
-        d="M3.78965 131.389L49.3376 57.9376C53.1673 51.7618 59.9207 48 67.1876 48H137.213C140.37 48 142.283 51.4846 140.588 54.1475L121.179 84.6475C120.445 85.8013 119.172 86.5 117.804 86.5H78.2496C76.8527 86.5 75.5571 87.2287 74.8315 88.4223L50.8424 127.888C47.2146 133.857 40.7363 137.5 33.752 137.5H7.1871C4.05169 137.5 2.13726 134.053 3.78965 131.389Z"
-        className="fill-current stroke-current text-foreground"
-        strokeWidth="2"
-      />
-      <path
-        d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
-        className="fill-muted-foreground/30"
-      />
-      <path
-        d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
-        className="fill-current text-foreground"
-      />
-      <path
-        d="M57.0333 32.8693L72.9628 8.65652C76.107 3.87731 81.4442 1 87.1649 1H155.75H216.833C223.991 1 228.285 8.95097 224.359 14.9362L177.535 86.3238C174.393 91.1143 169.049 94 163.32 94H133.417C130.233 94 128.326 90.4625 130.074 87.8027L157.47 46.1296C159.21 43.4836 157.331 39.9616 154.165 39.9324L60.3381 39.0676C57.1712 39.0384 55.2926 35.5152 57.0333 32.8693Z"
-        className="stroke-current text-foreground"
-        strokeWidth="2"
-      />
-    </svg>
-  </div>
-))
-Logo.displayName = "Logo"
-
-
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
-  const accountType = safeAccountType(user?.account_type)
-  const mainNav = user ? NAV_MAIN[accountType] : null
-  const { hoverProps } = useSidebarHoverContext()
-
-  const secondaryNav = React.useMemo(() => {
-    if (user?.account_type === "admin") {
-      return NAV_SECONDARY.filter((item) => item.title !== "Get Help");
-    }
-    return NAV_SECONDARY;
-  }, [user]);
-
-  return (
-    <Sidebar
-      collapsible="icon"
-      variant="sidebar"
-      {...hoverProps}
-      {...props}
-    >
-      {/* ── Header ───────────────────────────────────────── */}
-      <SidebarHeader className="border-b border-sidebar-border/50">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="group/logo cursor-pointer hover:bg-transparent hover:text-current active:bg-transparent focus:bg-transparent group-data-[collapsible=icon]:p-1.5!"
-            >
-              <Link href={user ? "/landing" : "/"}>
-                <Logo />
-                <div className="flex flex-1 items-center gap-1.5 overflow-hidden">
-                  <span className="text-base font-bold transition-all duration-300 group-hover/logo:tracking-wider truncate">
-                    PlaceTrix
-                  </span>
-                  <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground tabular-nums">
-                    v{version}
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      {/* ── Content ──────────────────────────────────────── */}
-      <SidebarContent>
-        {mainNav ? (
-          <NavMain items={mainNav} />
-        ) : (
-          <SidebarGroup>
-            <SidebarGroupContent className="flex flex-col gap-2">
-              <SidebarMenu>
-                {Array.from({ length: MAX_PRIMARY_NAV_COUNT }).map((_, i) => (
-                  <SidebarMenuItem key={i}>
-                    <SidebarMenuSkeleton showIcon />
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {user ? (
-          <NavSecondary items={secondaryNav} className="mt-auto pb-2" />
-        ) : (
-          <SidebarGroup className="mt-auto pb-2">
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {Array.from({ length: NAV_SECONDARY.length }).map((_, i) => (
-                  <SidebarMenuItem key={i}>
-                    <SidebarMenuSkeleton showIcon />
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-      </SidebarContent>
-
-      {/* ── Footer ───────────────────────────────────────── */}
-      <SidebarFooter className="border-t border-sidebar-border/50 p-2">
-        <NavUser user={user} />
-      </SidebarFooter>
-    </Sidebar>
+        </div>
+      </nav>
+    </>
   )
 }

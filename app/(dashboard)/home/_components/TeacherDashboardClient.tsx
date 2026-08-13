@@ -209,7 +209,7 @@ export function TeacherDashboardClient({
                   {greeting}, {profileName}!
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                  Track your Placements, Mock Tests, and Events all from One Dashboard.
+                  Track your Placements, Tests, and Events all from One Dashboard.
                 </p>
               </div>
 
@@ -235,7 +235,7 @@ export function TeacherDashboardClient({
                 <div className="flex flex-row items-center justify-between pb-1">
                   <Link href="/tests" className="hover:opacity-80 transition-opacity cursor-pointer">
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      Mock Tests<ChevronRight className="size-3" />
+                      Tests<ChevronRight className="size-3" />
                     </div>
                   </Link>
                   {featuredTest && (
@@ -275,7 +275,7 @@ export function TeacherDashboardClient({
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground flex-1">
                     <span className="text-sm font-semibold">No Active Tests</span>
-                    <span className="text-xs">No active or upcoming mock tests assigned.</span>
+                    <span className="text-xs">No active or upcoming tests assigned.</span>
                   </div>
                 )}
               </div>

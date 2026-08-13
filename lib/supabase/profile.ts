@@ -64,6 +64,7 @@ export interface InstituteLicenseData {
   plan_name: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  institute_name?: string | null;
 }
 
 export interface UserProfileWithLicense {
@@ -391,12 +392,25 @@ export const getUserProfileWithLicense = cache(async (): Promise<UserProfileWith
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from("institute_licenses")
-    .select("status, plan_name, starts_at, ends_at")
+    .select("status, plan_name, starts_at, ends_at, institutes(institute_name)")
     .eq("institute_id", profile.institute_id)
     .maybeSingle();
 
+  let instName = (data?.institutes as any)?.institute_name ?? null;
+
   if (error || !data) {
-    return { profile, license: null };
+    if (!instName) {
+      const { data: instData } = await (supabase as any)
+        .from("institutes")
+        .select("institute_name")
+        .eq("id", profile.institute_id)
+        .maybeSingle();
+      instName = instData?.institute_name ?? null;
+    }
+    return {
+      profile,
+      license: instName ? { status: null, plan_name: null, starts_at: null, ends_at: null, institute_name: instName } : null,
+    };
   }
 
   const now = new Date();
@@ -419,6 +433,7 @@ export const getUserProfileWithLicense = cache(async (): Promise<UserProfileWith
       plan_name: data.plan_name ?? null,
       starts_at: data.starts_at ?? null,
       ends_at: data.ends_at ?? null,
+      institute_name: instName,
     },
   };
 });

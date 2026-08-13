@@ -1,4 +1,3 @@
-import { AppSidebar } from "@/components/app-sidebar"
 import { getUserProfileWithLicense } from "@/lib/supabase/profile"
 import { DashboardShell } from "@/components/dashboard-shell"
 import { LicenseProvider } from "@/components/license/LicenseProvider"
@@ -24,9 +23,7 @@ export default async function DashboardLayout({
             isAdmin={profile?.account_type === "admin"}
             user={profile}
         >
-            <DashboardShell
-                sidebar={<AppSidebar user={profile} />}
-            >
+            <DashboardShell user={profile}>
                 {children}
             </DashboardShell>
         </LicenseProvider>

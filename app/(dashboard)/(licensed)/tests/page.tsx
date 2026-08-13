@@ -16,7 +16,7 @@ interface SearchParams {
 
 export const metadata = {
   title: "Tests",
-  description: "Mock Tests",
+  description: "Tests",
 }
 
 export default async function TestsPage(props: {

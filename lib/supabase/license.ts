@@ -16,6 +16,7 @@ export interface InstituteLicense {
   plan_name: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  institute_name?: string | null;
 }
 
 // --- getInstituteLicense ---

@@ -15,6 +15,35 @@ export interface ChangelogItem {
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    version: "1.4.24",
+    date: "2026-08-13",
+    title: "Dashboard Shell Redesign, Color Hierarchy & High-Speed AI Generation",
+    badge: "Patch",
+    categories: [
+      {
+        type: "added",
+        items: [
+          "Redesigned topbar navigation with integrated notification drawer, theme switcher, and user account menu",
+          "Smooth animated theme switcher with seamless light/dark mode transitions"
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          "Refined sidebar visual hierarchy with enhanced color contrast tokens and active menu indicators",
+          "Faster and more resilient AI test generation powered by optimized high-throughput AI model fallbacks",
+          "Enhanced candidate public profile report sharing with copyable links and instant social sharing"
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          "Resolved authentication session synchronization and loop issues during sign-in"
+        ]
+      }
+    ]
+  },
+  {
     version: "1.4.23",
     date: "2026-08-13",
     title: "Navigation & Performance Improvements",
@@ -193,7 +222,7 @@ export const CHANGELOG_DATA: ChangelogItem[] = [
   }
 ];
 
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.23";
+export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.24";
 export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
 
 export function getLatestChangelog(): ChangelogItem | undefined {
