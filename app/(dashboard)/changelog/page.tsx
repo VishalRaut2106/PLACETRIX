@@ -10,35 +10,9 @@ export const metadata: Metadata = {
   description: "Explore the latest features, improvements, and fixes across PlaceTrix.",
 }
 
-function formatReleaseDateTime(dateStr: string, createdAtStr?: string): string {
-  try {
-    if (createdAtStr) {
-      const dt = new Date(createdAtStr)
-      if (!isNaN(dt.getTime())) {
-        const formattedDate = dt.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-        const formattedTime = dt.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
-        return `${formattedDate} • ${formattedTime}`
-      }
-    }
-    const [y, m, d] = dateStr.split("-").map(Number)
-    const dt = new Date(y, m - 1, d)
-    return dt.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-  } catch {
-    return dateStr
-  }
-}
+export const dynamic = "force-dynamic"
+
+import { ChangelogDate } from "./changelog-date"
 
 function CategoryBadge({ type }: { type: ChangelogCategoryType }) {
   switch (type) {
@@ -88,9 +62,7 @@ export default async function ChangelogPage() {
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-base">v{release.version}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatReleaseDateTime(release.date, release.created_at)}
-                  </span>
+                  <ChangelogDate date={release.date} createdAt={release.created_at} />
                 </div>
                 <h3 className="text-base font-medium text-foreground">{release.title}</h3>
               </div>
