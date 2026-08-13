@@ -1,4 +1,3 @@
-// app/(dashboard)/(licensed)/opportunities/actions.ts
 "use server"
 
 import { revalidatePath } from "next/cache"
@@ -257,6 +256,15 @@ export async function updateApplicationStatusAction(applicationId: string, statu
   await requirePlacementStaff()
   const supabase = await createClient()
 
+  const { data: appData } = await (supabase as any)
+    .from("opportunity_applications")
+    .select(`
+      candidate_id,
+      opportunity:opportunities(title, company:companies(name))
+    `)
+    .eq("id", applicationId)
+    .maybeSingle()
+
   const { error } = await (supabase as any)
     .from("opportunity_applications")
     .update({
@@ -283,7 +291,13 @@ export async function applyToOpportunityAction(oppId: string, resumeUrl: string 
   // 1. Fetch opportunity details
   const { data: opp, error: fetchErr } = await (supabase as any)
     .from("opportunities")
-    .select("status, deadline, min_cgpa")
+    .select(`
+      title,
+      status,
+      deadline,
+      min_cgpa,
+      company:companies(name)
+    `)
     .eq("id", oppId)
     .maybeSingle()
 

@@ -1,241 +1,120 @@
-export type ChangelogCategoryType = "added" | "improved" | "fixed" | "security";
+import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+
+export type ChangelogCategoryType = "added" | "improved" | "fixed" | "security"
 
 export interface ChangelogCategory {
-  type: ChangelogCategoryType;
-  items: string[];
+  type: ChangelogCategoryType
+  items: string[]
 }
 
 export interface ChangelogItem {
-  version: string;
-  date: string; // ISO date format YYYY-MM-DD
-  title: string;
-  badge?: "Major" | "Feature" | "Patch";
-  categories: ChangelogCategory[];
+  id?: string
+  version: string
+  date: string // ISO date format YYYY-MM-DD
+  title: string
+  categories: ChangelogCategory[]
+  is_published?: boolean
+  created_at?: string
 }
 
-export const CHANGELOG_DATA: ChangelogItem[] = [
-  {
-    version: "1.4.24",
-    date: "2026-08-13",
-    title: "Dashboard Shell Redesign, Color Hierarchy & High-Speed AI Generation",
-    badge: "Patch",
-    categories: [
-      {
-        type: "added",
-        items: [
-          "Redesigned topbar navigation with integrated notification drawer, theme switcher, and user account menu",
-          "Smooth animated theme switcher with seamless light/dark mode transitions"
-        ]
-      },
-      {
-        type: "improved",
-        items: [
-          "Refined sidebar visual hierarchy with enhanced color contrast tokens and active menu indicators",
-          "Faster and more resilient AI test generation powered by optimized high-throughput AI model fallbacks",
-          "Enhanced candidate public profile report sharing with copyable links and instant social sharing"
-        ]
-      },
-      {
-        type: "fixed",
-        items: [
-          "Resolved authentication session synchronization and loop issues during sign-in"
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4.23",
-    date: "2026-08-13",
-    title: "Navigation & Performance Improvements",
-    badge: "Patch",
-    categories: [
-      {
-        type: "improved",
-        items: [
-          "Moved Profile and Settings into the user account menu for cleaner navigation",
-          "Faster page loading and execution speed across LogicLab and Resume tools",
-          "General system stability and response time optimizations"
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4.22",
-    date: "2026-08-11",
-    title: "Test Sections (Beta), AI Question Gen & Dashboard Redesign",
-    badge: "Feature",
-    categories: [
-      {
-        type: "added",
-        items: [
-          "Test sections (beta) — organize exam questions into named sections with per-section scoring, accuracy, and time-spent stats on result pages",
-          "Redesigned Teacher/Staff/TPO & Admin Home Dashboard with streak stats, activity calendar, and featured cards",
-          "Candidate PDF report generation from the user profile page",
-          "Expanded AI question generation limit to 60 questions at once with parallel batch processing"
-        ]
-      },
-      {
-        type: "improved",
-        items: [
-          "Section-aware exam navigation — question navigator and view stay in sync during live attempts",
-          "Test result breakdown now groups answers by section for easier review",
-          "AI question generation reliability with retry logic, deduplication, and better LaTeX/table support",
-          "Candidate profile statistics with detailed assigned-test analytics"
-        ]
-      },
-      {
-        type: "fixed",
-        items: [
-          "Section panel is hidden on result pages for tests with no custom sections (no visual noise)",
-          "Sync speed improvements during active test attempts"
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4.21",
-    date: "2026-08-10",
-    title: "Candidate Dashboard, Event Attendees & Session Fixes",
-    badge: "Patch",
-    categories: [
-      {
-        type: "added",
-        items: [
-          "Attempted tests tab filter on Candidate Assessment Dashboard",
-          "Excel export functionality for event attendees with customizable field selection"
-        ]
-      },
-      {
-        type: "improved",
-        items: [
-          "Event attendee management UI with real-time sorting and filtering",
-          "Redesigned modular Date & Time picker components",
-          "Mobile UI layout and responsiveness on test result pages"
-        ]
-      },
-      {
-        type: "fixed",
-        items: [
-          "False-positive anti-cheat violations on option selection during test attempts",
-          "Auth session token refresh race conditions and invalid cookie cleanup"
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4.20",
-    date: "2026-08-07",
-    title: "Leaderboard Badges, Profile Redesign & LogicLab Security",
-    badge: "Patch",
-    categories: [
-      {
-        type: "added",
-        items: [
-          "Latest earned badges display on Logic Lab Leaderboard",
-          "Dedicated error boundaries across dashboard and test attempt pages"
-        ]
-      },
-      {
-        type: "improved",
-        items: [
-          "Redesigned Candidate Public Profile header and performance submission grid",
-          "Logic Lab rate limiting, exponential backoff, and security hardening"
-        ]
-      }
-    ]
-  },
-  {
-    version: "1.4.19",
-    date: "2026-08-07",
-    title: "AI Model Streaming Fallbacks & What's New Menu",
-    badge: "Patch",
-    categories: [
-      {
-        type: "added",
-        items: ["What's New changelog modal added to profile menu"]
-      },
-      {
-        type: "improved",
-        items: ["Improved AI Assistant and Resume Analyzer speed and fallback reliability"]
-      }
-    ]
-  },
-  {
-    version: "1.4.18",
-    date: "2026-08-06",
-    title: "Error Handling & Security",
-    badge: "Patch",
-    categories: [
-      {
-        type: "improved",
-        items: ["User-friendly error messages across test creation and LogicLab"]
-      },
-      {
-        type: "security",
-        items: ["Prevented internal database error details from leaking"]
-      }
-    ]
-  },
-  {
-    version: "1.4.17",
-    date: "2026-08-05",
-    title: "Secure Check-Ins & Test Stability",
-    badge: "Patch",
-    categories: [
-      {
-        type: "added",
-        items: ["Secure QR code event check-ins"]
-      },
-      {
-        type: "improved",
-        items: ["Improved test attempt background saving and session stability"]
-      }
-    ]
-  },
-  {
-    version: "1.4.16",
-    date: "2026-08-05",
-    title: "Local Timezones & Navigation",
-    badge: "Patch",
-    categories: [
-      {
-        type: "improved",
-        items: ["Automatic local timezone display for tests, events, and timers"]
-      },
-      {
-        type: "fixed",
-        items: ["Bug fixes"]
-      }
-    ]
-  },
-  {
-    version: "1.4.15",
-    date: "2026-08-03",
-    title: "AI Assistant & Test-Taking UI",
-    badge: "Feature",
-    categories: [
-      {
-        type: "added",
-        items: ["AI Assistant for test results and new test-taking environment"]
-      }
-    ]
+/**
+ * Fetches all published changelogs from the database in chronological order (latest first).
+ */
+export async function getChangelogs(): Promise<ChangelogItem[]> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await (supabase as any)
+      .from("changelogs")
+      .select("*")
+      .eq("is_published", true)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("[CHANGELOG] Error fetching changelogs:", error)
+      return []
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      version: item.version,
+      date: typeof item.date === "string" ? item.date.split("T")[0] : item.date,
+      title: item.title,
+      categories: Array.isArray(item.categories) ? item.categories : [],
+      is_published: item.is_published,
+      created_at: item.created_at,
+    }))
+  } catch (err) {
+    console.error("[CHANGELOG] Exception in getChangelogs:", err)
+    return []
   }
-];
-
-export const LATEST_VERSION = CHANGELOG_DATA[0]?.version || "1.4.24";
-export const STORAGE_KEY_LAST_SEEN_VERSION = "placetrix_last_seen_changelog_version";
-
-export function getLatestChangelog(): ChangelogItem | undefined {
-  return CHANGELOG_DATA[0];
 }
 
-export function hasUnreadChangelog(): boolean {
-  if (typeof window === "undefined") return false;
-  const lastSeen = localStorage.getItem(STORAGE_KEY_LAST_SEEN_VERSION);
-  return lastSeen !== LATEST_VERSION;
+/**
+ * Fetches the latest published changelog version.
+ */
+export async function getLatestChangelog(): Promise<ChangelogItem | null> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await (supabase as any)
+      .from("changelogs")
+      .select("*")
+      .eq("is_published", true)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error || !data) return null
+
+    return {
+      id: data.id,
+      version: data.version,
+      date: typeof data.date === "string" ? data.date.split("T")[0] : data.date,
+      title: data.title,
+      categories: Array.isArray(data.categories) ? data.categories : [],
+      is_published: data.is_published,
+      created_at: data.created_at,
+    }
+  } catch (err) {
+    console.error("[CHANGELOG] Exception in getLatestChangelog:", err)
+    return null
+  }
 }
 
-export function markChangelogAsRead(): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY_LAST_SEEN_VERSION, LATEST_VERSION);
+/**
+ * Inserts a new changelog release into database.
+ */
+export async function publishChangelog(input: {
+  version: string
+  title: string
+  date?: string
+  categories: ChangelogCategory[]
+}): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const supabase = createAdminClient()
+
+    const { data: changelog, error } = await (supabase as any)
+      .from("changelogs")
+      .insert({
+        version: input.version,
+        title: input.title,
+        date: input.date || new Date().toISOString().split("T")[0],
+        categories: input.categories,
+        is_published: true,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("[CHANGELOG] Failed to publish changelog:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: changelog }
+  } catch (err: any) {
+    console.error("[CHANGELOG] Exception in publishChangelog:", err)
+    return { success: false, error: err.message || "Failed to publish changelog" }
+  }
 }

@@ -23,7 +23,7 @@ export async function createTicketAction(data: { title: string; description: str
       user_id: userId,
       status: "open",
     })
-    .select("id")
+    .select("id, ticket_number")
     .maybeSingle();
 
   if (error) {
@@ -99,7 +99,7 @@ export async function addTicketMessageAction(ticketId: string, message: string) 
   // Verify the ticket exists and user has access
   const { data: ticket, error: ticketError } = await supabase
     .from("tickets")
-    .select("id")
+    .select("id, user_id, ticket_number, title")
     .eq("id", ticketId)
     .maybeSingle();
 
@@ -191,6 +191,12 @@ export async function updateTicketStatusAction(ticketId: string, status: "open" 
     throw new Error("Unauthorized. Only admins can update ticket status.");
   }
   const supabase = await createClient() as SupabaseClient<Database>;
+
+  const { data: ticket } = await supabase
+    .from("tickets")
+    .select("user_id, ticket_number, title")
+    .eq("id", ticketId)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("tickets")

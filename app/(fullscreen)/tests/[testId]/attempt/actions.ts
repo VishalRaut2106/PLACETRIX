@@ -282,7 +282,8 @@ export async function submitAttemptAction(
     return { error: getFriendlyErrorMessage(typedResult, "Something went wrong during grading. Please contact your instructor.") }
   }
 
-  return { redirectPath: typedResult.test_id ? `/tests/${typedResult.test_id}` : "/tests" }
+  const testId = typedResult.test_id
+  return { redirectPath: testId ? `/tests/${testId}` : "/tests" }
 }
 
 

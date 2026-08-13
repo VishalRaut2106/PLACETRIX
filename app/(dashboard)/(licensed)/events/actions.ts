@@ -1,4 +1,4 @@
-  "use server"
+"use server"
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
@@ -446,7 +446,6 @@ export async function rsvpEventAction(eventId: string) {
     ticketId = newTicket.id
   }
 
-  // Trigger ticket email in the background
   if (ticketId) {
     sendTicketEmail(ticketId).catch((err) => {
       console.error("Error sending RSVP ticket email in background:", err)
@@ -495,7 +494,7 @@ export async function cancelRsvpAction(eventId: string) {
   if (wasConfirmed) {
     const { data: oldestWaitlist } = await (supabase as any)
       .from("event_tickets")
-      .select("id")
+      .select("id, candidate_id")
       .eq("event_id", eventId)
       .eq("status", "Waitlisted")
       .order("created_at", { ascending: true })

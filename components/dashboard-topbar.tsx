@@ -33,8 +33,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { buildStorageUrl } from "@/lib/storage"
-import { hasUnreadChangelog, LATEST_VERSION } from "@/lib/changelog"
-import { WhatsNewModal } from "@/components/changelog/whats-new-modal"
 import { NotificationsPopover } from "@/components/notifications/notifications-popover"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import type { UserProfile } from "@/lib/supabase/profile"
@@ -55,6 +53,7 @@ function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/support")) return "Support Queue"
   if (pathname.startsWith("/gethelp")) return "Get Help"
   if (pathname.startsWith("/groups")) return "Cohorts & Groups"
+  if (pathname.startsWith("/changelog")) return "Changelog"
 
   const segment = pathname.split("/").filter(Boolean)[0]
   if (!segment) return "Dashboard"
@@ -76,7 +75,6 @@ function ThemeToggleWithTooltip() {
 
 // ─── DashboardTopbar ──────────────────────────────────────────────────────────
 
-
 interface DashboardTopbarProps {
   user: UserProfile | null
   onMenuClick?: () => void
@@ -86,12 +84,6 @@ interface DashboardTopbarProps {
 export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopbarProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [whatsNewOpen, setWhatsNewOpen] = React.useState(false)
-  const [hasUnread, setHasUnread] = React.useState(false)
-
-  React.useEffect(() => {
-    setHasUnread(hasUnreadChangelog())
-  }, [whatsNewOpen])
 
   const displayName = user?.full_name?.trim() || "User"
   const email = user?.email?.trim() || "No email"
@@ -145,7 +137,7 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
             <DropdownMenuTrigger asChild disabled={!user}>
               <button
                 className={cn(
-                  "flex items-center justify-center rounded-full outline-none ring-offset-background",
+                  "size-8 flex items-center justify-center rounded-full outline-none ring-offset-background",
                   "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "transition-all duration-150 hover:opacity-85 cursor-pointer",
                   !user && "cursor-default"
@@ -154,18 +146,15 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
               >
                 {user ? (
                   <div className="relative">
-                    <Avatar className="size-7 rounded-full border border-border">
+                    <Avatar className="size-8 rounded-full border border-border">
                       <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
-                      <AvatarFallback className="rounded-full bg-muted text-[11px] font-semibold">
+                      <AvatarFallback className="rounded-full bg-muted text-xs font-semibold">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    {hasUnread && (
-                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500 ring-1 ring-background" />
-                    )}
                   </div>
                 ) : (
-                  <Skeleton className="size-7 rounded-full" />
+                  <Skeleton className="size-8 rounded-full" />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -216,25 +205,12 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
 
                 <DropdownMenuSeparator />
 
-                {/* ── What's New ────────────────────── */}
-                <DropdownMenuItem
-                  onClick={() => setWhatsNewOpen(true)}
-                  className="cursor-pointer flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
+                {/* ── Changelog ─────────────────────── */}
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/changelog">
                     <History className="size-4 shrink-0" />
-                    <span>What's New</span>
-                  </div>
-                  {hasUnread ? (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] h-4 px-1.5 font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30"
-                    >
-                      New
-                    </Badge>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground font-mono">v{LATEST_VERSION}</span>
-                  )}
+                    <span>Changelog</span>
+                  </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -253,8 +229,6 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
           </DropdownMenu>
         </div>
       </header>
-
-      <WhatsNewModal open={whatsNewOpen} onOpenChange={setWhatsNewOpen} />
     </>
   )
 }

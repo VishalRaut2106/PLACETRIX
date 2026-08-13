@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/lib/supabase/profile";
 import { toast } from "sonner";
@@ -552,18 +553,25 @@ export function CandidateSettingsClient({ userProfile, initialData }: Props) {
           </TabsContent>
 
           {/* ── NOTIFICATIONS TAB ── */}
-          <TabsContent value="notifications" className="mt-0">
+          <TabsContent value="notifications" className="mt-0 space-y-4">
             <Card>
-              <CardHeader><CardTitle>Notification Preferences</CardTitle><CardDescription>Manage how you receive updates</CardDescription></CardHeader>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+                <CardDescription>Manage how you receive alerts and updates</CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
                 {[
                   { label: "Email Alerts", desc: "Receive important notifications via email" },
                   { label: "Job Updates", desc: "Get notified about new job opportunities" },
-                  { label: "Group Notifications", desc: "Updates from groups and communities you joined" },
+                  { label: "Test & Assessment Updates", desc: "Receive evaluation and score updates" },
+                  { label: "Event Reminders", desc: "Get alerts before campus drives and registered events" },
                 ].map(({ label, desc }) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <div><Label>{label}</Label><p className="text-sm text-muted-foreground">{desc}</p></div>
-                    <Switch />
+                  <div key={label} className="flex items-center justify-between py-1">
+                    <div>
+                      <Label className="text-sm font-medium">{label}</Label>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <Switch defaultChecked />
                   </div>
                 ))}
               </CardContent>

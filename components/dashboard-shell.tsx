@@ -7,8 +7,9 @@ import { AppSidebarNav } from "@/components/app-sidebar"
 import type { UserProfile } from "@/lib/supabase/profile"
 
 
-// ─── DashboardShell ───────────────────────────────────────────────────────────
+import { NotificationProvider } from "@/components/notifications/notification-provider"
 
+// ─── DashboardShell ───────────────────────────────────────────────────────────
 
 interface DashboardShellProps {
   user: UserProfile | null
@@ -29,35 +30,38 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
   }, [pathname])
 
   return (
-    <div className="relative flex h-svh w-full overflow-hidden bg-background">
-      {/* ── Sidebar (full screen height on left edge) ── */}
-      <AppSidebarNav
-        user={user}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-      />
-
-      {/* ── Main Column (sits to the right of sidebar) ── */}
-      <div className="flex flex-1 flex-col min-w-0 h-svh overflow-hidden md:ml-12">
-        {/* ── Topbar ─────────────────────────────────── */}
-        <DashboardTopbar
+    <NotificationProvider user={user}>
+      <div className="relative flex h-svh w-full overflow-hidden bg-background">
+        {/* ── Sidebar (full screen height on left edge) ── */}
+        <AppSidebarNav
           user={user}
-          onMenuClick={() => setMobileOpen((v) => !v)}
           mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
         />
 
-        {/* ── Page content ──────────────────────────── */}
-        <main
-          ref={contentRef}
-          className="flex flex-1 flex-col min-w-0 overflow-y-auto"
-        >
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-1 flex-col gap-4">
-              {children}
+        {/* ── Main Column (sits to the right of sidebar) ── */}
+        <div className="flex flex-1 flex-col min-w-0 h-svh overflow-hidden md:ml-12">
+          {/* ── Topbar ─────────────────────────────────── */}
+          <DashboardTopbar
+            user={user}
+            onMenuClick={() => setMobileOpen((v) => !v)}
+            mobileOpen={mobileOpen}
+          />
+
+          {/* ── Page content ──────────────────────────── */}
+          <main
+            ref={contentRef}
+            className="flex flex-1 flex-col min-w-0 overflow-y-auto"
+          >
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-1 flex-col gap-4">
+                {children}
+              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   )
 }
+

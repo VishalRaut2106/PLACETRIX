@@ -4,17 +4,32 @@ import * as React from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 
 /**
- * NavigationProgress
- * 
- * Provides instant 0ms visual feedback on any link click across the app.
- * Renders a sleek 2px primary progress bar at the very top of the window.
+ * Triggers the top navigation progress bar programmatically.
+ * Use when navigating with router.push() instead of standard <a> links.
  */
+export function startNavigationProgress() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("start-navigation-progress"))
+  }
+}
+
 function NavigationProgressContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [isLoading, setIsLoading] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
+
+  // Listen to programmatic navigation starts
+  React.useEffect(() => {
+    const handleStart = () => {
+      setIsLoading(true)
+      setProgress(20)
+    }
+
+    window.addEventListener("start-navigation-progress", handleStart)
+    return () => window.removeEventListener("start-navigation-progress", handleStart)
+  }, [])
 
   // Complete and fade out progress bar when navigation finishes
   React.useEffect(() => {

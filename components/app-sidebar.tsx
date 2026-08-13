@@ -24,6 +24,7 @@ import { toast } from "sonner"
 import { useLicense } from "@/components/license/LicenseProvider"
 import type { AccountType, UserProfile } from "@/lib/supabase/profile"
 import { Logo } from "@/components/logo"
+import { Badge } from "@/components/ui/badge"
 
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
@@ -225,9 +226,22 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
             <div className="flex size-9 shrink-0 items-center justify-center">
               <Logo />
             </div>
-            <span className="whitespace-nowrap text-sm font-semibold tracking-tight leading-none opacity-0 group-hover/sidebar:opacity-100 group-data-[mobile-open=true]/sidebar:opacity-100 transition-opacity duration-100 delay-75 select-none pr-2">
-              PlaceTrix
-            </span>
+            <div className="flex flex-col min-w-0 opacity-0 group-hover/sidebar:opacity-100 group-data-[mobile-open=true]/sidebar:opacity-100 transition-opacity duration-100 delay-75 select-none pr-2">
+              <div className="flex items-center gap-1.5">
+                <span className="whitespace-nowrap text-sm font-bold tracking-tight leading-tight">
+                  PlaceTrix
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="h-4 px-1.5 text-[9px] font-mono font-normal tracking-tight text-muted-foreground border-border/60"
+                >
+                  v1.4.24
+                </Badge>
+              </div>
+              <span className="whitespace-nowrap text-[9px] text-muted-foreground/60 font-normal leading-tight">
+                by Agilique Solutions LLP
+              </span>
+            </div>
           </Link>
         </div>
 

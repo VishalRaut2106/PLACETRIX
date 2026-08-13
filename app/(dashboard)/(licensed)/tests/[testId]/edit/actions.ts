@@ -133,6 +133,7 @@ async function saveTestToDb(
   })
 
   if (error) {
+    console.error("[TEST_SAVE] Supabase RPC error:", error)
     throw new Error(getFriendlyErrorMessage(error, "Failed to save the test. Please try again."))
   }
 }
@@ -318,9 +319,14 @@ export async function publishTestAction(
 
   // Replace test cohort mappings
   await (supabase as any).from("test_cohorts").delete().eq("test_id", testId)
-  await (supabase as any).from("test_cohorts").insert(
-    settings.cohort_ids.map((cohortId) => ({ test_id: testId, cohort_id: cohortId }))
-  )
+  if (settings.cohort_ids && settings.cohort_ids.length > 0) {
+    const { error: cohortInsError } = await (supabase as any).from("test_cohorts").insert(
+      settings.cohort_ids.map((cohortId) => ({ test_id: testId, cohort_id: cohortId }))
+    )
+    if (cohortInsError) {
+      console.error("[TEST_SAVE] Cohort insert error:", cohortInsError)
+    }
+  }
 
   revalidatePath("/tests")
   redirect(`/tests/${testId}`)
