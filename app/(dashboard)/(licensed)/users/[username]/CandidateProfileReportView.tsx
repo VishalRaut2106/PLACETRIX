@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Award, Globe, Linkedin, Github, Tag,
   CheckCircle2, Flame, Target, Zap, Trophy, Brain,
   Youtube, Instagram, Figma, Codepen, Code2,
-  ArrowLeft, Building2, Calendar, FileText
+  ArrowLeft, Building2, Calendar, FileText, Share2
 } from "lucide-react";
 import type {
   CandidateEducation, CandidateExperience, CandidateProject,
@@ -351,6 +352,20 @@ export function CandidateProfileReportView({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  const shareUrl = `${window.location.origin}/users/${publicData.username}`;
+                  navigator.clipboard.writeText(shareUrl);
+                  toast.success("Profile link copied to clipboard!", {
+                    description: shareUrl,
+                  });
+                }}
+              >
+                <Share2 className="size-4" />
+                Share Profile
+              </Button>
               <Button onClick={handleExportPdf} disabled={isExporting} className="gap-2 bg-primary text-primary-foreground">
                 <FileText className="size-4" />
                 {isExporting ? "Generating PDF..." : "Export PDF Report"}

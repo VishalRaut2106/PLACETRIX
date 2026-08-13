@@ -1657,7 +1657,7 @@ export function CandidateProfileClient({
 
   const handleShareProfile = async () => {
     if (!userProfile.username) return;
-    const profileUrl = `${window.location.origin}/u/${userProfile.username}`;
+    const profileUrl = `${window.location.origin}/users/${userProfile.username}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({

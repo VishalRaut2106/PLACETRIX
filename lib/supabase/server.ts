@@ -59,7 +59,6 @@ export const createClient = cache(async () => {
       },
       auth: {
         autoRefreshToken: false, // Middleware handles the single refresh per request
-        persistSession: false,   // Server has no persistent storage — don't try to save
         // @ts-ignore - this flag exists in newer versions to disable the warning
         suppressGetSessionWarning: true,
       },
