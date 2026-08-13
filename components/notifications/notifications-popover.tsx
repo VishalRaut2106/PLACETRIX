@@ -23,6 +23,22 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useNotifications } from "@/components/notifications/notification-provider"
 import { startNavigationProgress } from "@/components/ui/navigation-progress"
 import type { NotificationItem } from "@/types/notifications"
@@ -49,9 +65,34 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
+export function formatCompactBadgeCount(count: number): string {
+  if (count <= 0) return ""
+  if (count <= 99) return `${count}`
+  if (count < 1000) return "99+"
+  if (count < 1_000_000) {
+    const formatted = (count / 1000).toFixed(count < 10000 && count % 1000 >= 100 ? 1 : 0)
+    return `${formatted.replace(/\.0$/, "")}k+`
+  }
+  const formatted = (count / 1_000_000).toFixed(1).replace(/\.0$/, "")
+  return `${formatted}m+`
+}
+
+export function formatCompactHeaderCount(count: number): string {
+  if (count <= 0) return ""
+  if (count <= 99) return `${count} unread`
+  if (count < 1000) return "99+ unread"
+  if (count < 1_000_000) {
+    const formatted = (count / 1000).toFixed(count < 10000 && count % 1000 >= 100 ? 1 : 0)
+    return `${formatted.replace(/\.0$/, "")}k+ unread`
+  }
+  const formatted = (count / 1_000_000).toFixed(1).replace(/\.0$/, "")
+  return `${formatted}m+ unread`
+}
+
 export function NotificationsPopover() {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false)
 
   const {
     notifications,
@@ -63,6 +104,7 @@ export function NotificationsPopover() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    deleteAllNotifications,
   } = useNotifications()
 
   const viewportRef = React.useRef<HTMLDivElement>(null)
@@ -127,50 +169,88 @@ export function NotificationsPopover() {
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative size-8 text-muted-foreground hover:text-foreground"
-          aria-label="Open notifications"
-        >
-          <Bell className="size-4" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-foreground" />
-          )}
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        collisionPadding={12}
-        className="w-[calc(100vw-24px)] sm:w-[350px] max-w-[360px] p-0 rounded-2xl overflow-hidden shadow-lg border"
-      >
-        {/* ── Compact Header ─────────────────────────────────── */}
-        <div className="flex h-10 items-center justify-between px-3.5 border-b">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold tracking-tight text-foreground">Notifications</span>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+            aria-label={unreadCount > 0 ? formatCompactHeaderCount(unreadCount) : "Notifications"}
+          >
+            <Bell className="size-4" />
             {unreadCount > 0 && (
-              <span className="text-[11px] font-medium text-muted-foreground">
-                ({unreadCount})
+              <span
+                className={cn(
+                  "absolute top-0.5 right-0.5 flex items-center justify-center font-bold tabular-nums pointer-events-none",
+                  "bg-foreground text-background shadow-xs ring-[1.5px] ring-background rounded-full transition-all duration-200 animate-in fade-in zoom-in-75",
+                  unreadCount > 9 ? "min-w-3.5 h-3.5 px-0.5 text-[8px]" : "size-3.5 text-[8.5px]"
+                )}
+              >
+                {formatCompactBadgeCount(unreadCount)}
               </span>
             )}
-          </div>
+          </Button>
+        </PopoverTrigger>
 
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="h-6 px-2 text-[11px] font-normal text-muted-foreground hover:text-foreground gap-1"
-            >
-              <CheckCheck className="size-3" />
-              Mark all as read
-            </Button>
-          )}
-        </div>
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="w-[calc(100vw-24px)] sm:w-[350px] max-w-[360px] p-0 rounded-2xl overflow-hidden shadow-lg border"
+        >
+          {/* ── Compact Header ─────────────────────────────────── */}
+          <div className="flex h-10 items-center justify-between px-3.5 border-b">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold tracking-tight text-foreground">Notifications</span>
+              {unreadCount > 0 && (
+                <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground rounded-full tabular-nums">
+                  {formatCompactHeaderCount(unreadCount)}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              {notifications.length > 0 && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setConfirmDeleteOpen(true)}
+                        className="size-7 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Delete all notifications"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">Delete all notifications</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              {unreadCount > 0 && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={markAllAsRead}
+                        className="size-7 rounded-md text-muted-foreground hover:text-foreground"
+                        aria-label="Mark all as read"
+                      >
+                        <CheckCheck className="size-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">Mark all as read</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
 
         {/* ── Content Feed ──────────────────────────────────── */}
         <ScrollArea
@@ -278,5 +358,33 @@ export function NotificationsPopover() {
         </ScrollArea>
       </PopoverContent>
     </Popover>
+
+    {/* ── Confirmation Dialog for Delete All ─────────────── */}
+    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+      <AlertDialogContent size="sm" className="rounded-xl max-w-[340px] p-5">
+        <AlertDialogHeader className="text-left gap-1">
+          <AlertDialogTitle className="text-sm font-semibold text-foreground">
+            Delete all notifications?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+            This will permanently remove all notifications from your inbox. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="mt-4 flex-row justify-end gap-2">
+          <AlertDialogCancel className="h-8 px-3 text-xs">Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            className="h-8 px-3 text-xs"
+            onClick={() => {
+              deleteAllNotifications()
+              setConfirmDeleteOpen(false)
+            }}
+          >
+            Delete all
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   )
 }

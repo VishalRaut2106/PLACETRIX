@@ -106,6 +106,28 @@ export async function deleteNotificationAction(id: string): Promise<{ success: b
   }
 }
 
+export async function deleteAllNotificationsAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
+
+    const { error } = await (supabase as any)
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id)
+
+    if (error) {
+      console.error("[ACTIONS] deleteAllNotificationsAction error:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to delete all notifications" }
+  }
+}
+
 export async function clearAllReadNotificationsAction(): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()

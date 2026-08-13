@@ -65,7 +65,10 @@ function ThemeToggleWithTooltip() {
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <AnimatedThemeToggler variant="circle" />
+          <AnimatedThemeToggler
+            variant="circle"
+            className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+          />
         </TooltipTrigger>
         <TooltipContent side="bottom">Toggle theme</TooltipContent>
       </Tooltip>
@@ -102,35 +105,34 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
 
   return (
     <>
-      <header className="flex h-12 w-full shrink-0 items-center border-b border-border bg-background z-20 px-3">
-        {/* ── Hamburger trigger — mobile only ───────────────────────────── */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 rounded-md md:hidden text-muted-foreground hover:text-foreground"
-          onClick={onMenuClick}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-        </Button>
+      <header className="flex h-12 w-full shrink-0 items-center justify-between border-b border-border bg-background z-20 px-3 md:px-4">
+        {/* ── Left: Hamburger trigger + Page Title ───────────────────────── */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-lg md:hidden text-muted-foreground hover:text-foreground hover:bg-muted/60 shrink-0"
+            onClick={onMenuClick}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+          </Button>
 
-        {/* ── Page Title ────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 pl-1 md:pl-2">
-          <h1 className="text-sm font-semibold text-foreground tracking-tight select-none">
+          <h1 className="text-sm font-semibold text-foreground tracking-tight truncate select-none pl-0.5 md:pl-1">
             {pageTitle}
           </h1>
         </div>
 
-        {/* ── Spacer ────────────────────────────────────────────────────── */}
-        <div className="flex-1" />
-
-        {/* ── Right: Theme Toggle + Notification + Avatar ──────────────────── */}
-        <div className="flex items-center gap-1">
+        {/* ── Right: Theme Toggle + Notification + Divider + Avatar ───────── */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Theme Toggle */}
           <ThemeToggleWithTooltip />
 
           {/* Notifications Popover */}
           <NotificationsPopover />
+
+          {/* Subtle Divider */}
+          <div className="h-4 w-px bg-border/60 mx-1 shrink-0" aria-hidden="true" />
 
           {/* Avatar Dropdown */}
           <DropdownMenu>
@@ -139,14 +141,14 @@ export function DashboardTopbar({ user, onMenuClick, mobileOpen }: DashboardTopb
                 className={cn(
                   "size-8 flex items-center justify-center rounded-full outline-none ring-offset-background",
                   "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "transition-all duration-150 hover:opacity-85 cursor-pointer",
+                  "transition-all duration-150 hover:ring-2 hover:ring-border/80 cursor-pointer shrink-0",
                   !user && "cursor-default"
                 )}
                 aria-label="Open user menu"
               >
                 {user ? (
                   <div className="relative">
-                    <Avatar className="size-8 rounded-full border border-border">
+                    <Avatar className="size-8 rounded-full border border-border/80">
                       <AvatarImage src={avatarUrl ?? undefined} alt={displayName} className="object-cover" />
                       <AvatarFallback className="rounded-full bg-muted text-xs font-semibold">
                         {initials}

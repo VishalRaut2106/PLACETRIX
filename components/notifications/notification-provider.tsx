@@ -8,6 +8,7 @@ import {
   markNotificationAsReadAction,
   markAllNotificationsAsReadAction,
   deleteNotificationAction,
+  deleteAllNotificationsAction,
 } from "@/app/actions/notifications"
 import type { NotificationItem, NotificationFilter } from "@/types/notifications"
 import type { UserProfile } from "@/lib/supabase/profile"
@@ -27,6 +28,7 @@ interface NotificationContextValue {
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
   deleteNotification: (id: string) => Promise<void>
+  deleteAllNotifications: () => Promise<void>
   refresh: () => Promise<void>
   requestBrowserPermission: () => Promise<NotificationPermission>
 }
@@ -178,10 +180,13 @@ export function NotificationProvider({ user, children }: NotificationProviderPro
         (payload) => {
           const updated = payload.new as NotificationItem
           setNotifications((prev) => {
-            const next = prev.map((n) => (n.id === updated.id ? updated : n))
-            const unread = next.filter((n) => !n.is_read).length
-            setUnreadCount(unread)
-            return next
+            const prevItem = prev.find((n) => n.id === updated.id)
+            if (prevItem && !prevItem.is_read && updated.is_read) {
+              setUnreadCount((c) => Math.max(0, c - 1))
+            } else if (prevItem && prevItem.is_read && !updated.is_read) {
+              setUnreadCount((c) => c + 1)
+            }
+            return prev.map((n) => (n.id === updated.id ? updated : n))
           })
         }
       )
@@ -197,10 +202,11 @@ export function NotificationProvider({ user, children }: NotificationProviderPro
           const deletedId = (payload.old as any)?.id
           if (deletedId) {
             setNotifications((prev) => {
-              const next = prev.filter((n) => n.id !== deletedId)
-              const unread = next.filter((n) => !n.is_read).length
-              setUnreadCount(unread)
-              return next
+              const item = prev.find((n) => n.id === deletedId)
+              if (item && !item.is_read) {
+                setUnreadCount((c) => Math.max(0, c - 1))
+              }
+              return prev.filter((n) => n.id !== deletedId)
             })
             setTotalCount((prev) => Math.max(0, prev - 1))
           }
@@ -215,20 +221,63 @@ export function NotificationProvider({ user, children }: NotificationProviderPro
 
   const markAsRead = React.useCallback(async (id: string) => {
     // Optimistic update
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    )
+    setNotifications((prev) => {
+      if (filter === "unread") {
+        return prev.filter((n) => n.id !== id)
+      }
+      return prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+    })
+    if (filter === "unread") {
+      setTotalCount((prev) => Math.max(0, prev - 1))
+    }
     setUnreadCount((prev) => Math.max(0, prev - 1))
-    await markNotificationAsReadAction(id)
-  }, [])
+
+    try {
+      const res = await markNotificationAsReadAction(id)
+      if (!res.success) {
+        console.error("[NOTIFICATIONS] Failed to mark as read:", res.error)
+      }
+    } catch (err) {
+      console.error("[NOTIFICATIONS] Exception marking as read:", err)
+    }
+  }, [filter])
 
   const markAllAsRead = React.useCallback(async () => {
-    // Optimistic update
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+    // Snapshot for rollback in case of network/server error
+    const prevNotifications = notifications
+    const prevUnreadCount = unreadCount
+    const prevTotalCount = totalCount
+
+    // Optimistic UI update across all visible items
+    if (filter === "unread") {
+      setNotifications([])
+      setTotalCount(0)
+    } else {
+      setNotifications((prev) =>
+        prev.map((n) => (n.is_read ? n : { ...n, is_read: true }))
+      )
+    }
     setUnreadCount(0)
-    await markAllNotificationsAsReadAction()
-    toast.success("All notifications marked as read")
-  }, [])
+
+    try {
+      const res = await markAllNotificationsAsReadAction()
+      if (!res.success) {
+        // Rollback on failure
+        setNotifications(prevNotifications)
+        setUnreadCount(prevUnreadCount)
+        setTotalCount(prevTotalCount)
+        toast.error(res.error || "Failed to mark all as read")
+        return
+      }
+      toast.success("All notifications marked as read")
+    } catch (err) {
+      // Rollback on exception
+      setNotifications(prevNotifications)
+      setUnreadCount(prevUnreadCount)
+      setTotalCount(prevTotalCount)
+      toast.error("Failed to mark all as read")
+    }
+  }, [filter, notifications, unreadCount, totalCount])
 
   const deleteNotification = React.useCallback(async (id: string) => {
     const itemToDelete = notifications.find((n) => n.id === id)
@@ -240,6 +289,34 @@ export function NotificationProvider({ user, children }: NotificationProviderPro
     }
     await deleteNotificationAction(id)
   }, [notifications])
+
+  const deleteAllNotifications = React.useCallback(async () => {
+    const prevNotifications = notifications
+    const prevUnreadCount = unreadCount
+    const prevTotalCount = totalCount
+
+    // Optimistic clear
+    setNotifications([])
+    setUnreadCount(0)
+    setTotalCount(0)
+
+    try {
+      const res = await deleteAllNotificationsAction()
+      if (!res.success) {
+        setNotifications(prevNotifications)
+        setUnreadCount(prevUnreadCount)
+        setTotalCount(prevTotalCount)
+        toast.error(res.error || "Failed to delete all notifications")
+        return
+      }
+      toast.success("All notifications deleted")
+    } catch {
+      setNotifications(prevNotifications)
+      setUnreadCount(prevUnreadCount)
+      setTotalCount(prevTotalCount)
+      toast.error("Failed to delete all notifications")
+    }
+  }, [notifications, unreadCount, totalCount])
 
   const requestBrowserPermission = React.useCallback(async (): Promise<NotificationPermission> => {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -270,6 +347,7 @@ export function NotificationProvider({ user, children }: NotificationProviderPro
         markAsRead,
         markAllAsRead,
         deleteNotification,
+        deleteAllNotifications,
         refresh: loadNotifications,
         requestBrowserPermission,
       }}
