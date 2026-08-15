@@ -350,6 +350,101 @@ export type Database = {
           },
         ]
       }
+      changelogs: {
+        Row: {
+          categories: Json
+          created_at: string
+          date: string
+          id: string
+          is_published: boolean
+          title: string
+          version: string
+        }
+        Insert: {
+          categories?: Json
+          created_at?: string
+          date?: string
+          id?: string
+          is_published?: boolean
+          title: string
+          version: string
+        }
+        Update: {
+          categories?: Json
+          created_at?: string
+          date?: string
+          id?: string
+          is_published?: boolean
+          title?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      cohort_students: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          student_id: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          student_id: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_students_cohort_id_fkey"
+            columns: ["cohort_id"]
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cohort_students_student_id_fkey"
+            columns: ["student_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cohorts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          institute_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          institute_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          institute_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohorts_institute_id_fkey"
+            columns: ["institute_id"]
+            referencedRelation: "institutes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -488,12 +583,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "course_module_progress_course_id_fkey"
-            columns: ["course_id"]
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "course_module_progress_module_id_fkey"
             columns: ["module_id"]
             referencedRelation: "course_modules"
@@ -611,6 +700,117 @@ export type Database = {
           },
         ]
       }
+      event_agenda: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          event_id: string
+          id: string
+          order_index: number
+          start_time: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          event_id: string
+          id?: string
+          order_index: number
+          start_time: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          event_id?: string
+          id?: string
+          order_index?: number
+          start_time?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_agenda_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_cohorts: {
+        Row: {
+          cohort_id: string
+          event_id: string
+        }
+        Insert: {
+          cohort_id: string
+          event_id: string
+        }
+        Update: {
+          cohort_id?: string
+          event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_cohorts_cohort_id_fkey"
+            columns: ["cohort_id"]
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_cohorts_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_feedback: {
+        Row: {
+          candidate_id: string
+          comment: string | null
+          created_at: string | null
+          event_id: string
+          id: string
+          rating: number
+          updated_at: string | null
+        }
+        Insert: {
+          candidate_id: string
+          comment?: string | null
+          created_at?: string | null
+          event_id: string
+          id?: string
+          rating: number
+          updated_at?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          comment?: string | null
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          rating?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_feedback_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_feedback_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_tickets: {
         Row: {
           attendance_status: string
@@ -619,7 +819,7 @@ export type Database = {
           event_id: string
           id: string
           marked_present_at: string | null
-          rsvp_at: string
+          rsvp_at: string | null
           status: string
           updated_at: string
         }
@@ -630,7 +830,7 @@ export type Database = {
           event_id: string
           id?: string
           marked_present_at?: string | null
-          rsvp_at?: string
+          rsvp_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -641,7 +841,7 @@ export type Database = {
           event_id?: string
           id?: string
           marked_present_at?: string | null
-          rsvp_at?: string
+          rsvp_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -665,13 +865,14 @@ export type Database = {
           capacity: number
           created_at: string
           date: string
-          end_date: string | null
           description: string | null
           duration_minutes: number
+          event_banner: string | null
           id: string
           institute_id: string
           reminder_1h_sent: boolean
           reminder_24h_sent: boolean
+          speaker_name: string | null
           status: string
           targeting_rules: Json
           title: string
@@ -682,13 +883,14 @@ export type Database = {
           capacity: number
           created_at?: string
           date: string
-          end_date?: string | null
           description?: string | null
           duration_minutes?: number
+          event_banner?: string | null
           id?: string
           institute_id: string
           reminder_1h_sent?: boolean
           reminder_24h_sent?: boolean
+          speaker_name?: string | null
           status?: string
           targeting_rules?: Json
           title: string
@@ -699,13 +901,14 @@ export type Database = {
           capacity?: number
           created_at?: string
           date?: string
-          end_date?: string | null
           description?: string | null
           duration_minutes?: number
+          event_banner?: string | null
           id?: string
           institute_id?: string
           reminder_1h_sent?: boolean
           reminder_24h_sent?: boolean
+          speaker_name?: string | null
           status?: string
           targeting_rules?: Json
           title?: string
@@ -892,6 +1095,33 @@ export type Database = {
         }
         Relationships: []
       }
+      logiclab_badges: {
+        Row: {
+          badge_category: string
+          created_at: string | null
+          description: string | null
+          icon_name: string
+          id: string
+          name: string
+        }
+        Insert: {
+          badge_category: string
+          created_at?: string | null
+          description?: string | null
+          icon_name: string
+          id?: string
+          name: string
+        }
+        Update: {
+          badge_category?: string
+          created_at?: string | null
+          description?: string | null
+          icon_name?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       logiclab_daily_challenge_submissions: {
         Row: {
           code: string
@@ -943,19 +1173,13 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "logiclab_daily_challenge_submissions_daily_challenge_id_fkey"
-            columns: ["daily_challenge_id"]
-            referencedRelation: "logiclab_daily_challenges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "potd_completions_problem_id_fkey"
+            foreignKeyName: "logiclab_daily_challenge_submissions_problem_id_fkey"
             columns: ["problem_id"]
             referencedRelation: "logiclab_problems"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "potd_completions_user_id_fkey"
+            foreignKeyName: "logiclab_daily_challenge_submissions_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -983,7 +1207,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_challenges_problem_id_fkey"
+            foreignKeyName: "logiclab_daily_challenges_problem_id_fkey"
             columns: ["problem_id"]
             referencedRelation: "logiclab_problems"
             referencedColumns: ["id"]
@@ -1034,6 +1258,12 @@ export type Database = {
             referencedRelation: "logiclab_problems"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "logiclab_problem_notes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       logiclab_problem_notes_upvotes: {
@@ -1057,6 +1287,12 @@ export type Database = {
             foreignKeyName: "logiclab_problem_notes_upvotes_note_id_fkey"
             columns: ["note_id"]
             referencedRelation: "logiclab_problem_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logiclab_problem_notes_upvotes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1106,9 +1342,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coding_submissions_problem_id_fkey"
+            foreignKeyName: "logiclab_problem_submissions_problem_id_fkey"
             columns: ["problem_id"]
             referencedRelation: "logiclab_problems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logiclab_problem_submissions_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1141,7 +1383,7 @@ export type Database = {
           driver_codes?: Json
           id?: string
           memory_limit?: number | null
-          number?: number
+          number: number
           tags?: string[] | null
           test_cases?: Json
           time_limit?: number | null
@@ -1167,10 +1409,75 @@ export type Database = {
         }
         Relationships: []
       }
+      logiclab_user_solved_problems: {
+        Row: {
+          problem_id: string
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          problem_id: string
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          problem_id?: string
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logiclab_user_solved_problems_problem_id_fkey"
+            columns: ["problem_id"]
+            referencedRelation: "logiclab_problems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logiclab_user_solved_problems_user_id_profiles_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          metadata: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           application_link: string | null
           bond_details: string | null
+          collect_resume: boolean
           company_id: string
           compensation_type: string
           created_at: string
@@ -1181,8 +1488,13 @@ export type Database = {
           institute_id: string
           job_description: string | null
           job_role: string
+          job_timing: string | null
+          job_type: string | null
           location: string | null
           min_cgpa: number
+          perks: string | null
+          requirements: string | null
+          roles_responsibilities: string | null
           status: string
           stipend_monthly: number | null
           title: string
@@ -1191,6 +1503,7 @@ export type Database = {
         Insert: {
           application_link?: string | null
           bond_details?: string | null
+          collect_resume?: boolean
           company_id: string
           compensation_type: string
           created_at?: string
@@ -1201,8 +1514,13 @@ export type Database = {
           institute_id: string
           job_description?: string | null
           job_role: string
+          job_timing?: string | null
+          job_type?: string | null
           location?: string | null
           min_cgpa?: number
+          perks?: string | null
+          requirements?: string | null
+          roles_responsibilities?: string | null
           status?: string
           stipend_monthly?: number | null
           title: string
@@ -1211,6 +1529,7 @@ export type Database = {
         Update: {
           application_link?: string | null
           bond_details?: string | null
+          collect_resume?: boolean
           company_id?: string
           compensation_type?: string
           created_at?: string
@@ -1221,8 +1540,13 @@ export type Database = {
           institute_id?: string
           job_description?: string | null
           job_role?: string
+          job_timing?: string | null
+          job_type?: string | null
           location?: string | null
           min_cgpa?: number
+          perks?: string | null
+          requirements?: string | null
+          roles_responsibilities?: string | null
           status?: string
           stipend_monthly?: number | null
           title?: string
@@ -1254,8 +1578,9 @@ export type Database = {
           candidate_id: string
           created_at: string
           id: string
+          metadata: Json | null
           opportunity_id: string
-          resume_url: string
+          resume_url: string | null
           status: string
           updated_at: string
         }
@@ -1263,8 +1588,9 @@ export type Database = {
           candidate_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           opportunity_id: string
-          resume_url: string
+          resume_url?: string | null
           status?: string
           updated_at?: string
         }
@@ -1272,8 +1598,9 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           opportunity_id?: string
-          resume_url?: string
+          resume_url?: string | null
           status?: string
           updated_at?: string
         }
@@ -1292,6 +1619,34 @@ export type Database = {
           },
         ]
       }
+      opportunity_cohorts: {
+        Row: {
+          cohort_id: string
+          opportunity_id: string
+        }
+        Insert: {
+          cohort_id: string
+          opportunity_id: string
+        }
+        Update: {
+          cohort_id?: string
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_cohorts_cohort_id_fkey"
+            columns: ["cohort_id"]
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_cohorts_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           aadhaar_number: string | null
@@ -1300,21 +1655,32 @@ export type Database = {
           bio: string | null
           created_at: string
           current_address: string | null
+          current_streak: number | null
           date_of_birth: string | null
           email: string
           first_name: string | null
+          flawless_streak: number | null
           full_name: string | null
           gender: string | null
           github_url: string | null
           id: string
           institute_id: string | null
           is_active: boolean
+          is_public: boolean | null
           last_name: string | null
+          last_potd_date: string | null
+          last_solve_date: string | null
           linkedin_url: string | null
+          logiclab_points: number
+          logiclab_score: number | null
+          logiclab_solved_count: number | null
+          longest_streak: number | null
           middle_name: string | null
           permanent_address: string | null
           phone_number: string | null
           portfolio_links: string[] | null
+          potd_streak: number | null
+          privacy_settings: Json | null
           profile_updated: boolean | null
           signature_path: string | null
           updated_at: string
@@ -1327,21 +1693,32 @@ export type Database = {
           bio?: string | null
           created_at?: string
           current_address?: string | null
+          current_streak?: number | null
           date_of_birth?: string | null
           email: string
           first_name?: string | null
+          flawless_streak?: number | null
           full_name?: string | null
           gender?: string | null
           github_url?: string | null
           id: string
           institute_id?: string | null
           is_active?: boolean
+          is_public?: boolean | null
           last_name?: string | null
+          last_potd_date?: string | null
+          last_solve_date?: string | null
           linkedin_url?: string | null
+          logiclab_points?: number
+          logiclab_score?: number | null
+          logiclab_solved_count?: number | null
+          longest_streak?: number | null
           middle_name?: string | null
           permanent_address?: string | null
           phone_number?: string | null
           portfolio_links?: string[] | null
+          potd_streak?: number | null
+          privacy_settings?: Json | null
           profile_updated?: boolean | null
           signature_path?: string | null
           updated_at?: string
@@ -1354,21 +1731,32 @@ export type Database = {
           bio?: string | null
           created_at?: string
           current_address?: string | null
+          current_streak?: number | null
           date_of_birth?: string | null
           email?: string
           first_name?: string | null
+          flawless_streak?: number | null
           full_name?: string | null
           gender?: string | null
           github_url?: string | null
           id?: string
           institute_id?: string | null
           is_active?: boolean
+          is_public?: boolean | null
           last_name?: string | null
+          last_potd_date?: string | null
+          last_solve_date?: string | null
           linkedin_url?: string | null
+          logiclab_points?: number
+          logiclab_score?: number | null
+          logiclab_solved_count?: number | null
+          longest_streak?: number | null
           middle_name?: string | null
           permanent_address?: string | null
           phone_number?: string | null
           portfolio_links?: string[] | null
+          potd_streak?: number | null
+          privacy_settings?: Json | null
           profile_updated?: boolean | null
           signature_path?: string | null
           updated_at?: string
@@ -1529,12 +1917,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attempt_answers_attempt_id_fkey"
-            columns: ["attempt_id"]
-            referencedRelation: "view_test_results_detailed"
-            referencedColumns: ["attempt_id"]
-          },
-          {
             foreignKeyName: "attempt_answers_question_id_fkey"
             columns: ["question_id"]
             referencedRelation: "test_questions"
@@ -1599,12 +1981,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "test_attempt_feedback_attempt_id_fkey"
-            columns: ["attempt_id"]
-            referencedRelation: "view_test_results_detailed"
-            referencedColumns: ["attempt_id"]
-          },
-          {
             foreignKeyName: "test_attempt_feedback_test_id_fkey"
             columns: ["test_id"]
             referencedRelation: "tests"
@@ -1626,15 +2002,20 @@ export type Database = {
       }
       test_attempts: {
         Row: {
+          active_session_token: string | null
+          actual_time_spent_seconds: number | null
+          ai_diagnosis: Json | null
           attempt_number: number
           candidate_id: string
           created_at: string
           expires_at: string | null
           id: string
           ip_address: unknown
+          last_heartbeat_at: string | null
           passed: boolean | null
           percentage: number | null
           score: number | null
+          session_claimed_at: string | null
           started_at: string
           status: Database["public"]["Enums"]["attempt_status"]
           submitted_at: string | null
@@ -1646,15 +2027,20 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          active_session_token?: string | null
+          actual_time_spent_seconds?: number | null
+          ai_diagnosis?: Json | null
           attempt_number?: number
           candidate_id: string
           created_at?: string
           expires_at?: string | null
           id?: string
           ip_address?: unknown
+          last_heartbeat_at?: string | null
           passed?: boolean | null
           percentage?: number | null
           score?: number | null
+          session_claimed_at?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["attempt_status"]
           submitted_at?: string | null
@@ -1666,15 +2052,20 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          active_session_token?: string | null
+          actual_time_spent_seconds?: number | null
+          ai_diagnosis?: Json | null
           attempt_number?: number
           candidate_id?: string
           created_at?: string
           expires_at?: string | null
           id?: string
           ip_address?: unknown
+          last_heartbeat_at?: string | null
           passed?: boolean | null
           percentage?: number | null
           score?: number | null
+          session_claimed_at?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["attempt_status"]
           submitted_at?: string | null
@@ -1700,6 +2091,40 @@ export type Database = {
           },
           {
             foreignKeyName: "test_attempts_test_id_fkey"
+            columns: ["test_id"]
+            referencedRelation: "view_test_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_cohorts: {
+        Row: {
+          cohort_id: string
+          test_id: string
+        }
+        Insert: {
+          cohort_id: string
+          test_id: string
+        }
+        Update: {
+          cohort_id?: string
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_cohorts_cohort_id_fkey"
+            columns: ["cohort_id"]
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_cohorts_test_id_fkey"
+            columns: ["test_id"]
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_cohorts_test_id_fkey"
             columns: ["test_id"]
             referencedRelation: "view_test_summary"
             referencedColumns: ["id"]
@@ -1771,6 +2196,7 @@ export type Database = {
           order_index: number
           question_text: string
           question_type: Database["public"]["Enums"]["question_type"]
+          section_id: string | null
           test_id: string
           updated_at: string
         }
@@ -1783,6 +2209,7 @@ export type Database = {
           order_index: number
           question_text: string
           question_type: Database["public"]["Enums"]["question_type"]
+          section_id?: string | null
           test_id: string
           updated_at?: string
         }
@@ -1795,6 +2222,7 @@ export type Database = {
           order_index?: number
           question_text?: string
           question_type?: Database["public"]["Enums"]["question_type"]
+          section_id?: string | null
           test_id?: string
           updated_at?: string
         }
@@ -1811,6 +2239,55 @@ export type Database = {
             referencedRelation: "view_test_summary"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_questions_section_id_fkey"
+            columns: ["section_id"]
+            referencedRelation: "test_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_sections: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          order_index: number
+          test_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          test_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          test_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_sections_test_id_fkey"
+            columns: ["test_id"]
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_sections_test_id_fkey"
+            columns: ["test_id"]
+            referencedRelation: "view_test_summary"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tests: {
@@ -1818,6 +2295,7 @@ export type Database = {
           available_from: string | null
           available_until: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           institute_id: string
@@ -1838,6 +2316,7 @@ export type Database = {
           available_from?: string | null
           available_until?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           institute_id: string
@@ -1858,6 +2337,7 @@ export type Database = {
           available_from?: string | null
           available_until?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           institute_id?: string
@@ -1875,6 +2355,12 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tests_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tests_institute_id_fkey"
             columns: ["institute_id"]
@@ -2003,6 +2489,40 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            referencedRelation: "logiclab_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_sessions: {
         Row: {
           created_at: string | null
@@ -2055,30 +2575,6 @@ export type Database = {
           medium_attempted: number | null
           medium_solved: number | null
           solved: boolean | null
-          submission_count: number | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      logiclab_problem_stats: {
-        Row: {
-          accepted_submissions: number | null
-          problem_id: string | null
-          total_submissions: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coding_submissions_problem_id_fkey"
-            columns: ["problem_id"]
-            referencedRelation: "logiclab_problems"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_daily_activity: {
-        Row: {
-          activity_date: string | null
-          solved_count: number | null
           submission_count: number | null
           user_id: string | null
         }
@@ -2180,58 +2676,19 @@ export type Database = {
           },
         ]
       }
-      view_test_results_detailed: {
-        Row: {
-          attempt_id: string | null
-          attempt_number: number | null
-          branch: string | null
-          passed: boolean | null
-          passout_year: number | null
-          percentage: number | null
-          score: number | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["attempt_status"] | null
-          student_email: string | null
-          student_id: string | null
-          student_name: string | null
-          submitted_at: string | null
-          tab_switch_count: number | null
-          test_id: string | null
-          time_spent_seconds: number | null
-          total_marks: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "test_attempts_candidate_id_fkey"
-            columns: ["student_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_attempts_test_id_fkey"
-            columns: ["test_id"]
-            referencedRelation: "tests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_attempts_test_id_fkey"
-            columns: ["test_id"]
-            referencedRelation: "view_test_summary"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       view_test_summary: {
         Row: {
           available_from: string | null
           available_until: string | null
           avg_score_pct: number | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           id: string | null
           institute_id: string | null
           institute_name: string | null
           instructions: string | null
+          marks_available: boolean | null
           question_count: number | null
           results_available: boolean | null
           status: Database["public"]["Enums"]["test_status"] | null
@@ -2244,6 +2701,12 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tests_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tests_institute_id_fkey"
             columns: ["institute_id"]
             referencedRelation: "institutes"
@@ -2253,11 +2716,62 @@ export type Database = {
       }
     }
     Functions: {
+      admin_reassign_tables_and_create_indexes: { Args: never; Returns: string }
       check_username_available: {
         Args: { p_user_id: string; p_username: string }
         Returns: boolean
       }
+      cleanup_old_notifications: { Args: never; Returns: undefined }
+      cron_auto_submit_expired_tests: { Args: never; Returns: undefined }
+      fn_can_staff_access_institute: {
+        Args: { p_institute_id: string }
+        Returns: boolean
+      }
+      fn_can_staff_access_test: {
+        Args: { p_test_id: string }
+        Returns: boolean
+      }
+      fn_can_user_access_test: { Args: { p_test_id: string }; Returns: boolean }
+      fn_current_user_account_type: { Args: never; Returns: string }
+      fn_current_user_institute_id: { Args: never; Returns: string }
+      fn_recalculate_profile_completeness: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       generate_daily_potd: { Args: never; Returns: undefined }
+      get_admin_dashboard_kpis: {
+        Args: never
+        Returns: {
+          total_accepted: number
+          total_problems: number
+          total_submissions: number
+          unique_students: number
+        }[]
+      }
+      get_admin_problem_stats: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          acceptance_rate: number
+          accepted_submissions: number
+          created_at: string
+          difficulty: string
+          id: string
+          number: number
+          tags: Json
+          title: string
+          total_submissions: number
+        }[]
+      }
+      get_admin_student_rankings: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          attempt_count: number
+          solved_count: number
+          student_email: string
+          student_name: string
+          user_id: string
+        }[]
+      }
       get_candidate_home_stats: {
         Args: { p_profile_id: string }
         Returns: Json
@@ -2276,6 +2790,32 @@ export type Database = {
       get_institute_home_stats: {
         Args: { p_profile_id: string }
         Returns: Json
+      }
+      get_paginated_daily_challenges: {
+        Args: {
+          p_difficulty?: string
+          p_limit: number
+          p_offset: number
+          p_search?: string
+          p_sort_by?: string
+          p_tab?: string
+          p_tag?: string
+          p_today_str: string
+          p_user_id: string
+        }
+        Returns: {
+          acceptance_rate: number
+          date: string
+          difficulty: string
+          id: string
+          number: number
+          problem_id: string
+          solved_status: string
+          tags: string[]
+          title: string
+          total_count: number
+          total_submissions: number
+        }[]
       }
       get_paginated_problems: {
         Args: {
@@ -2301,24 +2841,100 @@ export type Database = {
           total_submissions: number
         }[]
       }
+      get_students_not_in_cohort:
+        | {
+            Args: { p_cohort_id: string; p_search?: string }
+            Returns: {
+              account_type: string
+              avatar_path: string
+              course_name: string
+              email: string
+              full_name: string
+              passout_year: number
+              student_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_cohort_id: string
+              p_course_name?: string
+              p_passout_year?: number
+              p_search?: string
+            }
+            Returns: {
+              account_type: string
+              avatar_path: string
+              course_name: string
+              email: string
+              full_name: string
+              passout_year: number
+              student_id: string
+            }[]
+          }
+        | {
+            Args: {
+              p_cohort_id: string
+              p_course_name?: string
+              p_passout_year?: number
+              p_search?: string
+              p_source_cohort_id?: string
+            }
+            Returns: {
+              account_type: string
+              avatar_path: string
+              course_name: string
+              email: string
+              full_name: string
+              passout_year: number
+              student_id: string
+            }[]
+          }
       get_test_attempt_stats: { Args: { p_test_id: string }; Returns: Json }
       get_user_global_stats: { Args: { p_user_id: string }; Returns: Json }
       get_user_institute_id: { Args: { p_user_id: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      record_attempt_violation: {
+        Args: {
+          p_attempt_id: string
+          p_count?: number
+          p_timestamp?: string
+          p_type: string
+        }
+        Returns: undefined
+      }
+      regrade_all_submitted_attempts: {
+        Args: never
+        Returns: {
+          attempt_id: string
+          delta: number
+          new_score: number
+          old_score: number
+        }[]
+      }
       revoke_session: { Args: { p_session_id: string }; Returns: undefined }
       revoke_sessions_batch: {
         Args: { p_session_ids: string[] }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       test_attempt_bulk_save_answers: {
         Args: { p_attempt_id: string; p_batch: Json }
         Returns: undefined
       }
-      test_attempt_grade: {
-        Args: { p_attempt_id: string; p_final_time_spent: number }
+      test_attempt_claim_session: {
+        Args: { p_attempt_id: string; p_session_token: string }
         Returns: Json
       }
-      test_attempt_init: { Args: { p_test_id: string }; Returns: Json }
+      test_attempt_force_submit: {
+        Args: { p_attempt_id: string }
+        Returns: Json
+      }
+      test_attempt_grade: { Args: { p_attempt_id: string }; Returns: Json }
+      test_attempt_init: {
+        Args: { p_session_token?: string; p_test_id: string }
+        Returns: Json
+      }
       test_attempt_save_answer: {
         Args: {
           p_attempt_id: string
@@ -2328,9 +2944,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      test_attempt_sync: {
+        Args: { p_attempt_id: string; p_batch?: Json; p_session_token: string }
+        Returns: Json
+      }
       test_save: {
         Args: {
-          p_questions: Json[]
+          p_questions: Json
+          p_sections?: Json
           p_settings: Json
           p_status: string
           p_test_id: string

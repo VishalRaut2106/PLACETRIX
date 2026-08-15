@@ -13,6 +13,7 @@ import {
   deleteAttemptAction,
   clearAllAttemptsAction,
 } from "./actions"
+import { buildStorageUrl, buildOptimizedStorageUrl } from "@/lib/storage"
 import type {
   CandidateTestDetail,
   CandidateAttemptDetail,
@@ -40,7 +41,8 @@ async function fetchCandidateView(
     .from("tests")
     .select(`
       id, title, description, instructions, time_limit_seconds, 
-      available_from, available_until, results_available, marks_available, status, institute_id,
+      available_from, available_until, results_available, marks_available, status, institute_id, created_by,
+      creator:profiles!created_by(id, full_name, email, avatar_path),
       shuffle_questions, shuffle_options, max_attempts,
       institute:institutes(institute_name, logo_path),
       test_questions (
@@ -152,6 +154,14 @@ async function fetchCandidateView(
     })),
     institute_name: (raw.institute as any)?.institute_name ?? null,
     institute_logo_url: instituteLogoUrl,
+    creator: raw.creator
+      ? {
+          id: raw.creator.id,
+          full_name: raw.creator.full_name ?? null,
+          email: raw.creator.email ?? null,
+          avatar_url: buildOptimizedStorageUrl("avatars", raw.creator.avatar_path, { width: 64, height: 64, quality: 80, format: "webp" }),
+        }
+      : null,
     status: raw.status as any,
     questions: (raw.test_questions ?? []).map((q: any) => ({ marks: q.marks })),
   }
@@ -260,7 +270,8 @@ async function fetchInstituteView(
     .from("tests")
     .select(`
       id, title, description, instructions, time_limit_seconds, 
-      available_from, available_until, status, results_available, marks_available, institute_id,
+      available_from, available_until, status, results_available, marks_available, institute_id, created_by,
+      creator:profiles!created_by(id, full_name, email, avatar_path),
       institute:institutes(institute_name),
       test_sections (id, name, description, order_index),
       test_questions (
@@ -279,7 +290,8 @@ async function fetchInstituteView(
       .from("tests")
       .select(`
         id, title, description, instructions, time_limit_seconds, 
-        available_from, available_until, status, results_available, institute_id,
+        available_from, available_until, status, results_available, institute_id, created_by,
+        creator:profiles!created_by(id, full_name, email, avatar_path),
         institute:institutes(institute_name),
         test_sections (id, name, description, order_index),
         test_questions (
@@ -407,6 +419,14 @@ async function fetchInstituteView(
     results_available: raw.results_available,
     marks_available: raw.marks_available ?? true,
     institute_name: (raw.institute as any)?.institute_name ?? null,
+    creator: raw.creator
+      ? {
+          id: raw.creator.id,
+          full_name: raw.creator.full_name ?? null,
+          email: raw.creator.email ?? null,
+          avatar_url: buildOptimizedStorageUrl("avatars", raw.creator.avatar_path, { width: 64, height: 64, quality: 80, format: "webp" }),
+        }
+      : null,
     questions,
     attempts: firstPageAttempts,
     attemptStats,

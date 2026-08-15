@@ -26,6 +26,7 @@ import type React from "react";
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -41,6 +42,7 @@ import {
   ShieldAlertIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { PasswordStrength } from "@/components/auth/password-strength";
 
 type PageState = "loading" | "password-form" | "expired" | "success";
 
@@ -82,7 +84,6 @@ function ChangePasswordContent() {
         setPageState("password-form");
       } else if (user && !isRecoveryMode) {
         // Authenticated user who navigated here directly — bounce back.
-        // react-doctor-disable-next-line
         router.replace("/auth/reset-password");
       } else {
         // No valid user session: link expired, already used, or never valid.
@@ -124,147 +125,186 @@ function ChangePasswordContent() {
     }
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────
-  if (pageState === "loading") {
-    return (
-      <div className="mx-auto flex sm:w-sm items-center justify-center py-12">
-        <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // ── Expired ────────────────────────────────────────────────────────────────
-  if (pageState === "expired") {
-    return (
-      <div className="mx-auto space-y-4 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-            <ShieldAlertIcon className="h-6 w-6 text-destructive" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">Link Expired</h1>
-            <p className="text-base text-muted-foreground">
-              This password reset link is invalid or has already been used.
-              Please request a new one.
-            </p>
-          </div>
-        </div>
-        <Button asChild className="w-full cursor-pointer">
-          <Link href="/auth/reset-password">Request New Reset</Link>
-        </Button>
-        <Button asChild variant="outline" className="w-full cursor-pointer">
-          <Link href="/auth/login">Back to Sign In</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Success ────────────────────────────────────────────────────────────────
-  if (pageState === "success") {
-    return (
-      <div className="mx-auto space-y-4 sm:w-sm">
-        <div className="flex flex-col space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-            <CheckCircleIcon className="h-6 w-6 text-green-500" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="font-cirka font-bold text-2xl tracking-wide">Password Updated!</h1>
-            <p className="text-base text-muted-foreground">
-              Your password has been reset successfully. Sign in with your new
-              password to continue.
-            </p>
-          </div>
-        </div>
-        <Button asChild className="w-full cursor-pointer">
-          <Link href="/auth/login">Sign In</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Password form ──────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto space-y-4 sm:w-sm">
-      <div className="flex flex-col space-y-1">
-        <h1 className="font-cirka font-bold text-2xl tracking-wide">Set New Password</h1>
-        <p className="text-base text-muted-foreground">
-          Choose a strong password for your account.
-        </p>
-      </div>
-      <form className="space-y-4" onSubmit={handleUpdatePassword}>
-        <InputGroup>
-          <InputGroupInput
-            placeholder="New password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <InputGroupAddon align="inline-start">
-            <LockIcon />
-          </InputGroupAddon>
-          <InputGroupAddon
-            align="inline-end"
-            className="cursor-pointer"
-            onClick={() => setShowPassword((p) => !p)}
+    <div className="mx-auto w-full sm:w-sm">
+      <AnimatePresence mode="wait">
+        {pageState === "loading" && (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center py-12"
           >
-            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-          </InputGroupAddon>
-        </InputGroup>
-
-        <InputGroup>
-          <InputGroupInput
-            placeholder="Confirm new password"
-            type={showConfirm ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-          <InputGroupAddon align="inline-start">
-            <LockIcon />
-          </InputGroupAddon>
-          <InputGroupAddon
-            align="inline-end"
-            className="cursor-pointer"
-            onClick={() => setShowConfirm((p) => !p)}
-          >
-            {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
-          </InputGroupAddon>
-        </InputGroup>
-
-        <p className="text-xs text-muted-foreground">
-          Must be at least 6 characters.
-        </p>
-
-        {error && (
-          <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
-            {error}
-          </p>
+            <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
+          </motion.div>
         )}
 
-        <Button className="w-full cursor-pointer" type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-              Updating...
-            </>
-          ) : (
-            "Update Password"
-          )}
-        </Button>
-      </form>
+        {pageState === "expired" && (
+          <motion.div
+            key="expired"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="space-y-4"
+          >
+            <div className="flex flex-col space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <ShieldAlertIcon className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <h1 className="font-cirka font-bold text-2xl tracking-wide">Link Expired</h1>
+                <p className="text-base text-muted-foreground">
+                  This password reset link is invalid or has already been used.
+                  Please request a new one.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="w-full cursor-pointer">
+              <Link href="/auth/reset-password">Request New Reset</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full cursor-pointer">
+              <Link href="/auth/login">Back to Sign In</Link>
+            </Button>
+          </motion.div>
+        )}
 
-      <p className="text-center text-sm text-muted-foreground pt-2">
-        Remember your password?{" "}
-        <Link
-          href="/auth/login"
-          className="underline underline-offset-4 hover:text-primary transition-all"
-        >
-          Sign in
-        </Link>
-      </p>
+        {pageState === "success" && (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-4"
+          >
+            <div className="flex flex-col space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircleIcon className="h-6 w-6 text-green-500" />
+              </div>
+              <div className="space-y-1">
+                <h1 className="font-cirka font-bold text-2xl tracking-wide">Password Updated!</h1>
+                <p className="text-base text-muted-foreground">
+                  Your password has been reset successfully. Sign in with your new
+                  password to continue.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="w-full cursor-pointer">
+              <Link href="/auth/login">Sign In</Link>
+            </Button>
+          </motion.div>
+        )}
+
+        {pageState === "password-form" && (
+          <motion.div
+            key="password-form"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="space-y-4"
+          >
+            <div className="flex flex-col space-y-1">
+              <h1 className="font-cirka font-bold text-2xl tracking-wide">Set New Password</h1>
+              <p className="text-base text-muted-foreground">
+                Choose a strong password for your account.
+              </p>
+            </div>
+            <form className="space-y-4" onSubmit={handleUpdatePassword}>
+              <InputGroup>
+                <InputGroupInput
+                  autoFocus
+                  placeholder="New password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+                <InputGroupAddon align="inline-start">
+                  <LockIcon />
+                </InputGroupAddon>
+                <InputGroupAddon
+                  align="inline-end"
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((p) => !p)}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </InputGroupAddon>
+              </InputGroup>
+
+              <PasswordStrength password={password} />
+
+              <InputGroup>
+                <InputGroupInput
+                  placeholder="Confirm new password"
+                  type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+                <InputGroupAddon align="inline-start">
+                  <LockIcon />
+                </InputGroupAddon>
+                <InputGroupAddon
+                  align="inline-end"
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={-1}
+                  aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                  onClick={() => setShowConfirm((p) => !p)}
+                >
+                  {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                </InputGroupAddon>
+              </InputGroup>
+
+              <p className="text-xs text-muted-foreground">
+                Must be at least 6 characters.
+              </p>
+
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                  transition={{ duration: 0.3 }}
+                  className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              <Button className="w-full cursor-pointer" type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                    Updating…
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground pt-2">
+              Remember your password?{" "}
+              <Link
+                href="/auth/login"
+                className="underline underline-offset-4 hover:text-primary transition-all"
+              >
+                Sign in
+              </Link>
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,36 +1,5 @@
-// app/auth/sign-up-success/page.tsx
-//
-// Fallback shown when a user signs up but OTP confirmation was somehow
-// bypassed (e.g. the user navigated away before entering the code).
-// The primary flow verifies inline via OTP on /auth/sign-up.
-import { MailIcon } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 
 export default function SignUpSuccessPage() {
-  return (
-    <div className="mx-auto space-y-4 sm:w-sm">
-      <div className="flex flex-col space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-          <MailIcon className="h-6 w-6 text-primary" />
-        </div>
-        <div className="space-y-1">
-          <h1 className="font-cirka font-bold text-2xl tracking-wide">Check Your Email</h1>
-          <p className="text-base text-muted-foreground">
-            We sent a confirmation code to your email address. Enter the code on
-            the sign-up page to activate your account.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            The code works from any device or browser.
-          </p>
-        </div>
-      </div>
-      <Button asChild className="w-full cursor-pointer">
-        <Link href="/auth/login">Enter Code</Link>
-      </Button>
-      <Button asChild variant="outline" className="w-full cursor-pointer">
-        <Link href="/auth/login">Go to Sign In</Link>
-      </Button>
-    </div>
-  );
+  redirect("/auth/login");
 }

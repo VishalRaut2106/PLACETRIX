@@ -79,7 +79,13 @@ function AuthSyncContent() {
       if (prevUserId === null && newUserId !== null) {
         if (isAuthPath(pathname)) {
           const next = searchParams.get("next") ?? "/home";
-          window.location.replace(next);
+          supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+            if (data?.currentLevel === "aal1" && data?.nextLevel === "aal2") {
+              window.location.replace(`/auth/mfa?next=${encodeURIComponent(next)}`);
+            } else {
+              window.location.replace(next);
+            }
+          });
         } else {
           router.refresh();
         }

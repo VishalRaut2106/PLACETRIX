@@ -3,15 +3,14 @@
 // Login flow:
 //
 //   login-form    → signInWithPassword()
-//                   ✓ confirmed, no MFA  → redirect /~
-//                   ✓ confirmed, has MFA → mfa-challenge
+//                   ✓ confirmed, no MFA  → redirect /~ (or ?next=)
+//                   ✓ confirmed, has MFA → redirect /auth/mfa?next=
 //                   ✗ unconfirmed        → resend OTP → otp-entry
 //
 //   otp-entry     → verifyOtp({ email, token, type: 'signup' })
 //                   ✓ verified    → session active → redirect /~
 //
-//   mfa-challenge → mfa.listFactors() → mfa.challenge() → mfa.verify()
-//                   ✓ verified    → session aal2 → redirect /~
+//   Dedicated MFA challenge route is /auth/mfa.
 //
 //   OR: Continue with Google → signInWithOAuth() → /auth/callback
 //       → middleware AAL check → /auth/mfa (if MFA enrolled) → /~
@@ -27,7 +26,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,16 +48,14 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleOneTap } from "@/components/auth/google-one-tap";
+import { startNavigationProgress, stopNavigationProgress } from "@/components/ui/navigation-progress";
 
-type PageState = "login-form" | "otp-entry" | "mfa-challenge";
+type PageState = "login-form" | "otp-entry";
 
 const RESEND_COOLDOWN = 60;
+const LAST_EMAIL_KEY = "placetrix_last_email";
 
-const GoogleIcon = (props: React.ComponentProps<"svg">) => (
-  <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
-    <path d="M12.479,14.265v-3.279h11.049c0.108,0.571,0.164,1.247,0.164,1.979c0,2.46-0.672,5.502-2.84,7.669C18.744,22.829,16.051,24,12.483,24C5.869,24,0.308,18.613,0.308,12S5.869,0,12.483,0c3.659,0,6.265,1.436,8.223,3.307L18.392,5.62c-1.404-1.317-3.307-2.341-5.913-2.341C7.65,3.279,3.873,7.171,3.873,12s3.777,8.721,8.606,8.721c3.132,0,4.916-1.258,6.059-2.401c0.927-0.927,1.537-2.251,1.777-4.059L12.479,14.265z" />
-  </svg>
-);
+import { GoogleIcon } from "@/components/icons/google-icon";
 
 export default function LoginPage() {
   return (
@@ -88,9 +85,20 @@ function LoginContent() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // ── Smart fill last used email on mount ──────────────────────────────────
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem(LAST_EMAIL_KEY);
+      if (savedEmail && !email) {
+        setEmail(savedEmail);
+      }
+    } catch {}
+  }, []);
 
   const startCooldown = () => {
     setResendCooldown(RESEND_COOLDOWN);
@@ -122,6 +130,10 @@ function LoginContent() {
       const supabase = createClient();
       const cleanEmail = email.trim().toLowerCase();
 
+      try {
+        localStorage.setItem(LAST_EMAIL_KEY, cleanEmail);
+      } catch {}
+
       if (loginMethod === "magiclink") {
         const { error } = await supabase.auth.signInWithOtp({
           email: cleanEmail,
@@ -131,7 +143,6 @@ function LoginContent() {
         });
 
         if (error) {
-          // 504 / network timeout — auth server is under load, ask user to retry
           if (
             error.status === 504 ||
             error.message?.toLowerCase().includes("timeout") ||
@@ -160,19 +171,24 @@ function LoginContent() {
     try {
       const supabase = createClient();
       const cleanEmail = email.trim().toLowerCase();
+
+      try {
+        localStorage.setItem(LAST_EMAIL_KEY, cleanEmail);
+      } catch {}
+
       const { error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
 
       if (error) {
-        // 504 / network timeout — auth server is under load, ask user to retry
         if (
           error.status === 504 ||
           error.message?.toLowerCase().includes("timeout") ||
           error.message?.toLowerCase().includes("fetch")
         ) {
           setError("The server is temporarily busy. Please wait a moment and try again.");
+          setIsLoading(false);
           return;
         }
 
@@ -184,29 +200,35 @@ function LoginContent() {
           if (resendError) throw resendError;
           setPageState("otp-entry");
           startCooldown();
+          setIsLoading(false);
           return;
         }
         throw error;
       }
 
+      // Successful password validation -> switch into redirecting state & start top progress bar
+      setIsRedirecting(true);
+      startNavigationProgress();
+
       // Check if the user has MFA enrolled and needs to verify it.
-      // getAuthenticatorAssuranceLevel() is very fast and rarely hits the network.
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2") {
-        // User has MFA enrolled — show the TOTP challenge screen
-        setPageState("mfa-challenge");
+        // User has MFA enrolled — delegate directly to the dedicated /auth/mfa route
+        router.push(`/auth/mfa?next=${encodeURIComponent(next)}`);
+        router.refresh();
         return;
       }
 
+      // No MFA needed — redirect to destination
       router.push(next);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
       setIsLoading(false);
+      setIsRedirecting(false);
+      stopNavigationProgress();
     }
   };
-
 
   const handleVerifyOtp = async (e?: React.FormEvent, tokenOverride?: string) => {
     if (e) e.preventDefault();
@@ -228,13 +250,24 @@ function LoginContent() {
       });
       if (error) throw error;
 
+      setIsRedirecting(true);
+      startNavigationProgress();
+
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2") {
+        router.push(`/auth/mfa?next=${encodeURIComponent(next)}`);
+        router.refresh();
+        return;
+      }
+
       router.push(next);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Invalid or expired code");
       setOtp("");
-    } finally {
       setIsLoading(false);
+      setIsRedirecting(false);
+      stopNavigationProgress();
     }
   };
 
@@ -257,6 +290,7 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     setError(null);
+    startNavigationProgress();
 
     try {
       const supabase = createClient();
@@ -271,390 +305,336 @@ function LoginContent() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Google sign-in failed");
       setIsGoogleLoading(false);
+      stopNavigationProgress();
     }
   };
 
-  const handleMfaVerify = async (e?: React.FormEvent, tokenOverride?: string) => {
-    if (e) e.preventDefault();
-    const tokenToVerify = tokenOverride ?? otp;
-    if (tokenToVerify.length < 6) {
-      setError("Please enter the full 6-digit code.");
-      return;
-    }
-    setError(null);
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
+  const isBusy = isLoading || isGoogleLoading || isRedirecting;
 
-      // Ensure session is synchronized from storage/cookies after app-switching on mobile
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
-        if (refreshErr || !refreshData?.session) {
-          setError("Your session expired while switching apps. Please sign in again.");
-          return;
-        }
-      }
-
-      const { data: factorsData, error: listErr } = await supabase.auth.mfa.listFactors();
-      if (listErr) throw listErr;
-      const totpFactor = factorsData.totp.find((f: any) => f.status === "verified");
-      if (!totpFactor) { router.push(next); router.refresh(); return; }
-      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
-      if (challengeErr) throw challengeErr;
-      const { error: verifyErr } = await supabase.auth.mfa.verify({ factorId: totpFactor.id, challengeId: challengeData.id, code: tokenToVerify });
-      if (verifyErr) throw verifyErr;
-      router.push(next);
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Invalid code. Please try again.";
-      if (msg.toLowerCase().includes("auth session missing") || msg.toLowerCase().includes("session")) {
-        setError("Your session expired while switching apps. Please sign in again.");
-      } else {
-        setError(msg);
-        setOtp("");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ── MFA Challenge screen ───────────────────────────────────────────────────
-  if (pageState === "mfa-challenge") {
-    return (
-      <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-1">
-          <h1 className="font-cirka font-bold text-2xl tracking-wide">Two-Factor Authentication</h1>
-          <p className="text-base text-muted-foreground">
-            Enter the 6-digit code from your authenticator app.
-          </p>
-        </div>
-
-        <form
-          className="space-y-4"
-          onSubmit={handleMfaVerify}
-        >
-          <div className="flex justify-center">
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={(v) => {
-                setOtp(v);
-                if (error) setError(null);
-                if (v.length === 6 && !isLoading) {
-                  handleMfaVerify(undefined, v);
-                }
-              }}
-              disabled={isLoading}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          {error && (
-            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
-              {error}
-            </p>
-          )}
-
-          <Button className="w-full cursor-pointer" type="submit" disabled={isLoading || otp.length < 6}>
-            {isLoading ? (
-              <><Loader2Icon className="mr-2 h-4 w-4 animate-spin" />Verifying…</>
-            ) : (
-              "Verify & Sign In"
-            )}
-          </Button>
-        </form>
-
-        <div className="rounded-md border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-          <p>
-            Open your authenticator app and enter the current 6-digit code for this account.
-            Codes refresh every 30 seconds.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={() => { setPageState("login-form"); setOtp(""); setError(null); }}
-          className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          Back to sign in
-        </button>
-      </div>
-    );
-  }
-
-  // ── OTP screen ─────────────────────────────────────────────────────────────
-  if (pageState === "otp-entry") {
-    return (
-      <div className="mx-auto space-y-6 sm:w-sm">
-        <div className="flex flex-col space-y-1">
-          <h1 className="font-cirka font-bold text-2xl tracking-wide">
-            Confirm Your Email
-          </h1>
-          <p className="text-base text-muted-foreground">
-            Your email isn&apos;t confirmed yet. We sent a 6-digit code to{" "}
-            <span className="font-medium text-foreground">{email}</span>.
-          </p>
-        </div>
-
-        <form className="space-y-4" onSubmit={handleVerifyOtp}>
-          <div className="flex justify-center">
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={(v) => {
-                setOtp(v);
-                if (v.length === 6 && !isLoading) {
-                  handleVerifyOtp(undefined, v);
-                }
-              }}
-              disabled={isLoading}
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          {error && (
-            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
-              {error}
-            </p>
-          )}
-
-          <Button
-            className="w-full cursor-pointer"
-            type="submit"
-            disabled={isLoading || otp.length < 6}
-          >
-            {isLoading ? (
-              <>
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                Verifying…
-              </>
-            ) : (
-              "Confirm & Sign In"
-            )}
-          </Button>
-        </form>
-
-        <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          <span>
-            Didn&apos;t receive it?{" "}
-              {resendCooldown > 0 ? (
-                <span>Resend in {resendCooldown}s</span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={handleResend}
-                  className="underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Resend code
-                </button>
-              )}{" "}
-              or check your spam folder.
-          </span>
-        </div>
-
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={() => {
-            setPageState("login-form");
-            setOtp("");
-            setError(null);
-          }}
-          className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          Back to sign in
-        </button>
-      </div>
-    );
-  }
-
-  // ── Login form ─────────────────────────────────────────────────────────────
   return (
     <>
-      {/* One Tap only shown on the login form, not the OTP screen */}
-      <GoogleOneTap next={next} />
+      {/* Google One Tap */}
+      <GoogleOneTap
+        next={next}
+        onStart={() => {
+          setIsGoogleLoading(true);
+          setError(null);
+          startNavigationProgress();
+        }}
+        onSuccess={() => {
+          setIsGoogleLoading(true);
+          setIsRedirecting(true);
+        }}
+        onError={(msg) => {
+          setIsGoogleLoading(false);
+          setIsRedirecting(false);
+          setError(msg);
+          stopNavigationProgress();
+        }}
+      />
 
-      <div className="mx-auto space-y-4 sm:w-sm">
-        <div className="flex flex-col space-y-1">
-          <h1 className="font-cirka font-bold text-2xl tracking-wide">Welcome Back!</h1>
-          <p className="text-base text-muted-foreground">
-            Sign in to your account to continue.
-          </p>
-        </div>
+      <div className="mx-auto w-full sm:w-sm">
+        <AnimatePresence mode="wait">
+          {pageState === "otp-entry" ? (
+            /* ── OTP screen ── */
+            <motion.div
+              key="otp-entry"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              <div className="flex flex-col space-y-1">
+                <h1 className="font-cirka font-bold text-2xl tracking-wide">
+                  Confirm Your Email
+                </h1>
+                <p className="text-base text-muted-foreground">
+                  Your email isn&apos;t confirmed yet. We sent a 6-digit code to{" "}
+                  <span className="font-medium text-foreground">{email}</span>.
+                </p>
+              </div>
 
-        <Button
-          className="w-full cursor-pointer"
-          variant="outline"
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={isGoogleLoading || isLoading}
-        >
-          {isGoogleLoading ? (
-            <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              <form className="space-y-4" onSubmit={handleVerifyOtp}>
+                <div className="flex justify-center">
+                  <InputOTP
+                    autoFocus
+                    maxLength={6}
+                    value={otp}
+                    onChange={(v) => {
+                      setOtp(v);
+                      if (error) setError(null);
+                      if (v.length === 6 && !isLoading && !isRedirecting) {
+                        handleVerifyOtp(undefined, v);
+                      }
+                    }}
+                    disabled={isBusy}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                    transition={{ duration: 0.3 }}
+                    className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                <Button
+                  className="w-full cursor-pointer"
+                  type="submit"
+                  disabled={isBusy || otp.length < 6}
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      Redirecting…
+                    </>
+                  ) : isLoading ? (
+                    <>
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying…
+                    </>
+                  ) : (
+                    "Confirm & Sign In"
+                  )}
+                </Button>
+              </form>
+
+              <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                <span>
+                  Didn&apos;t receive it?{" "}
+                  {resendCooldown > 0 ? (
+                    <span>Resend in {resendCooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={handleResend}
+                      className="underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Resend code
+                    </button>
+                  )}{" "}
+                  or check your spam folder.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => {
+                  setPageState("login-form");
+                  setOtp("");
+                  setError(null);
+                }}
+                className="w-full text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Back to sign in
+              </button>
+            </motion.div>
           ) : (
-            <GoogleIcon className="mr-2 h-4 w-4" />
-          )}
-          {isGoogleLoading ? "Redirecting…" : "Continue with Google"}
-        </Button>
-
-        {/* Canonical Shadcn Tabs Switcher for Login Method */}
-        <Tabs
-          value={loginMethod}
-          onValueChange={(val) => {
-            setLoginMethod(val as "password" | "magiclink");
-            setError(null);
-            setSuccessMessage(null);
-          }}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger
-              value="password"
-              disabled={isLoading || isGoogleLoading}
+            /* ── Login form ── */
+            <motion.div
+              key="login-form"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="space-y-4"
             >
-              Password
-            </TabsTrigger>
-            <TabsTrigger
-              value="magiclink"
-              disabled={isLoading || isGoogleLoading}
-            >
-              Magic Link
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <div className="flex flex-col space-y-1">
+                <h1 className="font-cirka font-bold text-2xl tracking-wide">Welcome Back!</h1>
+                <p className="text-base text-muted-foreground">
+                  Sign in to your account to continue.
+                </p>
+              </div>
 
-        <div className="flex w-full items-center justify-center gap-2">
-          <Separator className="flex-1" />
-          <span className="shrink-0 text-muted-foreground text-xs">OR</span>
-          <Separator className="flex-1" />
-        </div>
-
-        <form
-          className="space-y-4"
-          onSubmit={loginMethod === "password" ? handleLogin : handleMagicLinkLogin}
-        >
-          <p className="text-start text-muted-foreground text-xs">
-            {loginMethod === "password"
-              ? "Enter your credentials to sign in"
-              : "Enter your email to receive a secure login link"}
-          </p>
-
-          <Input
-            autoFocus
-            placeholder="your.email@example.com"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading || isGoogleLoading}
-          />
-
-          {loginMethod === "password" && (
-            <InputGroup>
-              <InputGroupInput
-                placeholder="Password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading || isGoogleLoading}
-              />
-              <InputGroupAddon
-                align="inline-end"
-                className="cursor-pointer"
-                onClick={() => setShowPassword((p) => !p)}
+              <Button
+                className="w-full cursor-pointer"
+                variant="outline"
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isBusy}
               >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-              </InputGroupAddon>
-            </InputGroup>
-          )}
+                {isGoogleLoading ? (
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <GoogleIcon className="mr-2 h-4 w-4" />
+                )}
+                {isGoogleLoading ? "Redirecting…" : "Continue with Google"}
+              </Button>
 
-          {error && (
-            <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          {successMessage && (
-            <p className="text-sm text-green-500 rounded-md bg-green-500/10 px-3 py-2">
-              {successMessage}
-            </p>
-          )}
-
-          <Button
-            className="w-full cursor-pointer"
-            type="submit"
-            disabled={isLoading || isGoogleLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-                {loginMethod === "password" ? "Signing in…" : "Sending link…"}
-              </>
-            ) : (
-              loginMethod === "password" ? "Sign In" : "Send Magic Link"
-            )}
-          </Button>
-
-          <div className="flex justify-between items-center text-xs">
-            <Link
-              href={isLoading || isGoogleLoading ? "#" : "/auth/sign-up"}
-              className={`text-muted-foreground underline underline-offset-4 hover:text-primary transition-all ${isLoading || isGoogleLoading ? "pointer-events-none opacity-50" : ""
-                }`}
-            >
-              Don&apos;t have an account? Sign up
-            </Link>
-
-            {loginMethod === "password" && (
-              <Link
-                href={isLoading || isGoogleLoading ? "#" : "/auth/reset-password"}
-                className={`text-muted-foreground underline underline-offset-4 hover:text-primary ${isLoading || isGoogleLoading ? "pointer-events-none opacity-50" : ""
-                  }`}
+              {/* Canonical Shadcn Tabs Switcher for Login Method */}
+              <Tabs
+                value={loginMethod}
+                onValueChange={(val) => {
+                  setLoginMethod(val as "password" | "magiclink");
+                  setError(null);
+                  setSuccessMessage(null);
+                }}
+                className="w-full"
               >
-                Forgot password?
-              </Link>
-            )}
-          </div>
-        </form>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger
+                    value="password"
+                    disabled={isBusy}
+                  >
+                    Password
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="magiclink"
+                    disabled={isBusy}
+                  >
+                    Magic Link
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-        <p className="text-muted-foreground text-xs text-center pt-2">
-          By signing in, you agree to our{" "}
-          <Link
-            href="/terms-of-service"
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            Terms
-          </Link>{" "}
-          and{" "}
-          <Link
-            href="/privacy-policy"
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            Privacy Policy
-          </Link>
-          .
-        </p>
+              <div className="flex w-full items-center justify-center gap-2">
+                <Separator className="flex-1" />
+                <span className="shrink-0 text-muted-foreground text-xs">OR</span>
+                <Separator className="flex-1" />
+              </div>
+
+              <form
+                className="space-y-4"
+                onSubmit={loginMethod === "password" ? handleLogin : handleMagicLinkLogin}
+              >
+                <p className="text-start text-muted-foreground text-xs">
+                  {loginMethod === "password"
+                    ? "Enter your credentials to sign in"
+                    : "Enter your email to receive a secure login link"}
+                </p>
+
+                <Input
+                  autoFocus={!email}
+                  placeholder="your.email@example.com"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isBusy}
+                />
+
+                {loginMethod === "password" && (
+                  <InputGroup>
+                    <InputGroupInput
+                      autoFocus={!!email}
+                      placeholder="Password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isBusy}
+                    />
+                    <InputGroupAddon
+                      align="inline-end"
+                      className="cursor-pointer"
+                      role="button"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((p) => !p)}
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </InputGroupAddon>
+                  </InputGroup>
+                )}
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+                    transition={{ duration: 0.3 }}
+                    className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                {successMessage && (
+                  <p className="text-sm text-green-500 rounded-md bg-green-500/10 px-3 py-2">
+                    {successMessage}
+                  </p>
+                )}
+
+                <Button
+                  className="w-full cursor-pointer"
+                  type="submit"
+                  disabled={isBusy}
+                >
+                  {isRedirecting ? (
+                    <>
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      Redirecting…
+                    </>
+                  ) : isLoading ? (
+                    <>
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      {loginMethod === "password" ? "Signing in…" : "Sending link…"}
+                    </>
+                  ) : (
+                    loginMethod === "password" ? "Sign In" : "Send Magic Link"
+                  )}
+                </Button>
+
+                <div className="flex justify-between items-center text-xs">
+                  <Link
+                    href={isBusy ? "#" : "/auth/sign-up"}
+                    className={`text-muted-foreground underline underline-offset-4 hover:text-primary transition-all ${
+                      isBusy ? "pointer-events-none opacity-50" : ""
+                    }`}
+                  >
+                    Don&apos;t have an account? Sign up
+                  </Link>
+
+                  {loginMethod === "password" && (
+                    <Link
+                      href={isBusy ? "#" : "/auth/reset-password"}
+                      className={`text-muted-foreground underline underline-offset-4 hover:text-primary ${
+                        isBusy ? "pointer-events-none opacity-50" : ""
+                      }`}
+                    >
+                      Forgot password?
+                    </Link>
+                  )}
+                </div>
+              </form>
+
+              <p className="text-muted-foreground text-xs text-center pt-2">
+                By signing in, you agree to our{" "}
+                <Link
+                  href="/terms-of-service"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy-policy"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );

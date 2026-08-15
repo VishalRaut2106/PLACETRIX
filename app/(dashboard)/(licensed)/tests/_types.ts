@@ -13,6 +13,12 @@ export interface CandidateTestAttempt {
   percentage?: number
 }
 
+export interface TestCreator {
+  full_name?: string | null
+  email?: string | null
+  avatar_url?: string | null
+}
+
 export interface CandidateTest {
   id: string
   title: string
@@ -25,6 +31,7 @@ export interface CandidateTest {
   results_available: boolean
   marks_available: boolean
   attempt?: CandidateTestAttempt
+  creator?: TestCreator
 }
 
 export interface InstituteTest {
@@ -41,6 +48,11 @@ export interface InstituteTest {
   marks_available: boolean
   question_count: number
   attempt_count: number
+  avg_score_pct?: number | null
+  total_marks?: number | null
+  submitted_attempts?: number | null
+  created_by?: string | null
+  creator?: TestCreator
 }
 
 // ─── deriveStatus ─────────────────────────────────────────────────────────────

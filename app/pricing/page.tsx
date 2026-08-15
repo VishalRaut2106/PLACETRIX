@@ -4,13 +4,10 @@ import React from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 import {
     ArrowRightIcon,
     CheckIcon,
     MenuIcon,
-    MoonIcon,
-    SunIcon,
     XIcon,
     GithubIcon,
     InstagramIcon,
@@ -21,13 +18,17 @@ import {
     ChevronDownIcon,
 } from "lucide-react";
 
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import PlaceTrixLogo from "@/assets/placetrix.svg";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { UserProfile } from "@/lib/supabase/profile";
 import { getUserProfileAction } from "@/lib/supabase/profile";
-import { buildStorageUrl } from "@/lib/storage";
+import {
+    PublicThemeToggle,
+    UserAvatarMenu,
+    MobileUserCard,
+} from "@/components/landing_allied/public-nav-controls";
 
 const Galaxy = dynamic(() => import("@/components/landing_allied/Galaxy"), {
     ssr: false,
@@ -44,9 +45,6 @@ const NAV_SHELL =
 
 const NAV_BUTTON =
     "border-black/10 bg-white/70 text-zinc-900 hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10";
-
-const AVATAR_SHELL =
-    "size-8 shrink-0 border border-black/10 bg-white/70 dark:border-white/10 dark:bg-white/5";
 
 function useMounted() {
     const [mounted, setMounted] = React.useState(false);
@@ -87,64 +85,6 @@ function Logo() {
                 priority
             />
         </div>
-    );
-}
-
-function ThemeToggle() {
-    const { setTheme, resolvedTheme } = useTheme();
-
-    const handleToggle = React.useCallback(() => {
-        setTheme(resolvedTheme === "dark" ? "light" : "dark");
-    }, [resolvedTheme, setTheme]);
-
-    return (
-        <Button
-            aria-label="Toggle theme"
-            onClick={handleToggle}
-            size="icon"
-            variant="outline"
-            className={cn("size-8 text-foreground [&_svg]:size-4.5", NAV_BUTTON)}
-        >
-            <SunIcon className="dark:hidden" />
-            <MoonIcon className="hidden dark:block" />
-            <span className="sr-only">Toggle theme</span>
-        </Button>
-    );
-}
-
-function UserAvatar({
-    user,
-    className,
-}: {
-    user: UserProfile;
-    className?: string;
-}) {
-    const initials = React.useMemo(() => {
-        return user.full_name
-            ? user.full_name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)
-            : user.email[0].toUpperCase();
-    }, [user.full_name, user.email]);
-
-    const avatarUrl = React.useMemo(() => {
-        return buildStorageUrl("avatars", user.avatar_path);
-    }, [user.avatar_path]);
-
-    return (
-        <Avatar className={cn(AVATAR_SHELL, className)}>
-            <AvatarImage
-                src={avatarUrl ?? undefined}
-                alt={user.full_name || user.email}
-                className="object-cover"
-            />
-            <AvatarFallback className="text-xs font-medium">
-                {initials}
-            </AvatarFallback>
-        </Avatar>
     );
 }
 
@@ -231,7 +171,7 @@ function MobileNav({
                                     <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                                         Menu
                                     </span>
-                                    <ThemeToggle />
+                                    <PublicThemeToggle />
                                 </div>
 
                                 {isLoading ? (
@@ -243,21 +183,7 @@ function MobileNav({
                                         </div>
                                     </div>
                                 ) : user ? (
-                                    <Link
-                                        href="/home"
-                                        onClick={closeMenu}
-                                        className="mb-3 flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.03] p-3 dark:border-white/10 dark:bg-white/[0.04]"
-                                    >
-                                        <UserAvatar user={user} className="size-10" />
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
-                                                {user.full_name || "Your account"}
-                                            </p>
-                                            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-                                                {user.email}
-                                            </p>
-                                        </div>
-                                    </Link>
+                                    <MobileUserCard user={user} onClose={closeMenu} />
                                 ) : (
                                     <div className="mb-3 grid grid-cols-2 gap-2">
                                         <Button variant="outline" className={cn("w-full", NAV_BUTTON)} asChild>
@@ -322,11 +248,11 @@ function HeaderVisual({ user, isLoading }: HeaderVisualProps) {
                         </Link>
 
                         <div className="hidden items-center gap-2 md:flex">
-                            <ThemeToggle />
+                            <PublicThemeToggle />
                             {isLoading ? (
                                 <div className="size-8 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
                             ) : user ? (
-                                <UserAvatar user={user} />
+                                <UserAvatarMenu user={user} />
                             ) : (
                                 <AuthButtons size="sm" />
                             )}

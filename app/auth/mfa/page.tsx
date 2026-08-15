@@ -5,13 +5,15 @@
 // This page is reached when:
 //   1. Middleware detects a protected-route visit where currentLevel=aal1 but nextLevel=aal2
 //      (user has MFA enrolled but hasn't verified this session yet).
-//   2. After Google OAuth callback lands the user in /~ but middleware redirects here.
+//   2. After password login delegates here from /auth/login.
+//   3. After Google OAuth callback lands the user in /~ but middleware redirects here.
 //
 // Flow: verify TOTP → session upgraded to aal2 → redirect to `next` param.
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import {
   InputOTP,
@@ -21,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
+import { startNavigationProgress, stopNavigationProgress } from "@/components/ui/navigation-progress";
 
 export default function MfaPage() {
   return (
@@ -44,6 +47,7 @@ function MfaContent() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Validate the redirect target — only allow relative paths
@@ -55,6 +59,7 @@ function MfaContent() {
     supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
       if (data?.currentLevel === "aal2") {
         // Already verified — redirect
+        startNavigationProgress();
         router.replace(safeNext);
       }
     });
@@ -81,6 +86,7 @@ function MfaContent() {
         const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
         if (refreshErr || !refreshData?.session) {
           setError("Your session expired. Please sign in again.");
+          setIsLoading(false);
           return;
         }
       }
@@ -93,6 +99,7 @@ function MfaContent() {
       const totpFactor = factorsData.totp.find((f) => f.status === "verified");
       if (!totpFactor) {
         setError("No enrolled authenticator app found.");
+        setIsLoading(false);
         return;
       }
 
@@ -109,7 +116,9 @@ function MfaContent() {
       });
       if (verifyErr) throw verifyErr;
 
-      // Success — push to the intended destination
+      // Success — switch to redirecting state and start top navigation progress bar
+      setIsRedirecting(true);
+      startNavigationProgress();
       router.push(safeNext);
       router.refresh();
     } catch (err: unknown) {
@@ -124,13 +133,15 @@ function MfaContent() {
         setError(msg);
         setCode("");
       }
-    } finally {
       setIsLoading(false);
+      setIsRedirecting(false);
+      stopNavigationProgress();
     }
   };
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
+    startNavigationProgress();
     const supabase = createClient();
     await supabase.auth.signOut({ scope: "local" });
     router.push("/auth/login");
@@ -138,7 +149,12 @@ function MfaContent() {
   };
 
   return (
-    <div className="mx-auto space-y-6 sm:w-sm">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className="mx-auto space-y-6 sm:w-sm"
+    >
       {/* Title */}
       <div className="flex flex-col space-y-1">
         <h1 className="font-cirka font-bold text-2xl tracking-wide">
@@ -153,16 +169,17 @@ function MfaContent() {
       <form className="space-y-4" onSubmit={handleVerify}>
         <div className="flex justify-center">
           <InputOTP
+            autoFocus
             maxLength={6}
             value={code}
             onChange={(v) => {
               setCode(v);
               if (error) setError(null);
-              if (v.length === 6 && !isLoading) {
+              if (v.length === 6 && !isLoading && !isRedirecting) {
                 handleVerify(undefined, v);
               }
             }}
-            disabled={isLoading}
+            disabled={isLoading || isRedirecting}
           >
             <InputOTPGroup>
               <InputOTPSlot index={0} />
@@ -176,17 +193,27 @@ function MfaContent() {
         </div>
 
         {error && (
-          <p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center">
+          <motion.p
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
+            transition={{ duration: 0.3 }}
+            className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2 text-center"
+          >
             {error}
-          </p>
+          </motion.p>
         )}
 
         <Button
-          className="w-full"
+          className="w-full cursor-pointer"
           type="submit"
-          disabled={isLoading || code.length < 6}
+          disabled={isLoading || isRedirecting || code.length < 6}
         >
-          {isLoading ? (
+          {isRedirecting ? (
+            <>
+              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              Redirecting…
+            </>
+          ) : isLoading ? (
             <>
               <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
               Verifying…
@@ -221,8 +248,8 @@ function MfaContent() {
         <button
           type="button"
           onClick={handleSignOut}
-          disabled={isSigningOut || isLoading}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={isSigningOut || isLoading || isRedirecting}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           {isSigningOut ? (
             <Loader2Icon className="h-3 w-3 animate-spin" />
@@ -232,6 +259,6 @@ function MfaContent() {
           Sign out instead
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -44,6 +44,7 @@ export interface FeaturedTest {
   available_until: string | null
   status: string
   attempts_count?: number
+  derived_status?: "live" | "upcoming" | "past" | "draft"
   isLive?: boolean
 }
 
@@ -56,6 +57,7 @@ export interface FeaturedOpportunity {
   stipend_monthly: number | null
   deadline: string
   applicants_count?: number
+  derived_status?: "active" | "past"
   company: {
     name: string
     logo_url: string | null
@@ -239,13 +241,21 @@ export function TeacherDashboardClient({
                     </div>
                   </Link>
                   {featuredTest && (
-                    featuredTest.isLive ? (
+                    featuredTest.derived_status === "live" || featuredTest.isLive ? (
                       <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-transparent font-medium text-[10px] px-2 py-0.5">
                         Live Now
                       </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5 font-medium text-[10px] px-2 py-0.5">
+                    ) : featuredTest.derived_status === "upcoming" ? (
+                      <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5 font-medium text-[10px] px-2 py-0.5">
                         Upcoming
+                      </Badge>
+                    ) : featuredTest.derived_status === "draft" ? (
+                      <Badge variant="outline" className="text-slate-600 dark:text-slate-400 border-slate-500/20 bg-slate-500/5 font-medium text-[10px] px-2 py-0.5">
+                        Draft
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground border-border/40 font-medium text-[10px] px-2 py-0.5">
+                        Ended
                       </Badge>
                     )
                   )}
@@ -267,8 +277,17 @@ export function TeacherDashboardClient({
                           {Math.round(featuredTest.time_limit_seconds / 60)} mins
                         </span>
                       )}
-                      {!featuredTest.isLive && featuredTest.available_from && (
+                      {featuredTest.derived_status === "live" && featuredTest.available_until && (
+                        <span>• Ends: {new Date(featuredTest.available_until).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                      )}
+                      {featuredTest.derived_status === "upcoming" && featuredTest.available_from && (
                         <span>• Starts: {new Date(featuredTest.available_from).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                      )}
+                      {featuredTest.derived_status === "past" && featuredTest.available_until && (
+                        <span>• Ended: {new Date(featuredTest.available_until).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                      )}
+                      {featuredTest.derived_status === "draft" && (
+                        <span>• Draft Unpublished</span>
                       )}
                     </div>
                   </div>
@@ -284,19 +303,29 @@ export function TeacherDashboardClient({
                 variant="outline"
                 className={cn(
                   "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
-                  featuredTest?.isLive
+                  featuredTest?.derived_status === "live" || featuredTest?.isLive
                     ? "border-emerald-500/20 text-emerald-600 dark:border-emerald-500/10 dark:text-emerald-400 hover:bg-emerald-500/10"
-                    : "border-amber-500/20 text-amber-600 dark:border-amber-500/10 dark:text-amber-400 hover:bg-amber-500/10"
+                    : featuredTest?.derived_status === "upcoming"
+                    ? "border-blue-500/20 text-blue-600 dark:border-blue-500/10 dark:text-blue-400 hover:bg-blue-500/10"
+                    : "border-border/60 text-foreground hover:bg-muted/50"
                 )}
                 onClick={() => {
                   if (featuredTest) {
                     router.push(`/tests/${featuredTest.id}`)
                   } else {
-                    router.push("/tests")
+                    router.push("/tests/new")
                   }
                 }}
               >
-                {featuredTest ? (featuredTest.isLive ? "Manage Live Test" : "View Test Details") : "Go to Tests Hub"}
+                {featuredTest
+                  ? featuredTest.derived_status === "live" || featuredTest.isLive
+                    ? "Manage Live Test"
+                    : featuredTest.derived_status === "upcoming"
+                    ? "View Upcoming Test"
+                    : featuredTest.derived_status === "draft"
+                    ? "Edit Draft Test"
+                    : "View Test Results"
+                  : "Create New Test"}
                 <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/test:translate-x-1" />
               </Button>
             </CardContent>
@@ -351,7 +380,10 @@ export function TeacherDashboardClient({
                         {featuredEvent.venue || "Campus Main Hall"}
                       </span>
                       {featuredEvent.date && (
-                        <span>• {new Date(featuredEvent.date).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                        <span>
+                          • {featuredEvent.derived_status === "live" ? "Started: " : featuredEvent.derived_status === "upcoming" ? "Date: " : "Held on: "}
+                          {new Date(featuredEvent.date).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -365,16 +397,29 @@ export function TeacherDashboardClient({
 
               <Button
                 variant="outline"
-                className="w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10 cursor-pointer"
+                className={cn(
+                  "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
+                  featuredEvent?.derived_status === "live"
+                    ? "border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10"
+                    : featuredEvent?.derived_status === "upcoming"
+                    ? "border-blue-500/20 text-blue-600 dark:border-blue-500/10 dark:text-blue-400 hover:bg-blue-500/10"
+                    : "border-border/60 text-foreground hover:bg-muted/50"
+                )}
                 onClick={() => {
                   if (featuredEvent) {
                     router.push(`/events/${featuredEvent.id}`)
                   } else {
-                    router.push("/events")
+                    router.push("/events/new")
                   }
                 }}
               >
-                {featuredEvent ? "View Event Details" : "Schedule New Event"}
+                {featuredEvent
+                  ? featuredEvent.derived_status === "live"
+                    ? "Join Live Event"
+                    : featuredEvent.derived_status === "upcoming"
+                    ? "View Event Details"
+                    : "View Past Event"
+                  : "Schedule New Event"}
                 <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/event:translate-x-1" />
               </Button>
             </CardContent>
@@ -402,11 +447,24 @@ export function TeacherDashboardClient({
                             Opportunities<ChevronRight className="size-3" />
                           </div>
                         </Link>
-                        {ctcOrStipend && (
-                          <Badge variant="outline" className="text-[10px] font-semibold border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0">
-                            {ctcOrStipend}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {ctcOrStipend && (
+                            <Badge variant="outline" className="text-[10px] font-semibold border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0">
+                              {ctcOrStipend}
+                            </Badge>
+                          )}
+                          {opp && (
+                            opp.derived_status === "past" ? (
+                              <Badge variant="outline" className="text-muted-foreground border-border/40 font-medium text-[10px] px-2 py-0.5">
+                                Closed
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-transparent font-medium text-[10px] px-2 py-0.5">
+                                Active Drive
+                              </Badge>
+                            )
+                          )}
+                        </div>
                       </div>
 
                       {opp ? (
@@ -427,7 +485,10 @@ export function TeacherDashboardClient({
                               {opp.location || "Remote / On-site"}
                             </span>
                             {opp.deadline && (
-                              <span>• Deadline: {new Date(opp.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                              <span>
+                                • {opp.derived_status === "past" ? "Closed: " : "Deadline: "}
+                                {new Date(opp.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -441,7 +502,12 @@ export function TeacherDashboardClient({
 
                     <Button
                       variant="outline"
-                      className="w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 border-purple-500/20 text-purple-600 dark:border-purple-500/10 dark:text-purple-400 hover:bg-purple-500/10 cursor-pointer"
+                      className={cn(
+                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
+                        opp?.derived_status === "active"
+                          ? "border-purple-500/20 text-purple-600 dark:border-purple-500/10 dark:text-purple-400 hover:bg-purple-500/10"
+                          : "border-border/60 text-foreground hover:bg-muted/50"
+                      )}
                       onClick={() => {
                         if (opp) {
                           router.push(`/opportunities/${opp.id}`)
@@ -450,7 +516,11 @@ export function TeacherDashboardClient({
                         }
                       }}
                     >
-                      {opp ? "View Opportunity" : "Post New Opportunity"}
+                      {opp
+                        ? opp.derived_status === "active"
+                          ? "Manage Applications"
+                          : "View Past Drive"
+                        : "Post New Opportunity"}
                       <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/opp:translate-x-1" />
                     </Button>
                   </>

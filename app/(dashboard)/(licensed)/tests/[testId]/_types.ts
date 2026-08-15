@@ -58,6 +58,13 @@ export interface CandidateAttemptDetail
 }
 
 
+export interface TestDetailCreator {
+  id?: string
+  full_name: string | null
+  email: string | null
+  avatar_url: string | null
+}
+
 export interface CandidateTestDetail
   extends Pick<
     TestRow,
@@ -76,6 +83,7 @@ export interface CandidateTestDetail
   status: "draft" | "published" | "archived" | null
   institute_name: string | null
   institute_logo_url: string | null
+  creator?: TestDetailCreator | null
   sections?: Array<{ id: string; name: string; description: string | null; order_index: number }>
   max_attempts?: number | null
   completed_count?: number
@@ -167,6 +175,7 @@ export interface InstituteTestDetail
   > {
   status: "draft" | "published" | "archived"  // narrow the DB string
   institute_name: string | null
+  creator?: TestDetailCreator | null
   sections?: InstituteSection[]
   questions: InstituteQuestion[]
   /** First page of attempts (20 rows) — SSR seed for the client. */

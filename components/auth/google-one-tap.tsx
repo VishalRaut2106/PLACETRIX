@@ -1,3 +1,4 @@
+// components/auth/google-one-tap.tsx
 "use client";
 
 import Script from "next/script";
@@ -32,11 +33,22 @@ declare global {
 }
 
 interface GoogleOneTapProps {
-  /** Where to redirect after a successful One Tap sign-in. Defaults to /~ */
+  /** Where to redirect after a successful One Tap sign-in. Defaults to /home */
   next?: string;
+  /** Called when the user selects a credential in the One Tap dialog and sign-in starts */
+  onStart?: () => void;
+  /** Called when sign-in succeeds and redirection is beginning */
+  onSuccess?: () => void;
+  /** Called if sign-in encounters an error */
+  onError?: (error: string) => void;
 }
 
-export function GoogleOneTap({ next = "/home" }: GoogleOneTapProps) {
+export function GoogleOneTap({
+  next = "/home",
+  onStart,
+  onSuccess,
+  onError,
+}: GoogleOneTapProps) {
   const initialized = useRef(false);
   const isMounted = useRef(true);
 
@@ -101,22 +113,35 @@ export function GoogleOneTap({ next = "/home" }: GoogleOneTapProps) {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response: { credential: string }) => {
           try {
-            const supabase = createClient();
-            const { error } = await supabase.auth.signInWithIdToken({
+            onStart?.();
+            const supabaseClient = createClient();
+            const { error } = await supabaseClient.auth.signInWithIdToken({
               provider: "google",
               token: response.credential,
               nonce,
             });
             if (error) throw error;
 
+            onSuccess?.();
+
+            // Check if MFA is enrolled and needs to be verified
+            const { data: aalData } =
+              await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+            const targetUrl =
+              aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2"
+                ? `/auth/mfa?next=${encodeURIComponent(next)}`
+                : next;
+
             // ✅ Hard Navigation: ensures cookies are fully settled in the browser 
             // and sent to the server in the very first request to the protected route.
-            // Using window.location.assign instead of router.push avoids Next.js router race conditions.
             setTimeout(() => {
-              window.location.assign(next);
+              window.location.assign(targetUrl);
             }, 50);
           } catch (err) {
             console.error("[GoogleOneTap] signInWithIdToken error:", err);
+            const errorMsg =
+              err instanceof Error ? err.message : "Google sign-in failed. Please try again.";
+            onError?.(errorMsg);
           } finally {
             globalGsiState = "idle";
           }
@@ -138,7 +163,6 @@ export function GoogleOneTap({ next = "/home" }: GoogleOneTapProps) {
         window.google?.accounts.id.prompt((notification) => {
           if (notification.isSkippedMoment()) {
             const reason = notification.getSkippedReason();
-            // "tap_outside", "user_cancel", etc.
             if (reason !== "user_cancel") {
               console.log("[GoogleOneTap] Prompt skipped:", reason);
             }
@@ -151,7 +175,7 @@ export function GoogleOneTap({ next = "/home" }: GoogleOneTapProps) {
       console.error("[GoogleOneTap] Initialization failed:", err);
       globalGsiState = "idle";
     }
-  }, [generateNonce, next]);
+  }, [generateNonce, next, onStart, onSuccess, onError]);
 
   useEffect(() => {
     isMounted.current = true;

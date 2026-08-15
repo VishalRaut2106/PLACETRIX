@@ -13,6 +13,16 @@ export function startNavigationProgress() {
   }
 }
 
+/**
+ * Stops and resets the navigation progress bar programmatically.
+ * Use when an async operation or navigation encounters an error.
+ */
+export function stopNavigationProgress() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("stop-navigation-progress"))
+  }
+}
+
 function NavigationProgressContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -20,15 +30,24 @@ function NavigationProgressContent() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [progress, setProgress] = React.useState(0)
 
-  // Listen to programmatic navigation starts
+  // Listen to programmatic navigation starts & stops
   React.useEffect(() => {
     const handleStart = () => {
       setIsLoading(true)
       setProgress(20)
     }
 
+    const handleStop = () => {
+      setIsLoading(false)
+      setProgress(0)
+    }
+
     window.addEventListener("start-navigation-progress", handleStart)
-    return () => window.removeEventListener("start-navigation-progress", handleStart)
+    window.addEventListener("stop-navigation-progress", handleStop)
+    return () => {
+      window.removeEventListener("start-navigation-progress", handleStart)
+      window.removeEventListener("stop-navigation-progress", handleStop)
+    }
   }, [])
 
   // Complete and fade out progress bar when navigation finishes

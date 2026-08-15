@@ -1,14 +1,27 @@
-// app/(dashboard)/(licensed)/tests/actions.ts
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
+import { buildOptimizedStorageUrl } from "@/lib/storage"
 import {
   deriveStatus,
   type CandidateTest,
   type CandidateTestAttempt,
   type InstituteTest,
 } from "./_types"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface InstituteFilterOptions {
+  sort?: string
+  duration?: string
+  questions?: string
+  results?: string
+  marks?: string
+  attempts?: string
+  author?: string
+  userId?: string
+}
 
 // ─── Server Actions ────────────────────────────────────────────────────────────
 
@@ -44,12 +57,26 @@ export async function getInstituteTestsAction({
   size,
   search,
   tab,
+  sort,
+  duration,
+  questions,
+  results,
+  marks,
+  attempts,
+  author,
   now,
 }: {
   page: number
   size: number
   search: string
   tab: string
+  sort?: string
+  duration?: string
+  questions?: string
+  results?: string
+  marks?: string
+  attempts?: string
+  author?: string
   now: string
 }): Promise<{
   tests: InstituteTest[]
@@ -57,17 +84,29 @@ export async function getInstituteTestsAction({
   tabCounts: { all: number; live: number; upcoming: number; past: number; drafts: number }
 }> {
   const profile = await getUserProfile()
-  if (!profile || !["admin", "institute_staff", "institute_placement_officer", "institute_primary"].includes(profile.account_type)) {
+  if (
+    !profile ||
+    !["admin", "institute_staff", "institute_placement_officer", "institute_primary"].includes(profile.account_type)
+  ) {
     throw new Error("Unauthorized")
   }
   const instituteId = profile.institute_id ?? (profile.account_type === "admin" ? "" : null)
   if (instituteId === null) {
     throw new Error("No institute associated with profile")
   }
-  return fetchInstituteTests(instituteId, now, page, size, search, tab)
+  return fetchInstituteTests(instituteId, now, page, size, search, tab, {
+    sort,
+    duration,
+    questions,
+    results,
+    marks,
+    attempts,
+    author,
+    userId: profile.id,
+  })
 }
 
-// ─── Candidate data helper ───────────────────────────────────────────────────
+// ─── Candidate Data Fetcher (High Performance Single-Pass RPC) ───────────────
 
 async function fetchCandidateTests(
   userId: string,
@@ -84,282 +123,43 @@ async function fetchCandidateTests(
 }> {
   const supabase = await createClient()
 
-  // institute_id is passed in directly from getUserProfile() — no extra DB call needed.
+  const { data, error } = await (supabase as any).rpc("get_candidate_tests_overview", {
+    p_user_id: userId,
+    p_institute_id: instituteId || null,
+    p_now: now,
+    p_search: search.trim() || null,
+    p_tab: tab || "all",
+    p_page: page,
+    p_size: size,
+  })
 
-  // 2a. Find candidate's cohorts and eligible test IDs
-  const { data: memberRows } = await (supabase as any)
-    .from("cohort_students")
-    .select("cohort_id")
-    .eq("student_id", userId)
-
-  const cohortIds = (memberRows ?? []).map((r: any) => r.cohort_id)
-
-  if (cohortIds.length === 0) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
-  }
-
-  const { data: testCohortRows } = await (supabase as any)
-    .from("test_cohorts")
-    .select("test_id")
-    .in("cohort_id", cohortIds)
-
-  const eligibleTestIds = [...new Set((testCohortRows ?? []).map((r: any) => r.test_id))]
-
-  if (eligibleTestIds.length === 0) {
-    return { tests: [], count: 0, tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 } }
-  }
-
-  // 2. Fetch candidate's attempts to identify submitted vs in-progress tests
-  const { data: attempts } = await (supabase as any)
-    .from("test_attempts")
-    .select("test_id, status")
-    .eq("candidate_id", userId)
-
-  const submittedTestIds = (attempts ?? [])
-    .filter((a: any) => a.status === "submitted" || a.status === "auto_submitted")
-    .map((a: any) => a.test_id)
-
-  const searchFilter = (q: any) => {
-    if (search.trim()) {
-      const s = search.trim()
-      return q.or(`title.ilike.%${s}%,description.ilike.%${s}%`)
+  if (error || !data) {
+    console.error("Error executing get_candidate_tests_overview RPC:", error)
+    return {
+      tests: [],
+      count: 0,
+      tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, attempted: 0 },
     }
-    return q
   }
-
-  const cohortFilter = (q: any) => q.in("id", eligibleTestIds)
-
-  // 2. Count parallel queries for each tab matching the search term
-  const allCountQuery = cohortFilter(searchFilter(
-    (supabase as any)
-      .from("tests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("institute_id", instituteId)
-  ))
-
-  const liveCountQuery = cohortFilter(searchFilter(
-    (supabase as any)
-      .from("tests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("institute_id", instituteId)
-      .lte("available_from", now)
-      .or(`available_until.gt.${now},available_until.is.null`)
-  ))
-  if (submittedTestIds.length > 0) {
-    liveCountQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
-  }
-
-  const upcomingCountQuery = cohortFilter(searchFilter(
-    (supabase as any)
-      .from("tests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("institute_id", instituteId)
-      .gt("available_from", now)
-  ))
-  if (submittedTestIds.length > 0) {
-    upcomingCountQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
-  }
-
-  let pastCountQuery = cohortFilter(
-    (supabase as any)
-      .from("tests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("institute_id", instituteId)
-  )
-
-  if (submittedTestIds.length > 0) {
-    pastCountQuery = pastCountQuery.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
-  } else {
-    pastCountQuery = pastCountQuery.lt("available_until", now)
-  }
-  pastCountQuery = searchFilter(pastCountQuery)
-
-  const attemptedTestIds = [...new Set((attempts ?? []).map((a: any) => a.test_id))]
-
-  let attemptedCountQuery
-  if (attemptedTestIds.length > 0) {
-    attemptedCountQuery = cohortFilter(searchFilter(
-      (supabase as any)
-        .from("tests")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "published")
-        .eq("institute_id", instituteId)
-        .in("id", attemptedTestIds)
-    ))
-  } else {
-    attemptedCountQuery = Promise.resolve({ count: 0 })
-  }
-
-  const [countAllRes, countLiveRes, countUpcomingRes, countPastRes, countAttemptedRes] = await Promise.all([
-    allCountQuery,
-    liveCountQuery,
-    upcomingCountQuery,
-    pastCountQuery,
-    attemptedCountQuery,
-  ])
 
   const tabCounts = {
-    all: countAllRes.count ?? 0,
-    live: countLiveRes.count ?? 0,
-    upcoming: countUpcomingRes.count ?? 0,
-    past: countPastRes.count ?? 0,
-    attempted: countAttemptedRes.count ?? 0,
+    all: data.tab_counts?.all ?? 0,
+    live: data.tab_counts?.live ?? 0,
+    upcoming: data.tab_counts?.upcoming ?? 0,
+    past: data.tab_counts?.past ?? 0,
+    attempted: data.tab_counts?.attempted ?? 0,
   }
 
-  // 4. Main Paginated query
-  const activeTab = ["all", "live", "upcoming", "past", "attempted"].includes(tab) ? tab : "all"
-
-  let query = (supabase as any)
-    .from("tests")
-    .select(
-      `
-      id, title, description, time_limit_seconds, available_from, available_until, results_available, marks_available,
-      test_attempts!left (status, submitted_at, score, total_marks, percentage)
-    `,
-      { count: "exact" }
-    )
-    .eq("status", "published")
-    .eq("institute_id", instituteId)
-    .eq("test_attempts.candidate_id", userId)
-    .in("id", eligibleTestIds)
-
-  if (activeTab === "live") {
-    query = query
-      .lte("available_from", now)
-      .or(`available_until.gt.${now},available_until.is.null`)
-    if (submittedTestIds.length > 0) {
-      query = query.not("id", "in", `(${submittedTestIds.join(",")})`)
-    }
-  } else if (activeTab === "upcoming") {
-    query = query.gt("available_from", now)
-    if (submittedTestIds.length > 0) {
-      query = query.not("id", "in", `(${submittedTestIds.join(",")})`)
-    }
-  } else if (activeTab === "past") {
-    if (submittedTestIds.length > 0) {
-      query = query.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
-    } else {
-      query = query.lt("available_until", now)
-    }
-  } else if (activeTab === "attempted") {
-    if (attemptedTestIds.length > 0) {
-      query = query.in("id", attemptedTestIds)
-    } else {
-      query = query.in("id", ["00000000-0000-0000-0000-000000000000"])
-    }
-  }
-
-  query = searchFilter(query)
-  if (activeTab === "live") {
-    query = query
-      .order("available_until", { ascending: true, nullsFirst: false })
-      .order("available_from", { ascending: false })
-  } else if (activeTab === "upcoming") {
-    query = query
-      .order("available_from", { ascending: true })
-      .order("available_until", { ascending: true, nullsFirst: false })
-  } else if (activeTab === "past") {
-    query = query
-      .order("available_until", { ascending: false, nullsFirst: false })
-      .order("available_from", { ascending: false })
-  } else {
-    // "all" tab
-    query = query
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("title", { ascending: true })
-  }
-
-  const from = (page - 1) * size
-  const to = page * size - 1
-
-  let { data: rawTests, count, error } = await query.range(from, to)
-
-  if (error) {
-    // Retry without marks_available if column is not yet in DB
-    let fallbackQuery = (supabase as any)
-      .from("tests")
-      .select(
-        `
-        id, title, description, time_limit_seconds, available_from, available_until, results_available,
-        test_attempts!left (status, submitted_at, score, total_marks, percentage)
-      `,
-        { count: "exact" }
-      )
-      .eq("status", "published")
-      .eq("institute_id", instituteId)
-      .eq("test_attempts.candidate_id", userId)
-      .in("id", eligibleTestIds)
-
-    if (activeTab === "live") {
-      fallbackQuery = fallbackQuery
-        .lte("available_from", now)
-        .or(`available_until.gt.${now},available_until.is.null`)
-      if (submittedTestIds.length > 0) {
-        fallbackQuery = fallbackQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
-      }
-    } else if (activeTab === "upcoming") {
-      fallbackQuery = fallbackQuery.gt("available_from", now)
-      if (submittedTestIds.length > 0) {
-        fallbackQuery = fallbackQuery.not("id", "in", `(${submittedTestIds.join(",")})`)
-      }
-    } else if (activeTab === "past") {
-      if (submittedTestIds.length > 0) {
-        fallbackQuery = fallbackQuery.or(`available_until.lt.${now},id.in.(${submittedTestIds.join(",")})`)
-      } else {
-        fallbackQuery = fallbackQuery.lt("available_until", now)
-      }
-    } else if (activeTab === "attempted") {
-      if (attemptedTestIds.length > 0) {
-        fallbackQuery = fallbackQuery.in("id", attemptedTestIds)
-      } else {
-        fallbackQuery = fallbackQuery.in("id", ["00000000-0000-0000-0000-000000000000"])
-      }
-    }
-
-    fallbackQuery = searchFilter(fallbackQuery)
-    if (activeTab === "live") {
-      fallbackQuery = fallbackQuery
-        .order("available_until", { ascending: true, nullsFirst: false })
-        .order("available_from", { ascending: false })
-    } else if (activeTab === "upcoming") {
-      fallbackQuery = fallbackQuery
-        .order("available_from", { ascending: true })
-        .order("available_until", { ascending: true, nullsFirst: false })
-    } else if (activeTab === "past") {
-      fallbackQuery = fallbackQuery
-        .order("available_until", { ascending: false, nullsFirst: false })
-        .order("available_from", { ascending: false })
-    } else {
-      fallbackQuery = fallbackQuery
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .order("title", { ascending: true })
-    }
-
-    const res = await fallbackQuery.range(from, to)
-    rawTests = res.data
-    count = res.count
-    error = res.error
-  }
-
-  if (error) {
-    console.error("Error fetching candidate tests:", error)
-    return { tests: [], count: 0, tabCounts }
-  }
-
-  const tests = (rawTests ?? []).map((t: any): CandidateTest => {
-    const rawAttempt = t.test_attempts?.[0]
+  const tests: CandidateTest[] = (data.tests ?? []).map((t: any): CandidateTest => {
+    const rawAttempt = t.attempt
     let attempt: CandidateTestAttempt | undefined
     if (rawAttempt) {
       attempt = {
         status: rawAttempt.status as "in_progress" | "submitted",
         submitted_at: rawAttempt.submitted_at ?? undefined,
-        score: rawAttempt.score ?? undefined,
-        total_marks: rawAttempt.total_marks ?? undefined,
-        percentage: rawAttempt.percentage ?? undefined,
+        score: rawAttempt.score != null ? Number(rawAttempt.score) : undefined,
+        total_marks: rawAttempt.total_marks != null ? Number(rawAttempt.total_marks) : undefined,
+        percentage: rawAttempt.percentage != null ? Number(rawAttempt.percentage) : undefined,
       }
     }
 
@@ -367,7 +167,7 @@ async function fetchCandidateTests(
       id: t.id,
       title: t.title,
       description: t.description ?? undefined,
-      time_limit_seconds: t.time_limit_seconds ?? undefined,
+      time_limit_seconds: t.time_limit_seconds != null ? Number(t.time_limit_seconds) : undefined,
       available_from: t.available_from ?? undefined,
       available_until: t.available_until ?? undefined,
       derived_status: deriveStatus(
@@ -376,16 +176,28 @@ async function fetchCandidateTests(
         t.available_until,
         new Date(now)
       ) as CandidateTest["derived_status"],
-      results_available: t.results_available,
+      results_available: t.results_available ?? false,
       marks_available: t.marks_available ?? true,
       attempt,
+      creator: (t.creator_name || t.creator_email || t.creator_avatar_path)
+        ? {
+            full_name: t.creator_name ?? null,
+            email: t.creator_email ?? null,
+            avatar_url: buildOptimizedStorageUrl("avatars", t.creator_avatar_path, {
+              width: 64,
+              height: 64,
+              quality: 80,
+              format: "webp",
+            }),
+          }
+        : undefined,
     }
   })
 
-  return { tests, count: count ?? 0, tabCounts }
+  return { tests, count: data.total_count ?? 0, tabCounts }
 }
 
-// ─── Institute data helper ───────────────────────────────────────────────────
+// ─── Institute Data Fetcher (High Performance Single-Pass RPC) ───────────────
 
 async function fetchInstituteTests(
   instituteId: string,
@@ -393,7 +205,8 @@ async function fetchInstituteTests(
   page: number,
   size: number,
   search: string,
-  tab: string
+  tab: string,
+  options?: InstituteFilterOptions
 ): Promise<{
   tests: InstituteTest[]
   count: number
@@ -401,89 +214,45 @@ async function fetchInstituteTests(
 }> {
   const supabase = await createClient()
 
-  const searchFilter = (q: any) => {
-    if (search.trim()) {
-      const s = search.trim()
-      return q.or(`title.ilike.%${s}%,description.ilike.%${s}%`)
+  const { data, error } = await (supabase as any).rpc("get_institute_tests_overview", {
+    p_institute_id: instituteId || null,
+    p_now: now,
+    p_search: search.trim() || null,
+    p_tab: tab || "all",
+    p_sort: options?.sort || "default",
+    p_duration: options?.duration || "all",
+    p_questions: options?.questions || "all",
+    p_results: options?.results || "all",
+    p_marks: options?.marks || "all",
+    p_attempts: options?.attempts || "all",
+    p_author: options?.author || "all",
+    p_user_id: options?.userId || null,
+    p_page: page,
+    p_size: size,
+  })
+
+  if (error || !data) {
+    console.error("Error executing get_institute_tests_overview RPC:", error)
+    return {
+      tests: [],
+      count: 0,
+      tabCounts: { all: 0, live: 0, upcoming: 0, past: 0, drafts: 0 },
     }
-    return q
   }
-
-  // 1. Count parallel queries for each tab matching the search term
-  const filterInst = (q: any) => instituteId ? q.eq("institute_id", instituteId) : q
-
-  const [countAllRes, countDraftsRes, countLiveRes, countUpcomingRes, countPastRes] = await Promise.all([
-    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true }))),
-    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "draft")),
-    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").or(`available_from.lte.${now},available_from.is.null`).or(`available_until.gt.${now},available_until.is.null`)),
-    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").gt("available_from", now)),
-    searchFilter(filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact", head: true })).eq("status", "published").lt("available_until", now)),
-  ])
 
   const tabCounts = {
-    all: countAllRes.count ?? 0,
-    drafts: countDraftsRes.count ?? 0,
-    live: countLiveRes.count ?? 0,
-    upcoming: countUpcomingRes.count ?? 0,
-    past: countPastRes.count ?? 0,
+    all: data.tab_counts?.all ?? 0,
+    drafts: data.tab_counts?.drafts ?? 0,
+    live: data.tab_counts?.live ?? 0,
+    upcoming: data.tab_counts?.upcoming ?? 0,
+    past: data.tab_counts?.past ?? 0,
   }
 
-  // 2. Main Paginated query
-  let query = filterInst((supabase as any).from("view_test_summary").select("*", { count: "exact" }))
-
-  const activeTab = ["all", "live", "upcoming", "past", "drafts"].includes(tab) ? tab : "all"
-
-  if (activeTab === "drafts") {
-    query = query.eq("status", "draft")
-  } else if (activeTab === "live") {
-    query = query
-      .eq("status", "published")
-      .or(`available_from.lte.${now},available_from.is.null`)
-      .or(`available_until.gt.${now},available_until.is.null`)
-  } else if (activeTab === "upcoming") {
-    query = query.eq("status", "published").gt("available_from", now)
-  } else if (activeTab === "past") {
-    query = query.eq("status", "published").lt("available_until", now)
-  }
-
-  query = searchFilter(query)
-  if (activeTab === "all") {
-    query = query
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("title", { ascending: true })
-  } else if (activeTab === "drafts") {
-    query = query
-      .order("created_at", { ascending: false, nullsFirst: false })
-      .order("title", { ascending: true })
-  } else if (activeTab === "live") {
-    query = query
-      .order("available_until", { ascending: true, nullsFirst: false })
-      .order("available_from", { ascending: false })
-  } else if (activeTab === "upcoming") {
-    query = query
-      .order("available_from", { ascending: true })
-      .order("available_until", { ascending: true, nullsFirst: false })
-  } else if (activeTab === "past") {
-    query = query
-      .order("available_until", { ascending: false, nullsFirst: false })
-      .order("available_from", { ascending: false })
-  }
-
-  const from = (page - 1) * size
-  const to = page * size - 1
-
-  const { data: rawTests, count, error } = await query.range(from, to)
-
-  if (error) {
-    console.error("Error fetching institute tests:", error)
-    return { tests: [], count: 0, tabCounts }
-  }
-
-  const tests = (rawTests ?? []).map((t: any): InstituteTest => ({
+  const tests: InstituteTest[] = (data.tests ?? []).map((t: any): InstituteTest => ({
     id: t.id ?? "",
     title: t.title ?? "Untitled",
     description: t.description ?? undefined,
-    time_limit_seconds: t.time_limit_seconds ?? undefined,
+    time_limit_seconds: t.time_limit_seconds != null ? Number(t.time_limit_seconds) : undefined,
     available_from: t.available_from ?? undefined,
     available_until: t.available_until ?? undefined,
     derived_status: deriveStatus(
@@ -495,9 +264,25 @@ async function fetchInstituteTests(
     status: (t.status as "draft" | "published") ?? "draft",
     results_available: t.results_available ?? false,
     marks_available: t.marks_available ?? true,
-    question_count: t.question_count ?? 0,
-    attempt_count: t.total_attempts ?? 0,
+    question_count: t.question_count != null ? Number(t.question_count) : 0,
+    attempt_count: t.attempt_count != null ? Number(t.attempt_count) : 0,
+    avg_score_pct: t.avg_score_pct != null ? Number(t.avg_score_pct) : null,
+    total_marks: t.total_marks != null ? Number(t.total_marks) : null,
+    submitted_attempts: t.submitted_attempts != null ? Number(t.submitted_attempts) : null,
+    created_by: t.created_by ?? null,
+    creator: (t.creator_name || t.creator_email || t.creator_avatar_path)
+      ? {
+          full_name: t.creator_name ?? null,
+          email: t.creator_email ?? null,
+          avatar_url: buildOptimizedStorageUrl("avatars", t.creator_avatar_path, {
+            width: 64,
+            height: 64,
+            quality: 80,
+            format: "webp",
+          }),
+        }
+      : undefined,
   }))
 
-  return { tests, count: count ?? 0, tabCounts }
+  return { tests, count: data.total_count ?? 0, tabCounts }
 }

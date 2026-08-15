@@ -153,10 +153,22 @@ export const AnimatedThemeToggler = React.forwardRef<
   ) => {
     const { setTheme, resolvedTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
-    const internalRef = useRef<HTMLButtonElement>(null)
-    const buttonRef = (ref as React.RefObject<HTMLButtonElement | null>) || internalRef
+    const internalRef = useRef<HTMLButtonElement | null>(null)
     const isTransitioningRef = useRef(false)
     const activeAnimRef = useRef<Animation | null>(null)
+
+    // Merged ref handler so internalRef is always populated even when wrapped in Radix TooltipTrigger asChild
+    const setButtonRef = useCallback(
+      (node: HTMLButtonElement | null) => {
+        internalRef.current = node
+        if (typeof ref === "function") {
+          ref(node)
+        } else if (ref && typeof ref === "object") {
+          (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node
+        }
+      },
+      [ref]
+    )
 
     useEffect(() => {
       setMounted(true)
@@ -180,104 +192,109 @@ export const AnimatedThemeToggler = React.forwardRef<
 
     const isDark = resolvedTheme === "dark"
 
-    const toggleTheme = useCallback(() => {
-      const button = internalRef.current || (typeof ref === "object" && ref ? ref.current : null)
-      const targetElement = button || document.body
+    const toggleTheme = useCallback(
+      (e?: React.MouseEvent<HTMLButtonElement>) => {
+        const button =
+          (e?.currentTarget as HTMLButtonElement | null) ||
+          internalRef.current ||
+          (typeof ref === "object" && ref ? ref.current : null)
 
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
 
-      let x: number
-      let y: number
-      if (fromCenter || !button) {
-        x = viewportWidth / 2
-        y = viewportHeight / 2
-      } else {
-        const { top, left, width, height } = button.getBoundingClientRect()
-        x = left + width / 2
-        y = top + height / 2
-      }
+        let x: number
+        let y: number
+        if (fromCenter || !button) {
+          x = viewportWidth / 2
+          y = viewportHeight / 2
+        } else {
+          const { top, left, width, height } = button.getBoundingClientRect()
+          x = left + width / 2
+          y = top + height / 2
+        }
 
-      const maxRadius = Math.hypot(
-        Math.max(x, viewportWidth - x),
-        Math.max(y, viewportHeight - y)
-      )
+        const maxRadius = Math.hypot(
+          Math.max(x, viewportWidth - x),
+          Math.max(y, viewportHeight - y)
+        )
 
-      const nextTheme = isDark ? "light" : "dark"
+        const nextTheme = isDark ? "light" : "dark"
 
-      const applyTheme = () => {
-        setTheme(nextTheme)
-      }
+        const applyTheme = () => {
+          setTheme(nextTheme)
+        }
 
-      if (typeof document.startViewTransition !== "function") {
-        applyTheme()
-        return
-      }
+        if (typeof document.startViewTransition !== "function") {
+          applyTheme()
+          return
+        }
 
-      if (isTransitioningRef.current || document.documentElement.dataset.magicuiThemeVt === "active") {
-        applyTheme()
-        return
-      }
+        if (isTransitioningRef.current || document.documentElement.dataset.magicuiThemeVt === "active") {
+          applyTheme()
+          return
+        }
 
-      const clipPath = getThemeTransitionClipPaths(
-        variant,
-        x,
-        y,
-        maxRadius,
-        viewportWidth,
-        viewportHeight
-      )
+        const clipPath = getThemeTransitionClipPaths(
+          variant,
+          x,
+          y,
+          maxRadius,
+          viewportWidth,
+          viewportHeight
+        )
 
-      const root = document.documentElement
-      root.dataset.magicuiThemeVt = "active"
-      root.style.setProperty(
-        "--magicui-theme-toggle-vt-duration",
-        `${duration}ms`
-      )
-      root.style.setProperty("--magicui-theme-vt-clip-from", clipPath[0])
+        const root = document.documentElement
+        root.dataset.magicuiThemeVt = "active"
+        root.style.setProperty(
+          "--magicui-theme-toggle-vt-duration",
+          `${duration}ms`
+        )
+        root.style.setProperty("--magicui-theme-vt-clip-from", clipPath[0])
 
-      const cleanup = () => {
-        isTransitioningRef.current = false
-        delete root.dataset.magicuiThemeVt
-        root.style.removeProperty("--magicui-theme-toggle-vt-duration")
-        root.style.removeProperty("--magicui-theme-vt-clip-from")
-        cancelAnim()
-      }
+        const cleanup = () => {
+          isTransitioningRef.current = false
+          delete root.dataset.magicuiThemeVt
+          root.style.removeProperty("--magicui-theme-toggle-vt-duration")
+          root.style.removeProperty("--magicui-theme-vt-clip-from")
+          cancelAnim()
+        }
 
-      isTransitioningRef.current = true
-      const transition = document.startViewTransition(() => {
-        flushSync(applyTheme)
-      })
+        isTransitioningRef.current = true
+        const transition = document.startViewTransition(() => {
+          flushSync(applyTheme)
+        })
 
-      if (typeof transition?.finished?.finally === "function") {
-        transition.finished.finally(cleanup).catch(() => {})
-      } else {
-        cleanup()
-      }
+        if (typeof transition?.finished?.finally === "function") {
+          transition.finished.finally(cleanup).catch(() => {})
+        } else {
+          cleanup()
+        }
 
-      const ready = transition?.ready
-      if (ready && typeof ready.then === "function") {
-        ready
-          .then(() => {
-            const anim = document.documentElement.animate(
-              {
-                clipPath,
-              },
-              {
-                duration,
-                easing: variant === "star" ? "linear" : "ease-in-out",
-                fill: "forwards",
-                pseudoElement: "::view-transition-new(root)",
-              }
-            )
-            activeAnimRef.current = anim
-          })
-          .catch(() => {})
-      }
-    }, [variant, fromCenter, duration, isDark, setTheme, cancelAnim, ref])
+        const ready = transition?.ready
+        if (ready && typeof ready.then === "function") {
+          ready
+            .then(() => {
+              const anim = document.documentElement.animate(
+                {
+                  clipPath,
+                },
+                {
+                  duration,
+                  easing: variant === "star" ? "linear" : "ease-in-out",
+                  fill: "forwards",
+                  pseudoElement: "::view-transition-new(root)",
+                }
+              )
+              activeAnimRef.current = anim
+            })
+            .catch(() => {})
+        }
+      },
+      [variant, fromCenter, duration, isDark, setTheme, cancelAnim, ref]
+    )
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-      toggleTheme()
+      toggleTheme(e)
       onClick?.(e)
     }
 
@@ -285,7 +302,7 @@ export const AnimatedThemeToggler = React.forwardRef<
       return (
         <button
           type="button"
-          ref={ref || internalRef}
+          ref={setButtonRef}
           className={cn(
             "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer",
             className
@@ -302,7 +319,7 @@ export const AnimatedThemeToggler = React.forwardRef<
     return (
       <button
         type="button"
-        ref={ref || internalRef}
+        ref={setButtonRef}
         className={cn(
           "inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer",
           className

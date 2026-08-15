@@ -4,17 +4,6 @@ import React from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   ArrowRightIcon,
   ClipboardCheck,
@@ -22,15 +11,13 @@ import {
   Briefcase,
   BarChart3,
   MenuIcon,
-  MoonIcon,
-  SunIcon,
   XIcon,
   GithubIcon,
   InstagramIcon,
   LinkedinIcon,
-  LogOut,
 } from "lucide-react";
 
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import TextType from "@/components/TextType";
 import PlaceTrixLogo from "@/assets/placetrix.svg";
@@ -38,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { UserProfile } from "@/lib/supabase/profile";
 import { getUserProfileAction } from "@/lib/supabase/profile";
-import { buildStorageUrl } from "@/lib/storage";
 import BorderGlow from "@/components/landing_allied/BorderGlow";
 
 const Galaxy = dynamic(() => import("@/components/landing_allied/Galaxy"), {
@@ -56,9 +42,6 @@ const NAV_SHELL =
 
 const NAV_BUTTON =
   "border-black/10 bg-white/70 text-zinc-900 hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10";
-
-const AVATAR_SHELL =
-  "size-8 shrink-0 border border-black/10 bg-white/70 dark:border-white/10 dark:bg-white/5";
 
 function useMounted() {
   const [mounted, setMounted] = React.useState(false);
@@ -104,135 +87,12 @@ function Logo() {
   );
 }
 
-function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
-
-  const handleToggle = React.useCallback(() => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  }, [resolvedTheme, setTheme]);
-
-  const toggleClassName = cn(
-    "size-8 text-foreground [&_svg]:size-4.5",
-    NAV_BUTTON
-  );
-
-  return (
-    <Button
-      aria-label="Toggle theme"
-      onClick={handleToggle}
-      size="icon"
-      variant="outline"
-      className={toggleClassName}
-    >
-      <SunIcon className="dark:hidden" />
-      <MoonIcon className="hidden dark:block" />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
-}
-
-function UserAvatar({
-  user,
-  className,
-}: {
-  user: UserProfile;
-  className?: string;
-}) {
-  const initials = React.useMemo(() => {
-    return user.full_name
-      ? user.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-      : user.email[0].toUpperCase();
-  }, [user.full_name, user.email]);
-
-  const avatarUrl = React.useMemo(() => {
-    return buildStorageUrl("avatars", user.avatar_path);
-  }, [user.avatar_path]);
-
-  return (
-    <Avatar className={cn(AVATAR_SHELL, className)}>
-      <AvatarImage
-        src={avatarUrl ?? undefined}
-        alt={user.full_name || user.email}
-        className="object-cover"
-      />
-      <AvatarFallback className="text-xs font-medium">
-        {initials}
-      </AvatarFallback>
-    </Avatar>
-  );
-}
-
-function UserAvatarMenu({ user }: { user: UserProfile }) {
-  const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
-
-  const handleLogout = async () => {
-    try {
-      setIsLoggingOut(true);
-      const supabase = createClient();
-      await supabase.auth.signOut({ scope: "local" });
-      router.push("/");
-      router.refresh();
-    } catch (err) {
-      console.error("Failed to log out:", err);
-      setIsLoggingOut(false);
-    }
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="group focus:outline-none rounded-full p-0.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          aria-label="User menu"
-        >
-          <UserAvatar user={user} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-56 rounded-xl border border-black/10 bg-white/90 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90"
-      >
-        <DropdownMenuLabel className="p-2 font-normal">
-          <div className="flex flex-col space-y-1 min-w-0">
-            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
-              {user.full_name || "Your Account"}
-            </p>
-            <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-              {user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="my-1 bg-black/10 dark:bg-white/10" />
-        <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-2.5 py-2 text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-200 dark:hover:bg-white/10">
-          <Link href="/home">
-            <span>Dashboard</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-2.5 py-2 text-sm text-zinc-700 hover:bg-black/5 dark:text-zinc-200 dark:hover:bg-white/10">
-          <Link href="/myprofile">
-            <span>My Profile</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="my-1 bg-black/10 dark:bg-white/10" />
-        <DropdownMenuItem
-          variant="destructive"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="cursor-pointer rounded-lg px-2.5 py-2 text-sm"
-        >
-          <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
+import {
+  PublicThemeToggle,
+  UserAvatar,
+  UserAvatarMenu,
+  MobileUserCard,
+} from "@/components/landing_allied/public-nav-controls";
 
 function AuthButtons({
   size,
@@ -316,7 +176,7 @@ function MobileNav({
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                     Menu
                   </span>
-                  <ThemeToggle />
+                  <PublicThemeToggle />
                 </div>
 
                 {isLoading ? (
@@ -328,49 +188,7 @@ function MobileNav({
                     </div>
                   </div>
                 ) : user ? (
-                  <div className="mb-3 flex flex-col gap-2 rounded-xl border border-black/10 bg-black/[0.03] p-3 dark:border-white/10 dark:bg-white/[0.04]">
-                    <Link
-                      href="/home"
-                      onClick={closeMenu}
-                      className="flex items-center gap-3"
-                    >
-                      <UserAvatar user={user} className="size-10" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
-                          {user.full_name || "Your account"}
-                        </p>
-                        <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
-                          {user.email}
-                        </p>
-                      </div>
-                    </Link>
-                    <div className="flex items-center gap-2 pt-2 border-t border-black/10 dark:border-white/10">
-                      <Link
-                        href="/myprofile"
-                        onClick={closeMenu}
-                        className="flex-1 rounded-lg bg-black/5 py-1.5 text-center text-xs font-medium text-zinc-800 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-200 dark:hover:bg-white/15"
-                      >
-                        Profile
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          closeMenu();
-                          try {
-                            const supabase = createClient();
-                            await supabase.auth.signOut({ scope: "local" });
-                            window.location.href = "/";
-                          } catch (err) {
-                            console.error("Logout error:", err);
-                          }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-1.5 text-center text-xs font-medium text-red-600 hover:bg-red-500/20 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/30 cursor-pointer"
-                      >
-                        <LogOut className="size-3.5" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  </div>
+                  <MobileUserCard user={user} onClose={closeMenu} />
                 ) : (
                   <div className="mb-3">
                     <Button className="w-full" asChild>
@@ -459,7 +277,7 @@ function HeaderVisual({ user, isLoading }: HeaderVisualProps) {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
-              <ThemeToggle />
+              <PublicThemeToggle />
               {isLoading ? (
                 <div className="size-8 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
               ) : user ? (

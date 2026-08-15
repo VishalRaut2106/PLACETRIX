@@ -9,8 +9,16 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardAction,
+} from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Accordion,
   AccordionContent,
@@ -46,15 +54,25 @@ import { formatDuration, formatDateTime, formatSeconds, resolvePct } from "./_ty
 // ─── Page Header ──────────────────────────────────────────────────────────────
 
 function PageHeader({ test }: { test: CandidateTestDetail }) {
+  const publisherName = test.creator?.full_name || test.creator?.email || test.institute_name
+  const publisherAvatar = test.creator?.avatar_url
+  const initials = (publisherName || "P").slice(0, 2).toUpperCase()
+
   return (
     <div className="flex flex-col gap-1.5">
       <h1 className="text-3xl font-bold font-cirka tracking-tight text-foreground">
         {test.title}
       </h1>
-      {test.institute_name && (
-        <p className="text-sm text-muted-foreground">
-          Published by {test.institute_name}
-        </p>
+      {publisherName && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Avatar className="size-5 shrink-0">
+            <AvatarImage src={publisherAvatar || undefined} alt={publisherName} />
+            <AvatarFallback className="text-[10px] bg-muted font-medium">{initials}</AvatarFallback>
+          </Avatar>
+          <span>
+            Published by <span className="font-medium text-foreground">{publisherName}</span>
+          </span>
+        </div>
       )}
       {test.description && (
         <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
@@ -526,32 +544,27 @@ export function CandidateTestDetailClient({ test, attempt, serverNow }: Props) {
       <PageHeader test={test} />
 
       <Card className="rounded-xl overflow-hidden border">
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                Performance Summary
-              </p>
-              <h3 className="text-lg font-semibold">Test Submitted</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CalendarClock className="h-3.5 w-3.5" />
-                <span>
-                  {attempt?.submitted_at ? formatDateTime(attempt.submitted_at) : "Recorded successfully"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => router.refresh()}
-              >
-                <RotateCw className="h-4 w-4" />
-                Refresh
-              </Button>
-            </div>
-          </div>
+        <CardHeader className="p-5 pb-3">
+          <CardTitle className="text-lg font-semibold">Test Submitted</CardTitle>
+          <CardDescription className="flex items-center gap-1.5 text-xs">
+            <CalendarClock className="size-3.5" />
+            <span>
+              {attempt?.submitted_at ? formatDateTime(attempt.submitted_at) : "Recorded successfully"}
+            </span>
+          </CardDescription>
+          <CardAction>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => router.refresh()}
+            >
+              <RotateCw className="size-4" />
+              Refresh
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="p-5 pt-0 space-y-4">
 
           {!canSeeMarks ? (
             <div className="rounded-lg border bg-muted/30 p-3 flex items-start gap-2.5">

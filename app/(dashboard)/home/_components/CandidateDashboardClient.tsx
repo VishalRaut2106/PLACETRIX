@@ -745,7 +745,7 @@ export function CandidateDashboardClient({
                               Live Now
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5 font-medium text-[10px] px-2 py-0.5">
+                            <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5 font-medium text-[10px] px-2 py-0.5">
                               Upcoming
                             </Badge>
                           )
@@ -768,6 +768,9 @@ export function CandidateDashboardClient({
                                 {Math.round(displayTest.time_limit_seconds / 60)} mins
                               </span>
                             )}
+                            {displayTest.isLive && displayTest.available_until && (
+                              <span>• Ends: {new Date(displayTest.available_until).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                            )}
                             {!displayTest.isLive && displayTest.available_from && (
                               <span>• Starts: {new Date(displayTest.available_from).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
                             )}
@@ -784,16 +787,22 @@ export function CandidateDashboardClient({
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
-                        !displayTest && "opacity-50 pointer-events-none",
+                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
                         displayTest?.isLive
                           ? "border-emerald-500/20 text-emerald-600 dark:border-emerald-500/10 dark:text-emerald-400 hover:bg-emerald-500/10"
-                          : "border-amber-500/20 text-amber-600 dark:border-amber-500/10 dark:text-amber-400 hover:bg-amber-500/10"
+                          : displayTest
+                          ? "border-blue-500/20 text-blue-600 dark:border-blue-500/10 dark:text-blue-400 hover:bg-blue-500/10"
+                          : "border-border/60 text-foreground hover:bg-muted/50"
                       )}
-                      onClick={() => displayTest && router.push(`/tests/${displayTest.id}`)}
-                      disabled={!displayTest}
+                      onClick={() => {
+                        if (displayTest) {
+                          router.push(`/tests/${displayTest.id}`)
+                        } else {
+                          router.push("/tests")
+                        }
+                      }}
                     >
-                      {displayTest?.isLive ? "Start Test" : "View Test Details"}
+                      {displayTest ? (displayTest.isLive ? "Start Test" : "View Test Details") : "Go to Tests Hub"}
                       <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/test:translate-x-1" />
                     </Button>
                   </>
@@ -847,7 +856,10 @@ export function CandidateDashboardClient({
                         {candidateEvent.venue || "Campus Main Hall"}
                       </span>
                       {candidateEvent.date && (
-                        <span>• {new Date(candidateEvent.date).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}</span>
+                        <span>
+                          • {candidateEvent.derived_status === "live" ? "Started: " : "Date: "}
+                          {new Date(candidateEvent.date).toLocaleString([], { dateStyle: "short", timeStyle: "short", hour12: true })}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -862,14 +874,22 @@ export function CandidateDashboardClient({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
-                  !candidateEvent && "opacity-50 pointer-events-none",
-                  "border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10"
+                  "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
+                  candidateEvent?.derived_status === "live"
+                    ? "border-sky-500/20 text-sky-600 dark:border-sky-500/10 dark:text-sky-400 hover:bg-sky-500/10"
+                    : candidateEvent
+                    ? "border-blue-500/20 text-blue-600 dark:border-blue-500/10 dark:text-blue-400 hover:bg-blue-500/10"
+                    : "border-border/60 text-foreground hover:bg-muted/50"
                 )}
-                onClick={() => candidateEvent && router.push(`/events/${candidateEvent.id}`)}
-                disabled={!candidateEvent}
+                onClick={() => {
+                  if (candidateEvent) {
+                    router.push(`/events/${candidateEvent.id}`)
+                  } else {
+                    router.push("/events")
+                  }
+                }}
               >
-                View Event Details
+                {candidateEvent ? (candidateEvent.derived_status === "live" ? "Join Live Event" : "View Event Details") : "Explore Events"}
                 <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/event:translate-x-1" />
               </Button>
             </CardContent>
@@ -897,11 +917,18 @@ export function CandidateDashboardClient({
                             Opportunities<ChevronRight className="size-3" />
                           </div>
                         </Link>
-                        {ctcOrStipend && (
-                          <Badge variant="outline" className="text-[10px] font-semibold border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0">
-                            {ctcOrStipend}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {ctcOrStipend && (
+                            <Badge variant="outline" className="text-[10px] font-semibold border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 shrink-0">
+                              {ctcOrStipend}
+                            </Badge>
+                          )}
+                          {opp && (
+                            <Badge className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-transparent font-medium text-[10px] px-2 py-0.5">
+                              Active Drive
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
                       {opp ? (
@@ -937,14 +964,20 @@ export function CandidateDashboardClient({
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0",
-                        !opp && "opacity-50 pointer-events-none",
-                        "border-purple-500/20 text-purple-600 dark:border-purple-500/10 dark:text-purple-400 hover:bg-purple-500/10"
+                        "w-full gap-2 py-5 font-semibold text-sm sm:text-base border transition-colors mt-auto shrink-0 cursor-pointer",
+                        opp
+                          ? "border-purple-500/20 text-purple-600 dark:border-purple-500/10 dark:text-purple-400 hover:bg-purple-500/10"
+                          : "border-border/60 text-foreground hover:bg-muted/50"
                       )}
-                      onClick={() => opp && router.push(`/opportunities/${opp.id}`)}
-                      disabled={!opp}
+                      onClick={() => {
+                        if (opp) {
+                          router.push(`/opportunities/${opp.id}`)
+                        } else {
+                          router.push("/opportunities")
+                        }
+                      }}
                     >
-                      View Opportunity
+                      {opp ? "View Opportunity" : "Explore Opportunities"}
                       <ChevronRight className="size-[18px] transition-transform duration-300 group-hover/opp:translate-x-1" />
                     </Button>
                   </>

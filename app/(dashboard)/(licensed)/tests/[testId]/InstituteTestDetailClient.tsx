@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -1647,11 +1648,23 @@ export function InstituteTestDetailClient({
               </Badge>
             )}
           </div>
-          {test.institute_name && (
-            <p className={cn('text-sm', 'text-muted-foreground')}>
-              Published by {test.institute_name}
-            </p>
-          )}
+          {(() => {
+            const publisherName = test.creator?.full_name || test.creator?.email || test.institute_name
+            const publisherAvatar = test.creator?.avatar_url
+            const initials = (publisherName || "P").slice(0, 2).toUpperCase()
+            if (!publisherName) return null
+            return (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Avatar className="size-5 shrink-0">
+                  <AvatarImage src={publisherAvatar || undefined} alt={publisherName} />
+                  <AvatarFallback className="text-[10px] bg-muted font-medium">{initials}</AvatarFallback>
+                </Avatar>
+                <span>
+                  Published by <span className="font-medium text-foreground">{publisherName}</span>
+                </span>
+              </div>
+            )
+          })()}
           {test.description && (
             <p className={cn('max-w-2xl', 'text-sm', 'text-muted-foreground', 'line-clamp-2')}>
               {test.description}

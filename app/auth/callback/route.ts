@@ -2,9 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  // 1. Remove 'origin' from here. We will define it explicitly below.
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+
   // Validate redirect target — strictly enforce relative paths and disallow protocol-relative // or \\ exploits.
   const sanitizeNext = (target: string | null): string => {
     if (!target) return "/home";
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const nextParam = searchParams.get("next");
   const safeNext = sanitizeNext(nextParam);
 
-  // 2. Explicitly define your base URL using an environment variable or request url.
+  // Explicitly define your base URL using an environment variable or request url.
   // This bypasses the Docker 0.0.0.0 internal binding issue entirely.
   const getBaseUrl = () => {
     const requestUrl = new URL(request.url);
@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     return NextResponse.redirect(
-      // 3. Use baseUrl instead of origin
       `${baseUrl}/auth/error?error=${encodeURIComponent(
         "No authorisation code returned from provider."
       )}`
@@ -57,11 +56,18 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error("[auth/callback] exchangeCodeForSession error:", error.message);
     return NextResponse.redirect(
-      // 4. Use baseUrl instead of origin
       `${baseUrl}/auth/error?error=${encodeURIComponent(error.message)}`
     );
   }
 
-  // 5. Use baseUrl instead of origin for the final successful redirect
+  // Check if user has MFA enrolled and needs verification.
+  // Direct redirect avoids a secondary middleware bounce through /home.
+  const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalData?.currentLevel === "aal1" && aalData?.nextLevel === "aal2") {
+    return NextResponse.redirect(
+      `${baseUrl}/auth/mfa?next=${encodeURIComponent(safeNext)}`
+    );
+  }
+
   return NextResponse.redirect(`${baseUrl}${safeNext}`);
 }

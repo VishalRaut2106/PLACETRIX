@@ -6,7 +6,7 @@
 
 import { type ReactNode, useMemo, useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -735,36 +735,35 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
           {/* ── Trixy AI Conceptual Diagnostic Assistant ─────────────────── */}
           {!isInProgress && (
             <Card className="overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4">
-                <div className="space-y-1 min-w-0">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Sparkles className="size-4 text-purple-500 shrink-0" />
-                    <span className="break-words">Trixy AI Conceptual Diagnostic Assistant</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Analyzes candidate conceptual gaps, misconceptions, and distractor traps with Trixy AI.
-                  </CardDescription>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsDepthModalOpen(true)}
-                  disabled={isGeneratingDiagnostic}
-                  className="w-full sm:w-auto shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
-                >
-                  {isGeneratingDiagnostic ? (
-                    <>
-                      <Loader2 className="mr-1.5 size-4 animate-spin text-purple-500" />
-                      Diagnosing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-1.5 size-4 text-purple-500" />
-                      {diagnostic ? "Re-run Trixy AI Diagnosis" : "Trixy AI Diagnostic Analysis"}
-                    </>
-                  )}
-                </Button>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Sparkles className="size-4 text-purple-500 shrink-0" />
+                  <span className="break-words">Trixy AI Conceptual Diagnostic Assistant</span>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Analyzes candidate conceptual gaps, misconceptions, and distractor traps with Trixy AI.
+                </CardDescription>
+                <CardAction>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsDepthModalOpen(true)}
+                    disabled={isGeneratingDiagnostic}
+                    className="w-full sm:w-auto shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
+                  >
+                    {isGeneratingDiagnostic ? (
+                      <>
+                        <Loader2 className="mr-1.5 size-4 animate-spin text-purple-500" />
+                        Diagnosing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-1.5 size-4 text-purple-500" />
+                        {diagnostic ? "Re-run Trixy AI Diagnosis" : "Trixy AI Diagnostic Analysis"}
+                      </>
+                    )}
+                  </Button>
+                </CardAction>
               </CardHeader>
 
               {isGeneratingDiagnostic && (

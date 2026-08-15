@@ -119,7 +119,7 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
     }
   }, [searchParams])
 
-  const isFirstTime = initialData ? !initialData?.profile_updated && !initialData?.designation : true
+  const isFirstTime = !userProfile.profile_updated && !initialData?.designation
   const [editingSection, setEditingSection] = useState<SectionId | null>(
     isFirstTime ? "profile" : null
   )
@@ -161,8 +161,9 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const profileComplete = !!userProfile.full_name
-  const professionalComplete = !!(initialData?.designation && initialData?.department)
+  const accountComplete = Boolean(username.trim())
+  const profileComplete = Boolean(displayName.trim())
+  const professionalComplete = Boolean(designation.trim() && department.trim())
 
   function handleUsernameChange(value: string) {
     const trimmed = value.trim()
@@ -334,6 +335,13 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
             return
           }
 
+          if (designation.trim() && department.trim()) {
+            await supabase
+              .from("profiles")
+              .update({ profile_updated: true })
+              .eq("id", userProfile.id)
+          }
+
           toast.success("Professional info updated successfully!")
         }
 
@@ -456,7 +464,7 @@ export function StaffProfileClient({ userProfile, initialData }: Props) {
               <CardDescription>Your unique username is used to identify you on the platform</CardDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {!editing("account") && <SectionIncomplete />}
+              {!editing("account") && (accountComplete ? <SectionComplete /> : <SectionIncomplete />)}
               {!editing("account") && (
                 <Button variant="outline" size="sm" onClick={() => openSection("account")}>
                   <Pencil className="h-3.5 w-3.5 mr-1.5" />
