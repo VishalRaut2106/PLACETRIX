@@ -46,147 +46,32 @@ async function requireFastAuth() {
 
 
 // ─── Start Attempt ────────────────────────────────────────────────────────────
-//
-// Creates a new attempt row ONLY when the student clicks "Begin test".
-// If an in-progress attempt already exists it is returned as-is (idempotent).
-//
-// Race condition mitigation: the INSERT uses a unique constraint on
-// (test_id, candidate_id, attempt_number) rather than a client-side check so
-// that two simultaneous clicks produce one attempt row, not two.
-// ──────────────────────────────────────────────────────────────────────────────
-
 export async function startAttemptAction(testId: string): Promise<AttemptInfo> {
-  const { supabase, userId } = await requireAuth()
+  const { supabase } = await requireAuth()
 
-  // Fetch everything we need in a single round-trip.
-  const [profileRes, testRes, existingRes, completedRes] = await Promise.all([
-    (supabase as any)
-      .from("profiles")
-      .select(`
-        institute_id
-      `)
-      .eq("id", userId)
-      .maybeSingle(),
-    (supabase as any)
-      .from("tests")
-      .select(
-        "status, institute_id, time_limit_seconds, max_attempts, available_from, available_until"
-      )
-      .eq("id", testId)
-      .maybeSingle(),
-    (supabase as any)
-      .from("test_attempts")
-      .select("id, started_at, expires_at, tab_switch_count, attempt_number")
-      .eq("test_id", testId)
-      .eq("candidate_id", userId)
-      .eq("status", "in_progress")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    (supabase as any)
-      .from("test_attempts")
-      .select("*", { count: "exact", head: true })
-      .eq("test_id", testId)
-      .eq("candidate_id", userId)
-      .in("status", ["submitted", "auto_submitted"]),
-  ])
+  const { data, error } = await (supabase as any).rpc("test_attempt_start", {
+    p_test_id: testId,
+  })
 
-  const test = testRes.data
-  const existingAttempt = existingRes.data
-
-  if (
-    !test ||
-    test.status !== "published" ||
-    test.institute_id !== profileRes.data?.institute_id
-  ) {
-    throw new Error("Test not available")
+  if (error) {
+    console.error("[startAttemptAction] RPC error:", error)
+    throw new Error(getFriendlyErrorMessage(error, "Failed to start the test. Please try again."))
   }
 
-  // Return the existing in-progress attempt; the client already has all
-  // required state so we just refresh the server_time.
-  if (existingAttempt) {
-    return {
-      id: existingAttempt.id,
-      started_at: existingAttempt.started_at,
-      server_time: new Date().toISOString(),
-      expires_at: existingAttempt.expires_at,
-      tab_switch_count: existingAttempt.tab_switch_count ?? 0,
-      attempt_number: existingAttempt.attempt_number,
-    }
+  if (data?.error) {
+    throw new Error(getFriendlyErrorMessage(data, data.error))
   }
-
-  // Validate the availability window for NEW attempts only.
-  const now = new Date()
-  if (test.available_from && new Date(test.available_from) > now) {
-    throw new Error("Test is not yet open")
-  }
-  if (test.available_until && new Date(test.available_until) < now) {
-    throw new Error("Test has closed")
-  }
-
-  const completedCount = completedRes.count ?? 0
-  if (completedCount >= test.max_attempts) {
-    throw new Error("Max attempts reached")
-  }
-
-  const attemptNumber = completedCount + 1
-  const expiresAt = test.time_limit_seconds
-    ? new Date(Date.now() + test.time_limit_seconds * 1000).toISOString()
-    : null
-
-  // The unique constraint on (test_id, candidate_id, attempt_number) turns a
-  // concurrent duplicate INSERT into a conflict that we surface as a clear
-  // error rather than silently creating two rows.
-  const { data: newAttempt, error: insertError } = await (supabase as any)
-    .from("test_attempts")
-    .insert({
-      test_id: testId,
-      candidate_id: userId,
-      attempt_number: attemptNumber,
-      expires_at: expiresAt,
-    })
-    .select("id, started_at")
-    .maybeSingle()
-
-  if (insertError) {
-    // Unique-violation code in Postgres is "23505".  Another tab won the race;
-    // fetch the winning row instead of crashing.
-    if (insertError.code === "23505") {
-      const { data: racedAttempt } = await (supabase as any)
-        .from("test_attempts")
-        .select("id, started_at, expires_at, tab_switch_count, attempt_number")
-        .eq("test_id", testId)
-        .eq("candidate_id", userId)
-        .eq("status", "in_progress")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (racedAttempt) {
-        return {
-          id: racedAttempt.id,
-          started_at: racedAttempt.started_at,
-          server_time: new Date().toISOString(),
-          expires_at: racedAttempt.expires_at,
-          tab_switch_count: racedAttempt.tab_switch_count ?? 0,
-          attempt_number: racedAttempt.attempt_number,
-        }
-      }
-    }
-    throw new Error(getFriendlyErrorMessage(insertError, "Failed to start the test. Please try again."))
-  }
-
-  if (!newAttempt) throw new Error("Failed to start attempt")
 
   return {
-    id: newAttempt.id,
-    started_at: newAttempt.started_at,
-    server_time: new Date().toISOString(),
-    expires_at: expiresAt,
-    tab_switch_count: 0,
-    attempt_number: attemptNumber,
+    id: data.id,
+    started_at: data.started_at,
+    server_time: data.server_time || new Date().toISOString(),
+    expires_at: data.expires_at,
+    tab_switch_count: data.tab_switch_count ?? 0,
+    attempt_number: data.attempt_number ?? 1,
   }
 }
+
 
 
 // ─── Sync Attempt (Combined Heartbeat + Answer Delta Batch) ───────────────────
@@ -339,33 +224,24 @@ export async function submitFeedbackAction(
     difficultyFelt?: "too_easy" | "as_expected" | "too_hard"
   }
 ): Promise<void> {
-  const { supabase, userId } = await requireAuth()
+  const { supabase } = await requireAuth()
 
-  // Verify ownership of the attempt
-  const { data: ownerCheck } = await (supabase as any)
-    .from("test_attempts")
-    .select("id")
-    .eq("id", attemptId)
-    .eq("candidate_id", userId)
-    .maybeSingle()
-
-  if (!ownerCheck) {
-    throw new Error("Attempt not found or unauthorized")
-  }
-
-  const { error } = await (supabase as any).from("test_attempt_feedbacks").insert({
-    attempt_id: attemptId,
-    candidate_id: userId,
-    test_id: testId,
-    rating: data.rating,
-    overall_comment: data.overallComment ?? null,
-    bugs_issues: data.bugsIssues ?? null,
-    suggestions: data.suggestions ?? null,
-    difficulty_felt: data.difficultyFelt ?? null,
+  const { data: result, error } = await (supabase as any).rpc("submit_attempt_feedback", {
+    p_attempt_id: attemptId,
+    p_test_id: testId,
+    p_rating: data.rating,
+    p_overall_comment: data.overallComment ?? null,
+    p_bugs_issues: data.bugsIssues ?? null,
+    p_suggestions: data.suggestions ?? null,
+    p_difficulty_felt: data.difficultyFelt ?? null,
   })
 
   if (error) {
-    console.error("[submitFeedbackAction] insert error:", error)
+    console.error("[submitFeedbackAction] RPC error:", error)
     throw new Error(getFriendlyErrorMessage(error, "Failed to submit feedback. Please try again."))
+  }
+
+  if (result?.error) {
+    throw new Error(getFriendlyErrorMessage(result, result.error))
   }
 }

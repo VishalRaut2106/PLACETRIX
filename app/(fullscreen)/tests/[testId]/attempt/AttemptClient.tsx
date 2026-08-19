@@ -1872,8 +1872,9 @@ export function AttemptClient({
     }, [])
 
 
-    // ── 60-Second Combined Sync Loop ──────────────────────────────────────────
+    // ── Adaptive Exam Sync & Heartbeat Loop ──────────────────────────────────
     const batchQueueRef = useRef<Set<string>>(new Set())
+    const lastSyncTimestampRef = useRef<number>(Date.now())
 
     const performSync = useCallback(
         async (isFinalSync = false): Promise<boolean> => {
@@ -1930,6 +1931,7 @@ export function AttemptClient({
                     }
 
                     // Success
+                    lastSyncTimestampRef.current = Date.now()
                     idsToSync.forEach((id) => { pacingBufferRef.current[id] = 0 })
                     const newSynced: Record<string, string[]> = {}
                     batch.forEach((b) => { newSynced[b.questionId] = b.selectedOptionIds })
@@ -1942,7 +1944,7 @@ export function AttemptClient({
                     if (isDeploymentError(err)) {
                         setShowDeploymentError(true)
                         setSyncStatus("error")
-                        setSyncError("App was updated \u2014 please refresh")
+                        setSyncError("App was updated — please refresh")
                     } else {
                         setSyncStatus("error")
                         setSyncError(getFriendlyErrorMessage(err, "Connection lost. Your answers are saved locally and will sync when reconnected."))
@@ -1993,7 +1995,7 @@ export function AttemptClient({
             if (!isSubmittingRef.current && performSyncRef.current) {
                 performSyncRef.current()
             }
-        }, 150)
+        }, 400)
     }, [])
 
     const handleClearResponse = useCallback(() => {
@@ -2022,20 +2024,25 @@ export function AttemptClient({
         handleClearResponseRef.current = handleClearResponse
     }, [handleNext, handlePrevious, handleClearResponse])
 
-    // Session heartbeat loop every 60 seconds (keeps session token active in DB without auto-saving unsaved work)
+    // Adaptive session heartbeat: checks every 120s; skips if a sync occurred within the last 120s
     useEffect(() => {
         if (phase !== "active" || !attemptInfo || !onSync) return
 
         const id = setInterval(async () => {
-            if (!isSubmittingRef.current && sessionTokenRef.current) {
-                try {
-                    const res = await onSync(attemptInfo.id, sessionTokenRef.current, [])
-                    if (!res.ok && res.error === "session_superseded") {
-                        setSessionState("superseded")
-                    }
-                } catch {}
-            }
-        }, 60_000)
+            if (isSubmittingRef.current || !sessionTokenRef.current) return
+
+            const timeSinceLastSync = Date.now() - lastSyncTimestampRef.current
+            // If the student already synced within the last 120 seconds, skip the heartbeat ping
+            if (timeSinceLastSync < 120_000) return
+
+            try {
+                lastSyncTimestampRef.current = Date.now()
+                const res = await onSync(attemptInfo.id, sessionTokenRef.current, [])
+                if (!res.ok && res.error === "session_superseded") {
+                    setSessionState("superseded")
+                }
+            } catch {}
+        }, 120_000)
 
         return () => clearInterval(id)
     }, [phase, attemptInfo, onSync])

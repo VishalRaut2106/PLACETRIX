@@ -1,5 +1,3 @@
-import { getUserProfile } from "@/lib/supabase/profile"
-import { redirect } from "next/navigation"
 import LandingPageClient from "./LandingPageClient"
 import type { Metadata } from "next"
 
@@ -16,12 +14,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootPage() {
-  const profile = await getUserProfile()
-
-  if (profile) {
-    redirect("/home")
-  }
+export default function RootPage() {
 
   const jsonLd = {
     "@context": "https://schema.org",

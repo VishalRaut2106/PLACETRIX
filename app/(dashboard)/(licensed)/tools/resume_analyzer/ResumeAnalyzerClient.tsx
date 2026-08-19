@@ -369,6 +369,17 @@ export function ResumeAnalyzerClient() {
         </p>
       </div>
 
+      {/* ── Maintenance Announcement Banner ── */}
+      <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs text-amber-900 dark:text-amber-200">
+        <IconSparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div>
+          <p className="font-semibold text-amber-900 dark:text-amber-100 text-sm">Resume Analyzer Under Scheduled Maintenance</p>
+          <p className="mt-1 text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
+            Trixy AI Resume Analysis is temporarily undergoing performance optimization to reduce server load. You can continue reviewing past audits in the History tab. New evaluations will be available shortly.
+          </p>
+        </div>
+      </div>
+
       {/* ── Tabs Navigation ── */}
       <div className="flex border-b border-border/60 gap-1">
         <button
@@ -458,11 +469,11 @@ export function ResumeAnalyzerClient() {
                   </div>
 
                   <GenerateButton
-                    className="w-full h-11 text-sm font-semibold"
+                    className="w-full h-11 text-sm font-semibold opacity-70 cursor-not-allowed"
                     onClick={handleAnalyze}
                     isGenerating={loading}
-                    disabled={!file || loading}
-                    text="Analyze"
+                    disabled={true}
+                    text="Temporarily Paused"
                     generatingText="Analyzing"
                     hue={260}
                   />
@@ -497,8 +508,8 @@ export function ResumeAnalyzerClient() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3 sm:mt-0">
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={handleAnalyze} disabled={loading || !file}>
-                      <IconRefresh className="size-3.5" />Re-analyze
+                    <Button variant="outline" size="sm" className="gap-1.5 opacity-70 cursor-not-allowed" disabled={true}>
+                      <IconRefresh className="size-3.5" />Paused
                     </Button>
                     <Button variant="secondary" size="sm" className="gap-1.5 border border-border" onClick={handleReset}>
                       <IconUpload className="size-3.5" />New Resume

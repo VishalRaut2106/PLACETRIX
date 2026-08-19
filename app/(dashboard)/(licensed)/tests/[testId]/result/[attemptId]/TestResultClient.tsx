@@ -739,29 +739,20 @@ export function TestResultClient({ test, attempt, accountType, serverNow }: Prop
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <Sparkles className="size-4 text-purple-500 shrink-0" />
                   <span className="break-words">Trixy AI Conceptual Diagnostic Assistant</span>
+                  <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Maintenance</Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Analyzes candidate conceptual gaps, misconceptions, and distractor traps with Trixy AI.
+                  AI diagnostic evaluation is temporarily undergoing maintenance for performance optimization.
                 </CardDescription>
                 <CardAction>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsDepthModalOpen(true)}
-                    disabled={isGeneratingDiagnostic}
-                    className="w-full sm:w-auto shrink-0 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10"
+                    disabled={true}
+                    className="w-full sm:w-auto shrink-0 border-purple-500/30 opacity-70 cursor-not-allowed"
                   >
-                    {isGeneratingDiagnostic ? (
-                      <>
-                        <Loader2 className="mr-1.5 size-4 animate-spin text-purple-500" />
-                        Diagnosing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-1.5 size-4 text-purple-500" />
-                        {diagnostic ? "Re-run Trixy AI Diagnosis" : "Trixy AI Diagnostic Analysis"}
-                      </>
-                    )}
+                    <Sparkles className="mr-1.5 size-4 text-purple-500" />
+                    Temporarily Paused
                   </Button>
                 </CardAction>
               </CardHeader>

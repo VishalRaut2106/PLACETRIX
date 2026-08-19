@@ -194,9 +194,9 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     }
   }
 
-  // 3c. Authenticated user visits an auth page (e.g. /auth/login) → send to dashboard.
+  // 3c. Authenticated user visits an auth page (e.g. /auth/login) or root landing page (/) → send to dashboard.
   //     Exception: flow pages like /auth/callback, /auth/confirm, /auth/mfa are always allowed.
-  if (isAuthPage(pathname) && !isAuthFlowPage(pathname) && user) {
+  if (((isAuthPage(pathname) && !isAuthFlowPage(pathname)) || pathname === "/") && user) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = "/home";
     homeUrl.search = "";

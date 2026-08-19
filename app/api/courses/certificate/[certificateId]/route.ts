@@ -493,7 +493,7 @@ export async function GET(_request: NextRequest, props: RouteParams) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="certificate_${certificateId.slice(0, 8)}.pdf"`,
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        "Cache-Control": "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400, immutable",
       },
     })
   } catch (err: any) {

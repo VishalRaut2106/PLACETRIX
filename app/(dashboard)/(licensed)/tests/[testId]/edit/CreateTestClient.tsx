@@ -810,7 +810,8 @@ function TestContentPanel({
 
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => openAiGenerate()}>
-                <Sparkles className="mr-1.5 size-4" /> Trixy AI Generate
+                <Sparkles className="mr-1.5 size-4 text-violet-500" /> Trixy AI Generate
+                <Badge variant="secondary" className="ml-1.5 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Paused</Badge>
               </Button>
               <Button size="sm" variant="outline" onClick={() => openImportJson()}>
                 <Upload className="mr-1.5 size-4" /> Import JSON
@@ -1917,12 +1918,14 @@ function AiGenerateSheet({
         </SheetHeader>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              AI-generated questions will be assigned to your target section.
-              Always review the content carefully before adding questions to your test.
-            </span>
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3.5 text-xs text-amber-800 dark:text-amber-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="font-semibold text-amber-900 dark:text-amber-200">Trixy AI Generation Temporarily Paused</p>
+              <p className="mt-0.5 text-amber-800/90 dark:text-amber-300/90">
+                AI question authoring is temporarily undergoing scheduled maintenance and performance upgrades. In the meantime, please create questions manually or import them via JSON.
+              </p>
+            </div>
           </div>
 
           {error && (
@@ -2033,16 +2036,11 @@ function AiGenerateSheet({
           <GenerateButton
             onClick={handleGenerate}
             isGenerating={isPending}
-            disabled={
-              isPending ||
-              !form.topic.trim() ||
-              !generateQuestionsAction ||
-              !!countFieldError
-            }
-            text="Generate"
+            disabled={true}
+            text="Temporarily Paused"
             generatingText="Generating"
             hue={275}
-            className="w-full"
+            className="w-full opacity-70 cursor-not-allowed"
           />
 
           {isPending && (
