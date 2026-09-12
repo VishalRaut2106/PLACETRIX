@@ -6,9 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRightIcon,
-  GithubIcon,
-  InstagramIcon,
-  LinkedinIcon,
   MenuIcon,
   XIcon,
 } from "lucide-react";
@@ -322,7 +319,7 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     paragraphs: [
       "We store data using secure infrastructure and apply reasonable technical and organisational safeguards to protect personal information from unauthorised access, misuse, disclosure, or destruction.",
       "This includes HTTPS encryption, authenticated storage access, access controls, and internal restrictions based on least-privilege principles. Basically, not everyone gets the keys to the castle.",
-      "That said, no digital system is 100% invincible. If you think your account has been compromised, email us immediately at agilique.solutions@gmail.com so we can investigate quickly and help lock things down.",
+      "That said, no digital system is 100% invincible. If you think your account has been compromised, email us immediately at support@placetrix.app so we can investigate quickly and help lock things down.",
     ],
   },
   {
@@ -358,7 +355,7 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     paragraphs: [
       "You can request access to your personal information, ask us to correct inaccurate data, request deletion of your account, or contact us about how your data is being used.",
       "Where applicable, you may also have rights related to data portability, objections to certain processing, or withdrawal of consent for optional communications.",
-      "To make a privacy-related request, email agilique.solutions@gmail.com. We may need to verify your identity before acting on some requests, because privacy would be a bit awkward if we handed your data to the wrong person.",
+      "To make a privacy-related request, email support@placetrix.app. We may need to verify your identity before acting on some requests, because privacy would be a bit awkward if we handed your data to the wrong person.",
     ],
   },
   {
@@ -374,24 +371,24 @@ const POLICY_SECTIONS: PolicyContentSection[] = [
     id: "contact-us",
     title: "Contact Us",
     paragraphs: [
-      "Questions, concerns, privacy requests, or just need clarification without legal-sounding gymnastics? Reach us at agilique.solutions@gmail.com and we will do our best to respond within a reasonable time.",
+      "Questions, concerns, privacy requests, or just need clarification without legal-sounding gymnastics? Reach us at support@placetrix.app and we will do our best to respond within a reasonable time.",
     ],
   },
 ];
 
 function renderParagraph(paragraph: string) {
-  if (!paragraph.includes("agilique.solutions@gmail.com")) return paragraph;
+  if (!paragraph.includes("support@placetrix.app")) return paragraph;
 
-  const parts = paragraph.split("agilique.solutions@gmail.com");
+  const parts = paragraph.split("support@placetrix.app");
 
   return (
     <>
       {parts[0]}
       <a
-        href="mailto:agilique.solutions@gmail.com"
+        href="mailto:support@placetrix.app"
         className="font-medium text-zinc-900 underline underline-offset-2 dark:text-white"
       >
-        agilique.solutions@gmail.com
+        support@placetrix.app
       </a>
       {parts[1]}
     </>
@@ -526,7 +523,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:agilique.solutions@gmail.com">Email Us</a>
+                <a href="mailto:support@placetrix.app">Email Us</a>
               </Button>
               <Button
                 size="lg"
@@ -555,21 +552,6 @@ const resources = [
   { title: "Help Center", href: "/help-center" },
 ];
 
-const socialLinks = [
-  {
-    icon: <LinkedinIcon />,
-    link: "https://www.linkedin.com/company/4-grid-technologies/",
-  },
-  {
-    icon: <InstagramIcon />,
-    link: "https://www.instagram.com/agilique.com/",
-  },
-  {
-    icon: <GithubIcon />,
-    link: "https://github.com/4-Grid-Tech/",
-  },
-];
-
 function Footer() {
   return (
     <footer className="relative">
@@ -582,20 +564,6 @@ function Footer() {
             <p className="max-w-sm text-balance text-sm text-zinc-500 dark:text-zinc-400">
               Train. Track. Triumph.
             </p>
-            <div className="flex gap-2">
-              {socialLinks.map((item, index) => (
-                <Button
-                  asChild
-                  key={`social-${item.link}-${index}`}
-                  size="icon-sm"
-                  variant="outline"
-                >
-                  <a href={item.link} target="_blank" rel="noopener noreferrer">
-                    {item.icon}
-                  </a>
-                </Button>
-              ))}
-            </div>
           </div>
 
           <div className="col-span-3 w-full md:col-span-1">
@@ -632,15 +600,13 @@ function Footer() {
         <div className="absolute inset-x-0 h-px w-full bg-border" />
         <div className="flex flex-col justify-between gap-2 py-4">
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
-            &copy; {new Date().getFullYear()},{" "}
-            <a
-              href="https://agilique.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            &copy; {new Date().getFullYear()}{" "}
+            <Link
+              href="/"
               className="hover:underline font-medium"
             >
-              Agilique Solutions LLP
-            </a>
+              PlaceTrix
+            </Link>
             . All rights reserved.
           </p>
         </div>

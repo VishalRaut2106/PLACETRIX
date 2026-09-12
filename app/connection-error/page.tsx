@@ -6,9 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRightIcon,
-  GithubIcon,
-  InstagramIcon,
-  LinkedinIcon,
   MailIcon,
   MenuIcon,
   XIcon,
@@ -349,7 +346,7 @@ function ConnectionErrorBodySection() {
       id: "stay-updated",
       title: "How can I stay updated?",
       paragraphs: [
-        "We post updates to our status channels as issues are resolved. You can also reach out to our support team at agilique.solutions@gmail.com for assistance or questions.",
+        "We post updates to our status channels as issues are resolved. You can also reach out to our support team at support@placetrix.app for assistance or questions.",
         "We strive for maximum transparency and will make sure our services are fully operational as quickly as possible.",
       ],
     },
@@ -442,7 +439,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:agilique.solutions@gmail.com">
+                <a href="mailto:support@placetrix.app">
                   <MailIcon className="mr-2 size-4" />
                   Email Support
                 </a>
@@ -474,21 +471,6 @@ const resources = [
   { title: "Help Center", href: "/help-center" },
 ];
 
-const socialLinks = [
-  {
-    icon: <LinkedinIcon />,
-    link: "https://www.linkedin.com/company/4-grid-technologies/",
-  },
-  {
-    icon: <InstagramIcon />,
-    link: "https://www.instagram.com/agilique.com/",
-  },
-  {
-    icon: <GithubIcon />,
-    link: "https://github.com/4-Grid-Tech/",
-  },
-];
-
 function Footer() {
   return (
     <footer className="relative">
@@ -501,20 +483,6 @@ function Footer() {
             <p className="max-w-sm text-balance text-sm text-zinc-500 dark:text-zinc-400">
               Train. Track. Triumph.
             </p>
-            <div className="flex gap-2">
-              {socialLinks.map((item, index) => (
-                <Button
-                  asChild
-                  key={`social-${item.link}-${index}`}
-                  size="icon-sm"
-                  variant="outline"
-                >
-                  <a href={item.link} target="_blank" rel="noopener noreferrer">
-                    {item.icon}
-                  </a>
-                </Button>
-              ))}
-            </div>
           </div>
 
           <div className="col-span-3 w-full md:col-span-1">
@@ -551,15 +519,13 @@ function Footer() {
         <div className="absolute inset-x-0 h-px w-full bg-border" />
         <div className="flex flex-col justify-between gap-2 py-4">
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
-            &copy; {new Date().getFullYear()},{" "}
-            <a
-              href="https://agilique.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            &copy; {new Date().getFullYear()}{" "}
+            <Link
+              href="/"
               className="hover:underline font-medium"
             >
-              Agilique Solutions LLP
-            </a>
+              PlaceTrix
+            </Link>
             . All rights reserved.
           </p>
         </div>

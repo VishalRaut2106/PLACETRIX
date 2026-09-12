@@ -240,9 +240,6 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
                   v{version}
                 </Badge>
               </div>
-              <span className="whitespace-nowrap text-[9px] text-muted-foreground/60 font-normal leading-tight">
-                by Agilique Solutions LLP
-              </span>
             </div>
           </Link>
         </div>

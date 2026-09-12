@@ -44,12 +44,7 @@ export default function RootPage() {
         "image": {
           "@id": "https://placetrix.app/#logo"
         },
-        "description": "Educational Assessment Platform for mock tests and study groups.",
-        "sameAs": [
-          "https://www.linkedin.com/company/4-grid-technologies/",
-          "https://www.instagram.com/agilique.com/",
-          "https://github.com/4-Grid-Tech/"
-        ]
+        "description": "Educational Assessment Platform for mock tests and study groups."
       }
     ]
   }

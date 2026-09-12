@@ -525,10 +525,12 @@ export async function sendNewSupportTicketNotification(ticket: {
       </html>
     `
 
+    const adminEmail = process.env.SUPPORT_NOTIFICATION_EMAIL || process.env.SMTP_ADMIN_EMAIL || "support@placetrix.app"
+
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
       console.warn("⚠️ [EMAIL SERVICE] SMTP configuration is incomplete. Skipping notification email.")
       console.log("[MOCK] New support ticket notification:")
-      console.log(`  To: agilique.solutions@gmail.com`)
+      console.log(`  To: ${adminEmail}`)
       console.log(`  Subject: ${subject}`)
       console.log(`  Ticket ID: ${ticket.id}`)
       return { success: true, mock: true }
@@ -544,7 +546,7 @@ export async function sendNewSupportTicketNotification(ticket: {
 
     await transporter.sendMail({
       from: `"${smtpSenderName}" <${smtpSenderEmail}>`,
-      to: "agilique.solutions@gmail.com",
+      to: adminEmail,
       subject,
       html,
     })

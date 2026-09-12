@@ -6,9 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRightIcon,
-  GithubIcon,
-  InstagramIcon,
-  LinkedinIcon,
   MenuIcon,
   XIcon,
 } from "lucide-react";
@@ -380,17 +377,17 @@ function HelpBodySection() {
                   Cannot sign in? Having issues with two-factor authentication (MFA), account activation, password resets, or general inquiries?
                   Don&apos;t worry. You can reach our support team directly via email at{" "}
                   <a
-                    href="mailto:agilique.solutions@gmail.com"
+                    href="mailto:support@placetrix.app"
                     className="font-medium text-zinc-900 underline underline-offset-2 dark:text-white"
                   >
-                    agilique.solutions@gmail.com
+                    support@placetrix.app
                   </a>
                   . Please provide your registered email and a detailed description of the problem.
                 </p>
               </div>
               <div className="mt-8">
                 <Button size="lg" variant="outline" className={cn("w-full rounded-full font-medium", NAV_BUTTON)} asChild>
-                  <a href="mailto:agilique.solutions@gmail.com">
+                  <a href="mailto:support@placetrix.app">
                     Email Support
                   </a>
                 </Button>
@@ -446,7 +443,7 @@ function CTASection() {
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" className="rounded-full font-medium" asChild>
-                <a href="mailto:agilique.solutions@gmail.com">Email Us</a>
+                <a href="mailto:support@placetrix.app">Email Us</a>
               </Button>
               <Button
                 size="lg"
@@ -475,21 +472,6 @@ const resources = [
   { title: "Help Center", href: "/help-center" },
 ];
 
-const socialLinks = [
-  {
-    icon: <LinkedinIcon />,
-    link: "https://www.linkedin.com/company/4-grid-technologies/",
-  },
-  {
-    icon: <InstagramIcon />,
-    link: "https://www.instagram.com/agilique.com/",
-  },
-  {
-    icon: <GithubIcon />,
-    link: "https://github.com/4-Grid-Tech/",
-  },
-];
-
 function Footer() {
   return (
     <footer className="relative">
@@ -502,20 +484,6 @@ function Footer() {
             <p className="max-w-sm text-balance text-sm text-zinc-500 dark:text-zinc-400">
               Train. Track. Triumph.
             </p>
-            <div className="flex gap-2">
-              {socialLinks.map((item, index) => (
-                <Button
-                  asChild
-                  key={`social-${item.link}-${index}`}
-                  size="icon-sm"
-                  variant="outline"
-                >
-                  <a href={item.link} target="_blank" rel="noopener noreferrer">
-                    {item.icon}
-                  </a>
-                </Button>
-              ))}
-            </div>
           </div>
 
           <div className="col-span-3 w-full md:col-span-1">
@@ -552,15 +520,13 @@ function Footer() {
         <div className="absolute inset-x-0 h-px w-full bg-border" />
         <div className="flex flex-col justify-between gap-2 py-4">
           <p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
-            &copy; {new Date().getFullYear()},{" "}
-            <a
-              href="https://agilique.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            &copy; {new Date().getFullYear()}{" "}
+            <Link
+              href="/"
               className="hover:underline font-medium"
             >
-              Agilique Solutions LLP
-            </a>
+              PlaceTrix
+            </Link>
             . All rights reserved.
           </p>
         </div>

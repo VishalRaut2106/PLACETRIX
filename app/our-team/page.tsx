@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
 	ArrowRightIcon,
 	GithubIcon,
-	InstagramIcon,
 	LinkedinIcon,
 	MailIcon,
 	MenuIcon,
@@ -348,8 +347,39 @@ type TeamMember = {
 	email?: string;
 	linkedin?: string;
 	github?: string;
+	bio?: string;
 };
 
+const MENTORS: TeamMember[] = [
+	{
+		name: "Dr. Vitthal Gond",
+		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/GondSir.jpeg",
+		role: "Principal, PVGCOEN",
+		bio: "Academic leader providing executive guidance, institutional support, and vision for student excellence.",
+		linkedin: "https://www.linkedin.com/in/vitthal-gond-169a5717/",
+	},
+	{
+		name: "Dr. Manoj Bhalerao",
+		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/BhaleraoSir.jpeg",
+		role: "Vice Principal, PVGCOEN",
+		bio: "Academic administrator driving institutional initiatives, engineering standards, and student career development.",
+		linkedin: "https://www.linkedin.com/in/manojvbhalerao/",
+	},
+	{
+		name: "Prof. Lalit Patil",
+		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/LalitSir.jpeg",
+		role: "Mentor",
+		bio: "Academic & strategic mentor guiding product architecture, engineering standards, and student placement preparation.",
+		linkedin: "https://www.linkedin.com/in/lalit-patil-35450bb9/",
+	},
+	{
+		name: "Prof. Indrajit Sonawane",
+		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/IndrajitSir.jpeg",
+		role: "Mentor",
+		bio: "Academic & strategic mentor providing continuous leadership, system direction, and campus career insights.",
+		linkedin: "https://linkedin.com/in/indrajit-sonawane-patil-4aa80519/",
+	},
+];
 
 const TEAM: TeamMember[] = [
 	{
@@ -471,12 +501,21 @@ function TeamMemberCard({
 								src={member.image}
 								alt={member.name}
 								fill
-								className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+								className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
 								sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
 							/>
 						) : (
-							<div className="flex h-full items-center justify-center text-sm md:text-lg font-semibold text-zinc-500 dark:text-zinc-400">
-								{member.name}
+							<div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 text-zinc-700 dark:text-zinc-200 select-none">
+								<span className="text-3xl md:text-4xl font-bold tracking-tight">
+									{member.name
+										.replace(/^(Prof\.|Dr\.)\s+/i, "")
+										.split(" ")
+										.filter(Boolean)
+										.map((n) => n[0])
+										.slice(0, 2)
+										.join("")
+										.toUpperCase()}
+								</span>
 							</div>
 						)}
 					</div>
@@ -531,6 +570,46 @@ function TeamMemberCard({
 		</BorderGlow>
 	);
 }
+
+function MentorsSection() {
+	const { resolvedTheme } = useTheme();
+	const mounted = useMounted();
+	const glowEnabled = mounted && resolvedTheme === "dark";
+
+	return (
+		<section
+			id="mentors"
+			className={cn(
+				"scroll-mt-24 bg-white text-zinc-950 dark:bg-black dark:text-white md:scroll-mt-20",
+				"pt-24 md:pt-28 pb-8 md:pb-12"
+			)}
+		>
+			<div className={CONTENT}>
+				<div className="mx-auto max-w-3xl text-center">
+					<p className="mb-2 text-xs font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+						Mentorship & Leadership
+					</p>
+					<h2 className="font-cirka text-balance text-3xl font-semibold tracking-tight md:text-5xl">
+						Guiding our journey
+					</h2>
+					<p className="mt-3 text-sm leading-7 text-stone-600 dark:text-stone-300 md:text-base md:leading-8">
+						Experienced academic and institutional leaders providing continuous strategic guidance, direction, and vision in shaping PlaceTrix.
+					</p>
+				</div>
+				<div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+					{MENTORS.map((member) => (
+						<TeamMemberCard
+							key={`${member.name}-${member.role}`}
+							member={member}
+							glowEnabled={glowEnabled}
+						/>
+					))}
+				</div>
+			</div>
+		</section>
+	);
+}
+
 function TeamSection() {
 	const { resolvedTheme } = useTheme();
 	const mounted = useMounted();
@@ -541,7 +620,7 @@ function TeamSection() {
 			id="team"
 			className={cn(
 				"scroll-mt-24 bg-white text-zinc-950 dark:bg-black dark:text-white md:scroll-mt-20",
-				"pt-24 md:pt-28"
+				"pt-8 md:pt-12 pb-14 md:pb-20"
 			)}
 		>
 			<div className={CONTENT}>
@@ -568,60 +647,6 @@ function TeamSection() {
 						/>
 					))}
 				</div>
-			</div>
-		</section>
-	);
-}
-
-function CompanySection() {
-	return (
-		<section
-			className={cn(
-				"bg-white text-zinc-950 dark:bg-black dark:text-white",
-				"pt-14 md:pt-20"
-			)}
-		>
-			<div className={CONTENT}>
-				<article className="rounded-3xl border border-black/10 bg-white/95 p-6 backdrop-blur-sm dark:border-white/10 dark:bg-white/3 md:p-8 lg:p-10">
-					<div className="max-w-4xl">
-						<p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-							The company
-						</p>
-
-						<div className="relative size-14 md:size-16 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-zinc-800 bg-white p-1.5 mt-4 mb-4 flex items-center justify-center shrink-0 shadow-sm">
-							<Image
-								src="https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/4Grid.png"
-								alt="Agilique Solutions LLP Logo"
-								fill
-								className="object-contain p-1"
-								unoptimized
-							/>
-						</div>
-
-						<h2
-							className="font-cirka mt-2 text-balance text-3xl font-semibold tracking-tight md:text-5xl"
-						>
-							Agilique Solutions LLP
-						</h2>
-
-						<div className="mt-5 space-y-4 text-sm leading-7 text-stone-600 dark:text-stone-300 md:text-base md:leading-8">
-							<p>
-								PlaceTrix is engineered and maintained by Agilique Solutions LLP, a technology company focused on creating high-performance and beautifully designed digital platforms.
-							</p>
-							<p>
-								We believe in building robust workflows and refined user experiences that solve real-world problems. By focusing on practical value, reliability, and clean execution, we aim to deliver high-quality digital solutions that make a meaningful difference for users and businesses alike.
-							</p>
-						</div>
-
-						<div className="mt-8">
-							<Button className="group rounded-full font-medium" asChild>
-								<a href="https://agilique.com" target="_blank" rel="noopener noreferrer">
-									Explore Agilique Solutions LLP
-								</a>
-							</Button>
-						</div>
-					</div>
-				</article>
 			</div>
 		</section>
 	);
@@ -691,21 +716,6 @@ const resources = [
 	{ title: "Help Center", href: "/help-center" },
 ];
 
-const socialLinks = [
-	{
-		icon: <LinkedinIcon />,
-		link: "https://www.linkedin.com/company/4-grid-technologies/",
-	},
-	{
-		icon: <InstagramIcon />,
-		link: "https://www.instagram.com/agilique.com/",
-	},
-	{
-		icon: <GithubIcon />,
-		link: "https://github.com/4-Grid-Tech/",
-	},
-];
-
 function Footer() {
 	return (
 		<footer className="relative">
@@ -718,24 +728,6 @@ function Footer() {
 						<p className="max-w-sm text-balance text-sm text-zinc-500 dark:text-zinc-400">
 							Train. Track. Triumph.
 						</p>
-						<div className="flex gap-2">
-							{socialLinks.map((item, index) => (
-								<Button
-									asChild
-									key={`social-${item.link}-${index}`}
-									size="icon-sm"
-									variant="outline"
-								>
-									<a
-										href={item.link}
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										{item.icon}
-									</a>
-								</Button>
-							))}
-						</div>
 					</div>
 
 					<div className="col-span-3 w-full md:col-span-1">
@@ -776,16 +768,14 @@ function Footer() {
 				<div className="absolute inset-x-0 h-px w-full bg-border" />
 				<div className="flex flex-col justify-between gap-2 py-4">
 					<p className="text-center text-sm font-light text-zinc-500 dark:text-zinc-400">
-						&copy; {new Date().getFullYear()},{" "}
-						<a
-							href="https://agilique.com"
-							target="_blank"
-							rel="noopener noreferrer"
+						&copy; {new Date().getFullYear()}{" "}
+						<Link
+							href="/"
 							className="hover:underline font-medium"
 						>
-							Agilique Solutions LLP
-						</a>
-						, All rights reserved
+							PlaceTrix
+						</Link>
+						. All rights reserved.
 					</p>
 				</div>
 			</div>
@@ -802,8 +792,8 @@ export default function OurTeamPage() {
 		>
 			<HeaderShell />
 			<main className="flex flex-col">
+				<MentorsSection />
 				<TeamSection />
-				<CompanySection />
 				<MissionSection />
 				<CTASection />
 			</main>
