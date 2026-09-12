@@ -250,7 +250,8 @@ export async function saveDraftAction(
   testId: string,
   settings: SettingsForm,
   questions: LocalQuestion[],
-  sections: LocalSection[]
+  sections: LocalSection[],
+  folderId?: string
 ): Promise<void> {
   const profile = await requireTestManager()
   const supabase = await createClient()
@@ -276,6 +277,11 @@ export async function saveDraftAction(
       settings.cohort_ids.map((cohortId) => ({ test_id: testId, cohort_id: cohortId }))
     )
   }
+  
+  if (folderId) {
+    await (supabase as any).from("tests").update({ folder_id: folderId }).eq("id", testId)
+  }
+  
   revalidatePath("/tests")
 }
 
@@ -283,7 +289,8 @@ export async function publishTestAction(
   testId: string,
   settings: SettingsForm,
   questions: LocalQuestion[],
-  sections: LocalSection[]
+  sections: LocalSection[],
+  folderId?: string
 ): Promise<void> {
   const profile = await requireTestManager()
   if (!settings.title.trim()) throw new Error("Title is required.")
@@ -325,6 +332,10 @@ export async function publishTestAction(
     if (cohortInsError) {
       console.error("[TEST_SAVE] Cohort insert error:", cohortInsError)
     }
+  }
+
+  if (folderId) {
+    await (supabase as any).from("tests").update({ folder_id: folderId }).eq("id", testId)
   }
 
   revalidatePath("/tests")

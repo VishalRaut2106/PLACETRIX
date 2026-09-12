@@ -19,6 +19,13 @@ export interface TestCreator {
   avatar_url?: string | null
 }
 
+export interface TestFolder {
+  id: string
+  institute_id: string
+  name: string
+  created_at: string
+}
+
 export interface CandidateTest {
   id: string
   title: string
@@ -38,6 +45,7 @@ export interface InstituteTest {
   id: string
   title: string
   description?: string
+  folder_id?: string | null
   time_limit_seconds?: number        // undefined = no time limit
   available_from?: string
   available_until?: string

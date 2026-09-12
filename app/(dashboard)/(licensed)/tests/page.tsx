@@ -3,7 +3,7 @@
 import { getUserProfile } from "@/lib/supabase/profile"
 import { redirect } from "next/navigation"
 import { CandidateTestsClient } from "./CandidateTestsClient"
-import { InstituteTestsClient } from "./InstituteTestsClient"
+import { FoldersDashboardClient } from "./FoldersDashboardClient"
 import { UnderDevelopment } from "@/components/under-development"
 
 interface SearchParams {
@@ -19,6 +19,7 @@ interface SearchParams {
   attempts?: string
   author?: string
   attemptStatus?: string
+  folder?: string
 }
 
 export const metadata = {
@@ -59,21 +60,24 @@ export default async function TestsPage(props: {
     profile.account_type === "institute_placement_officer" ||
     profile.account_type === "institute_primary"
   ) {
+    const { createClient } = await import("@/lib/supabase/server")
+    const supabase = await createClient()
+    const { data: initialFolders } = await (supabase as any)
+      .from("test_folders")
+      .select("*")
+      .eq("institute_id", profile.institute_id || "")
+      .order("name", { ascending: true })
+
+    const { count: totalTestsCount } = await (supabase as any)
+      .from("tests")
+      .select("*", { count: "exact", head: true })
+      .eq("institute_id", profile.institute_id || "")
+
     return (
-      <InstituteTestsClient
+      <FoldersDashboardClient
         instituteId={profile.institute_id || ""}
-        currentUserId={profile.id}
-        serverNow={nowStr}
-        initialPageSize={size}
-        initialSearch={search}
-        initialTab={tab || "all"}
-        initialSort={params.sort || ""}
-        initialDuration={params.duration || "all"}
-        initialQuestions={params.questions || "all"}
-        initialResults={params.results || "all"}
-        initialMarks={params.marks || "all"}
-        initialAttempts={params.attempts || "all"}
-        initialAuthor={params.author || "all"}
+        initialFolders={initialFolders || []}
+        totalTestsCount={totalTestsCount || 0}
       />
     )
   }

@@ -5,6 +5,7 @@ import {
   type CandidateTest,
   type CandidateTestAttempt,
   type InstituteTest,
+  type TestFolder,
 } from "@/app/(dashboard)/(licensed)/tests/_types"
 
 export interface InstituteFilterOptions {
@@ -140,6 +141,7 @@ export async function fetchInstituteTestsClient({
   size,
   search,
   tab,
+  folderId,
   options,
 }: {
   instituteId: string
@@ -148,6 +150,7 @@ export async function fetchInstituteTestsClient({
   size: number
   search: string
   tab: string
+  folderId?: string | null
   options?: InstituteFilterOptions
 }): Promise<InstituteTestsResult> {
   const supabase = createClient()
@@ -167,6 +170,7 @@ export async function fetchInstituteTestsClient({
     p_attempts: options?.attempts && options.attempts !== "all" ? options.attempts : null,
     p_author: options?.author && options.author !== "all" ? options.author : null,
     p_user_id: options?.userId || null,
+    p_folder_id: folderId || null,
   })
 
   if (error || !data) {
@@ -190,6 +194,7 @@ export async function fetchInstituteTestsClient({
     id: t.id,
     title: t.title,
     description: t.description ?? undefined,
+    folder_id: t.folder_id ?? null,
     time_limit_seconds: t.time_limit_seconds != null ? Number(t.time_limit_seconds) : undefined,
     available_from: t.available_from ?? undefined,
     available_until: t.available_until ?? undefined,
@@ -223,4 +228,24 @@ export async function fetchInstituteTestsClient({
   }))
 
   return { tests, count: data.total_count ?? 0, tabCounts }
+}
+
+/**
+ * Direct Client Fetcher: Test Folders
+ * Fetches the folders for the institute
+ */
+export async function fetchTestFoldersClient(instituteId: string): Promise<TestFolder[]> {
+  const supabase = createClient()
+  const { data, error } = await (supabase as any)
+    .from("test_folders")
+    .select("*")
+    .eq("institute_id", instituteId)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching test folders:", error)
+    return []
+  }
+
+  return data as TestFolder[]
 }

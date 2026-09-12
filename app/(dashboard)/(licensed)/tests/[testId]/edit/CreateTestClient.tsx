@@ -88,9 +88,10 @@ interface Props {
   initialData?: InitialTestData
   availableTags: { id: string; name: string }[]
   generateQuestionsAction: (input: AiGenerateForm) => Promise<GenerateQuestionsResult>
-  onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[]) => Promise<void>
-  onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[]) => Promise<void>
+  onSaveDraft: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[], folderId?: string) => Promise<void>
+  onPublish: (id: string, settings: SettingsForm, questions: LocalQuestion[], sections: LocalSection[], folderId?: string) => Promise<void>
   cohortOptions?: CohortOption[]
+  initialFolderId?: string
 }
 
 const EMPTY_SETTINGS: SettingsForm = {
@@ -152,6 +153,7 @@ export function CreateTestClient({
   onSaveDraft,
   onPublish,
   cohortOptions,
+  initialFolderId,
 }: Props) {
   const isEditMode = propTestId !== undefined
   const [testId] = useState<string>(() => propTestId ?? crypto.randomUUID())
@@ -234,7 +236,7 @@ export function CreateTestClient({
           throw uploadErr
         }
       }
-      await onSaveDraft(testId, settingsForDb(settings), finalQuestions, sections)
+      await onSaveDraft(testId, settingsForDb(settings), finalQuestions, sections, initialFolderId)
       toast.success("Draft saved.")
     } catch (err: any) {
       toast.error(getFriendlyErrorMessage(err, "Failed to save draft. Please try again."))
@@ -264,7 +266,8 @@ export function CreateTestClient({
           throw uploadErr
         }
       }
-      await onPublish(testId, settingsForDb(settings), finalQuestions, sections)
+      await onPublish(testId, settingsForDb(settings), finalQuestions, sections, initialFolderId)
+      toast.success("Test published successfully!")
     } catch (err: any) {
       if (err?.message === "NEXT_REDIRECT") throw err
       toast.error(getFriendlyErrorMessage(err, "Failed to publish. Please try again."))

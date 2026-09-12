@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   InputGroup,
   InputGroupAddon,
@@ -81,11 +83,15 @@ import {
   Mail,
   ShieldCheck,
   User,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  FolderOpen
 } from "lucide-react"
 import { cn, formatDateTime } from "@/lib/utils"
-import type { InstituteTest, DerivedInstituteStatus } from "./_types"
+import type { InstituteTest, DerivedInstituteStatus, TestFolder } from "./_types"
 import { deriveStatus } from "./_types"
-import { fetchInstituteTestsClient } from "@/lib/supabase/tests-data"
+import { fetchInstituteTestsClient, fetchTestFoldersClient } from "@/lib/supabase/tests-data"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export { formatDateTime }
@@ -144,285 +150,40 @@ const StatusBadge = React.memo(function StatusBadge({ status }: { status: Derive
 })
 
 
-// ─── Test Card ────────────────────────────────────────────────────────────────
-
-const TestCard = React.memo(function TestCard({
+const CompactTestCard = React.memo(function CompactTestCard({
   test,
 }: {
   test: InstituteTest
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const handleCopyLink = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    try {
-      if (typeof window !== "undefined") {
-        await navigator.clipboard.writeText(`${window.location.origin}/tests/${test.id}`)
-        toast.success("Test link copied to clipboard")
-      }
-    } catch (err) {
-      console.error("Failed to copy test link:", err)
-      toast.error("Failed to copy link")
-    }
-  }
-
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <Card className="overflow-hidden transition-all hover:border-foreground/20 hover:shadow-xs group w-full min-w-0">
-          <Accordion
-            type="single"
-            collapsible
-            value={isOpen ? "details" : ""}
-            onValueChange={(val) => setIsOpen(val === "details")}
-            className="w-full min-w-0"
-          >
-            <AccordionItem value="details" className="border-none w-full min-w-0">
-              {/* Entire Card Header is Clickable */}
-              <div
-                role="button"
-                tabIndex={0}
-                aria-expanded={isOpen}
-                onClick={() => setIsOpen((prev) => !prev)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    if (e.target === e.currentTarget) {
-                      e.preventDefault()
-                      setIsOpen((prev) => !prev)
-                    }
-                  }
-                }}
-                className="p-3.5 sm:p-5 flex items-start justify-between gap-2.5 sm:gap-3 text-left w-full min-w-0 cursor-pointer select-none focus-visible:outline-none focus-visible:bg-muted/30 hover:bg-muted/15 transition-colors"
-              >
-                <div className="flex-1 min-w-0 w-full space-y-2.5 sm:space-y-3">
-                  {/* Top: Title + Description + Status Badge */}
-                  <div className="flex items-start justify-between gap-2 w-full min-w-0">
-                    <div className="space-y-1 min-w-0 flex-1 overflow-hidden">
-                      <div className="flex">
-                        <Link
-                          href={`/tests/${test.id}`}
-                          prefetch={false}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-semibold text-sm sm:text-base leading-tight truncate hover:text-primary hover:underline transition-colors inline-block max-w-full text-foreground"
-                        >
-                          {test.title}
-                        </Link>
-                      </div>
-                      <p className="line-clamp-2 text-xs text-muted-foreground font-normal">
-                        {test.description ?? "No description provided."}
-                      </p>
-                    </div>
-
-                    <div
-                      className="flex items-center shrink-0 self-start"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <StatusBadge status={test.derived_status} />
-                    </div>
-                  </div>
-
-                  {/* Quick Summary Row */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-normal">
-                    {/* Duration */}
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="size-3.5 shrink-0 text-muted-foreground/70" />
-                      {test.time_limit_seconds ? formatDuration(test.time_limit_seconds) : "Untimed"}
-                    </span>
-
-                    {/* Questions */}
-                    <span className="flex items-center gap-1.5">
-                      <ListCheck className="size-3.5 shrink-0 text-muted-foreground/70" />
-                      {test.question_count} Qs
-                    </span>
-
-                    {/* Total Marks */}
-                    {test.total_marks != null && test.total_marks > 0 && (
-                      <span className="flex items-center gap-1.5">
-                        <Award className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        {test.total_marks} marks
-                      </span>
-                    )}
-
-                    {/* Submissions */}
-                    <span className="flex items-center gap-1.5">
-                      <Users className="size-3.5 shrink-0 text-muted-foreground/70" />
-                      {test.attempt_count} {test.attempt_count === 1 ? "attempt" : "attempts"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Animated Chevron Indicator */}
-                <div className="pt-0.5 shrink-0 text-muted-foreground/70 transition-transform duration-200">
-                  <ChevronDown
-                    className={cn(
-                      "size-4 shrink-0 transition-transform duration-200",
-                      isOpen && "rotate-180 text-foreground"
-                    )}
-                  />
-                </div>
-              </div>
-
-              <AccordionContent className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
-                <div className="space-y-3 pt-3 border-t">
-                  {/* Secondary Info Grid */}
-                  <div className="rounded-lg bg-muted/40 p-3 text-xs border space-y-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-muted-foreground">
-                      {/* Performance / Average Score */}
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        <span>Average Score:</span>
-                        <span className="font-medium text-foreground">
-                          {test.attempt_count > 0 && test.avg_score_pct != null
-                            ? `${Math.round(test.avg_score_pct)}%`
-                            : "No attempts yet"}
-                        </span>
-                      </div>
-
-                      {/* Creator / Publisher */}
-                      {test.creator && (test.creator.full_name || test.creator.email) && (
-                        <div className="flex items-center gap-2 truncate">
-                          <User className="size-3.5 shrink-0 text-muted-foreground/70" />
-                          <span>Publisher:</span>
-                          <HoverCard openDelay={200} closeDelay={150}>
-                            <HoverCardTrigger asChild>
-                              <span
-                                className="font-medium text-foreground truncate hover:text-primary underline decoration-dotted underline-offset-2 transition-colors cursor-pointer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {test.creator.full_name || test.creator.email}
-                              </span>
-                            </HoverCardTrigger>
-                            <HoverCardContent
-                              className="w-72 p-3.5 shadow-xl border border-border/60 bg-popover text-popover-foreground rounded-xl"
-                              side="top"
-                              align="start"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-start gap-3">
-                                <Avatar className="size-10 shrink-0 border border-border/50 shadow-xs">
-                                  <AvatarImage src={test.creator.avatar_url || undefined} alt={test.creator.full_name || ""} />
-                                  <AvatarFallback className="text-xs font-semibold bg-primary/10 text-primary">
-                                    {(test.creator.full_name || test.creator.email || "P").slice(0, 1).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-                                  <p className="text-sm font-semibold text-foreground truncate leading-tight">
-                                    {test.creator.full_name || "Staff Member"}
-                                  </p>
-                                  {test.creator.email && (
-                                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                                      {test.creator.email}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
-                      )}
-
-                      {/* Available From */}
-                      <div className="flex items-center gap-2">
-                        <CalendarClock className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        <span>Starts:</span>
-                        <span className="font-medium text-foreground">
-                          {test.available_from ? formatDateTime(test.available_from) : "Immediate"}
-                        </span>
-                      </div>
-
-                      {/* Available Until */}
-                      <div className="flex items-center gap-2">
-                        <CalendarClock className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        <span>Deadline:</span>
-                        <span className="font-medium text-foreground">
-                          {test.available_until ? formatDateTime(test.available_until) : "No deadline"}
-                        </span>
-                      </div>
-
-                      {/* Results Visibility */}
-                      <div className="flex items-center gap-2">
-                        {test.results_available ? (
-                          <Eye className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        ) : (
-                          <EyeOff className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        )}
-                        <span>Results:</span>
-                        <span className="font-medium text-foreground">
-                          {test.results_available ? "Visible to candidates" : "Hidden"}
-                        </span>
-                      </div>
-
-                      {/* Marks Visibility */}
-                      <div className="flex items-center gap-2">
-                        {test.marks_available ? (
-                          <Eye className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        ) : (
-                          <EyeOff className="size-3.5 shrink-0 text-muted-foreground/70" />
-                        )}
-                        <span>Marks:</span>
-                        <span className="font-medium text-foreground">
-                          {test.marks_available ? "Visible to candidates" : "Hidden"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom CTA Action Bar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1">
-                    <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="xs"
-                        onClick={handleCopyLink}
-                        className="h-8 gap-1.5 text-xs font-normal justify-center"
-                      >
-                        <Copy className="size-3.5" />
-                        <span>Copy Link</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="xs"
-                        asChild
-                        className="h-8 gap-1.5 text-xs font-normal justify-center"
-                      >
-                        <Link href={`/tests/${test.id}/edit`} prefetch={false}>
-                          <PenLine className="size-3.5" />
-                          <span>Edit Test</span>
-                        </Link>
-                      </Button>
-                    </div>
-
-                    <Button
-                      type="button"
-                      size="xs"
-                      asChild
-                      className="w-full sm:w-auto h-8 gap-1.5 text-xs font-medium justify-center px-3"
-                    >
-                      <Link href={`/tests/${test.id}`} prefetch={false}>
-                        <span>View Test</span>
-                        <ExternalLink className="size-3.5" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </Card>
+        <Link 
+          href={`/tests/${test.id}`}
+          className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-card hover:bg-muted/40 hover:border-border transition-all shadow-sm group w-full"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ListCheck className="size-4" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-sm truncate text-foreground group-hover:text-primary transition-colors">
+                {test.title}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">
+                {test.question_count} Qs • {test.attempt_count} Attempts
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 ml-4">
+            <StatusBadge status={test.derived_status} />
+          </div>
+        </Link>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <ContextMenuItem onClick={() => window.open(`/tests/${test.id}`, "_blank")}>
           <ExternalLink className="size-4 mr-2" />
           Open in New Tab
-        </ContextMenuItem>
-        <ContextMenuItem onClick={handleCopyLink}>
-          <Copy className="size-4 mr-2" />
-          Copy Link
         </ContextMenuItem>
         <ContextMenuItem asChild>
           <Link href={`/tests/${test.id}/edit`} prefetch={false}>
@@ -455,9 +216,11 @@ interface Props {
   currentUserId?: string
   totalCount?: number
   tabCounts?: { all: number; live: number; upcoming: number; past: number; drafts: number }
+  initialFolderId?: string
+  initialFolders?: TestFolder[]
 }
 
-export function InstituteTestsClient({
+export function FolderTestsClient({
   instituteId,
   tests: initialTests,
   serverNow,
@@ -474,6 +237,8 @@ export function InstituteTestsClient({
   currentUserId,
   totalCount: initialTotalCount = 0,
   tabCounts: initialTabCounts = { all: 0, live: 0, upcoming: 0, past: 0, drafts: 0 },
+  initialFolderId = "",
+  initialFolders = [],
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -504,6 +269,39 @@ export function InstituteTestsClient({
   const [hasMore, setHasMore] = useState(initialTests ? initialTests.length < initialTotalCount : false)
   const [isLoading, setIsLoading] = useState(!initialTests)
   const [loadingMore, setLoadingMore] = useState(false)
+
+  // This is a dedicated folder view, so we expect exactly one folder to be passed in.
+  const currentFolder = initialFolders[0]
+
+  const [isCreateTestDialogOpen, setIsCreateTestDialogOpen] = useState(false)
+
+  // Edit Dialog States
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editFolderName, setEditFolderName] = useState("")
+  const [isFolderEditing, setIsFolderEditing] = useState(false)
+
+  const handleEditFolder = async () => {
+    if (!currentFolder || !editFolderName.trim()) return
+    setIsFolderEditing(true)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { error } = await (supabase as any).from('test_folders').update({
+        name: editFolderName.trim()
+      }).eq('id', currentFolder.id)
+      
+      if (error) throw error
+      
+      setIsEditDialogOpen(false)
+      toast.success("Folder renamed successfully")
+      // Redirect to the new folder URL
+      router.push(`/tests/${encodeURIComponent(editFolderName.trim())}`)
+    } catch (e) {
+      console.error("Failed to rename folder:", e)
+      toast.error("Failed to rename folder")
+      setIsFolderEditing(false)
+    }
+  }
 
   // Sync search input ONLY on external navigation (back/forward)
   useEffect(() => {
@@ -591,6 +389,7 @@ export function InstituteTestsClient({
           size: initialPageSize,
           search: targetSearch,
           tab: targetTab,
+          folderId: currentFolder?.id || null,
           options: {
             sort: opts?.sort !== undefined ? opts.sort : activeSort,
             duration: opts?.duration !== undefined ? opts.duration : activeDuration,
@@ -641,6 +440,7 @@ export function InstituteTestsClient({
       activeAttempts,
       activeAuthor,
       currentUserId,
+      currentFolder,
     ]
   )
 
@@ -965,7 +765,11 @@ export function InstituteTestsClient({
     return match && match.value !== "default" ? match.label : null
   }, [activeSort, sortOptions])
 
-  const handleCreate = () => router.push("/tests/new/edit")
+  const handleCreate = () => {
+    router.push(`/tests/new/edit?folderId=${currentFolder?.id}`)
+  }
+
+
 
   return (
     <div className="flex flex-col gap-6 px-4 py-6 sm:py-8 md:px-8 pb-24 sm:pb-8 max-w-full overflow-x-hidden">
@@ -1494,23 +1298,78 @@ export function InstituteTestsClient({
         )}
       </div>
 
+      {/* ── Edit Folder Dialog ── */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Folder Name</Label>
+              <Input
+                id="edit-name"
+                placeholder="e.g. Amazon Drive 2026"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && editFolderName.trim()) {
+                    handleEditFolder()
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button disabled={isFolderEditing || !editFolderName.trim()} onClick={handleEditFolder}>
+              {isFolderEditing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Folder Header ── */}
+      <div className="flex items-center gap-2 mb-6 p-3 rounded-lg bg-muted/30 border border-border w-fit max-w-full group">
+        <Link 
+          href="/tests"
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 shrink-0"
+        >
+          <FolderOpen className="size-4" /> All Drives
+        </Link>
+        <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+        <span className="text-sm font-semibold text-foreground flex items-center gap-2 truncate pr-2">
+          <Folder className="size-4 text-primary shrink-0" /> {currentFolder?.name}
+          <button 
+            onClick={() => {
+              setEditFolderName(currentFolder?.name || "")
+              setIsEditDialogOpen(true)
+            }}
+            className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 ml-1"
+            title="Rename Folder"
+          >
+            <PenLine className="size-3.5" />
+          </button>
+        </span>
+      </div>
+
       {/* ── Test Cards List Area ── */}
       <div className="relative">
-        <div className="space-y-3">
+        <div className="space-y-4">
           {isLoading && items.length === 0 ? (
-            <div className="grid gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="rounded-xl border bg-card p-4 sm:p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-48 rounded" />
-                    <Skeleton className="h-5 w-20 rounded-full" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-card w-full h-[74px]">
+                  <div className="flex items-center gap-3 w-full max-w-[70%]">
+                    <Skeleton className="size-8 rounded-lg shrink-0" />
+                    <div className="space-y-2 w-full">
+                      <Skeleton className="h-4 w-[80%]" />
+                      <Skeleton className="h-3 w-[50%]" />
+                    </div>
                   </div>
-                  <Skeleton className="h-4 w-3/4 rounded" />
-                  <div className="flex items-center gap-4 pt-1">
-                    <Skeleton className="h-3.5 w-24 rounded" />
-                    <Skeleton className="h-3.5 w-32 rounded" />
-                    <Skeleton className="h-3.5 w-28 rounded" />
-                  </div>
+                  <Skeleton className="h-5 w-16 rounded-full shrink-0 ml-4" />
                 </div>
               ))}
             </div>
@@ -1546,9 +1405,9 @@ export function InstituteTestsClient({
             </Empty>
           ) : (
             <>
-              <div className="grid gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {enrichedTests.map((t) => (
-                  <TestCard
+                  <CompactTestCard
                     key={t.id}
                     test={t}
                   />

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getUserProfile } from "@/lib/supabase/profile"
 import { CandidateTestDetailClient } from "./CandidateTestDetailClient"
 import { InstituteTestDetailClient } from "./InstituteTestDetailClient"
+import { FolderTestsClient } from "../FolderTestsClient"
 import {
   toggleMarksAction,
   toggleResultsAction,
@@ -420,12 +421,12 @@ async function fetchInstituteView(
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 
-export default async function TestDetailPage({
-  params,
-}: {
+export default async function TestDetailPage(props: {
   params: Promise<{ testId: string }>
+  searchParams: Promise<any>
 }) {
-  const { testId } = await params
+  const { testId } = await props.params
+  const searchParams = await props.searchParams
 
   // ── Redirect "new" to tests list ──────────────────────────────────────────
   if (testId === "new") redirect("/tests")
@@ -443,18 +444,70 @@ export default async function TestDetailPage({
   if (profile.account_type === "institute_staff" || profile.account_type === "institute_placement_officer" || profile.account_type === "institute_primary") {
     const instituteId = profile.institute_id
     if (!instituteId) redirect("/home")
-    const test = await fetchInstituteView(testId, instituteId)
+
+    // Check if testId is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(testId)
+    
+    if (isUUID) {
+      try {
+        const test = await fetchInstituteView(testId, instituteId)
+        return (
+          <InstituteTestDetailClient
+            testId={testId}
+            test={test}
+            serverNow={serverNow}
+            onToggleMarks={toggleMarksAction.bind(null, testId)}
+            onToggleResults={toggleResultsAction.bind(null, testId)}
+            onTogglePublish={togglePublishAction.bind(null, testId)}
+            onDeleteTest={deleteTestAction.bind(null, testId)}
+            onDeleteAttempt={deleteAttemptAction.bind(null, testId)}
+            onClearAllAttempts={clearAllAttemptsAction.bind(null, testId)}
+          />
+        )
+      } catch (e: any) {
+        // If it throws NEXT_NOT_FOUND, it might just be a folder named like a UUID (edge case). Let it fall through.
+        if (e?.digest !== "NEXT_NOT_FOUND") {
+          throw e
+        }
+      }
+    }
+
+    // It is not a valid test UUID, OR the test was not found. Treat it as a folder name.
+    const decodedFolderName = decodeURIComponent(testId)
+    const { createClient } = await import("@/lib/supabase/server")
+    const supabase = await createClient()
+    const { data: folderData, error } = await (supabase as any)
+      .from("test_folders")
+      .select("*")
+      .eq("name", decodedFolderName)
+      .eq("institute_id", instituteId)
+      .single()
+
+    if (error || !folderData) {
+      notFound()
+    }
+
+    const size = Math.max(1, parseInt(searchParams.size || "10", 10))
+    const search = searchParams.search || ""
+    const tab = searchParams.tab || ""
+
     return (
-      <InstituteTestDetailClient
-        testId={testId}
-        test={test}
+      <FolderTestsClient
+        instituteId={instituteId}
+        currentUserId={profile.id}
         serverNow={serverNow}
-        onToggleMarks={toggleMarksAction.bind(null, testId)}
-        onToggleResults={toggleResultsAction.bind(null, testId)}
-        onTogglePublish={togglePublishAction.bind(null, testId)}
-        onDeleteTest={deleteTestAction.bind(null, testId)}
-        onDeleteAttempt={deleteAttemptAction.bind(null, testId)}
-        onClearAllAttempts={clearAllAttemptsAction.bind(null, testId)}
+        initialPageSize={size}
+        initialSearch={search}
+        initialTab={tab || "all"}
+        initialSort={searchParams.sort || ""}
+        initialDuration={searchParams.duration || "all"}
+        initialQuestions={searchParams.questions || "all"}
+        initialResults={searchParams.results || "all"}
+        initialMarks={searchParams.marks || "all"}
+        initialAttempts={searchParams.attempts || "all"}
+        initialAuthor={searchParams.author || "all"}
+        initialFolderId={folderData.id}
+        initialFolders={[folderData]}
       />
     )
   }

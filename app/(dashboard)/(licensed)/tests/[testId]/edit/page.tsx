@@ -11,10 +11,13 @@ import { getCohortOptionsAction } from "@/app/(dashboard)/(licensed)/cohorts/act
 
 interface Props {
   params: Promise<{ testId: string }>
+  searchParams?: Promise<{ folderId?: string }>
 }
 
-export default async function TestEditorPage({ params }: Props) {
+export default async function TestEditorPage({ params, searchParams }: Props) {
   const { testId } = await params
+  const resolvedSearchParams = await searchParams
+  const folderId = resolvedSearchParams?.folderId
   const supabase = await createClient()
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
@@ -52,6 +55,7 @@ export default async function TestEditorPage({ params }: Props) {
       onSaveDraft={saveDraftAction}
       onPublish={publishTestAction}
       cohortOptions={cohortOptions}
+      initialFolderId={folderId}
     />
   )
 }
