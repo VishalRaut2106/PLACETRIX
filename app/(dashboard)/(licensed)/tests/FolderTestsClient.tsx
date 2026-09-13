@@ -93,6 +93,7 @@ import type { InstituteTest, DerivedInstituteStatus, TestFolder } from "./_types
 import { deriveStatus } from "./_types"
 import { fetchInstituteTestsClient, fetchTestFoldersClient } from "@/lib/supabase/tests-data"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ExportFolderParticipantsModal } from "./ExportFolderParticipantsModal"
 
 export { formatDateTime }
 
@@ -782,10 +783,15 @@ export function FolderTestsClient({
             Manage, schedule, and review assessment tests for your institute.
           </p>
         </div>
-        <Button onClick={handleCreate} className="hidden sm:inline-flex gap-2 shrink-0">
-          <Plus className="size-4" />
-          <span>Create Test</span>
-        </Button>
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
+          {currentFolder && (
+             <ExportFolderParticipantsModal folderId={currentFolder.id} folderName={currentFolder.name} />
+          )}
+          <Button onClick={handleCreate} className="gap-2 shrink-0">
+            <Plus className="size-4" />
+            <span>Create Test</span>
+          </Button>
+        </div>
       </div>
 
       {/* ── Controls Toolbar ── */}
