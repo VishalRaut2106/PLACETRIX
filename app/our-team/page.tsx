@@ -352,23 +352,9 @@ type TeamMember = {
 
 const MENTORS: TeamMember[] = [
 	{
-		name: "Dr. Vitthal Gond",
-		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/GondSir.jpeg",
-		role: "Principal, PVGCOEN",
-		bio: "Academic leader providing executive guidance, institutional support, and vision for student excellence.",
-		linkedin: "https://www.linkedin.com/in/vitthal-gond-169a5717/",
-	},
-	{
-		name: "Dr. Manoj Bhalerao",
-		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/BhaleraoSir.jpeg",
-		role: "Vice Principal, PVGCOEN",
-		bio: "Academic administrator driving institutional initiatives, engineering standards, and student career development.",
-		linkedin: "https://www.linkedin.com/in/manojvbhalerao/",
-	},
-	{
 		name: "Prof. Lalit Patil",
 		image: "https://db.placetrix.app/storage/v1/object/public/landing-page-material/team-members/LalitSir.jpeg",
-		role: "Mentor",
+		role: "Founder and Mentor",
 		bio: "Academic & strategic mentor guiding product architecture, engineering standards, and student placement preparation.",
 		linkedin: "https://www.linkedin.com/in/lalit-patil-35450bb9/",
 	},
@@ -596,13 +582,14 @@ function MentorsSection() {
 						Experienced academic and institutional leaders providing continuous strategic guidance, direction, and vision in shaping PlaceTrix.
 					</p>
 				</div>
-				<div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+				<div className="mt-10 flex flex-col sm:flex-row justify-center gap-3 lg:gap-5">
 					{MENTORS.map((member) => (
-						<TeamMemberCard
-							key={`${member.name}-${member.role}`}
-							member={member}
-							glowEnabled={glowEnabled}
-						/>
+						<div key={`${member.name}-${member.role}`} className="w-full sm:w-[calc(50%-0.75rem)] lg:w-[calc(25%-1.25rem)] max-w-sm">
+							<TeamMemberCard
+								member={member}
+								glowEnabled={glowEnabled}
+							/>
+						</div>
 					))}
 				</div>
 			</div>
