@@ -19,6 +19,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import {
   Users,
   Plus,
   ChevronRight,
@@ -229,7 +235,7 @@ export function CohortsClient({ cohorts: initialCohorts, isCandidate = false }: 
               placeholder="Search cohorts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-9"
+              className="pl-9 pr-9 bg-muted/30"
             />
             {search && (
               <button
@@ -263,13 +269,55 @@ export function CohortsClient({ cohorts: initialCohorts, isCandidate = false }: 
             )}
           </Empty>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {filteredCohorts.map((cohort) => (
-              <CohortCard
-                key={cohort.id}
-                cohort={cohort}
-                isCandidate={isCandidate}
-              />
+              <ContextMenu key={cohort.id}>
+                <ContextMenuTrigger asChild>
+                  <Card className="flex flex-col group hover:shadow-md transition-all duration-200 border-border/60 cursor-pointer overflow-hidden h-[140px] relative bg-card">
+                    {isCandidate ? (
+                      <div className="flex flex-col h-full p-4">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <UsersRound className="size-4 text-primary" />
+                          </div>
+                        </div>
+                        <h4 className="font-semibold text-sm text-foreground truncate leading-snug w-full">
+                          {cohort.name}
+                        </h4>
+                        <p className={cn("text-xs mt-1 line-clamp-2 w-full", cohort.description ? "text-muted-foreground" : "italic text-muted-foreground/60")}>
+                          {cohort.description ?? "No description"}
+                        </p>
+                      </div>
+                    ) : (
+                      <Link href={`/cohorts/${cohort.id}`} className="flex flex-col h-full p-4 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-xl">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                            <UsersRound className="size-4 text-primary" />
+                          </div>
+                          {cohort.student_count !== undefined && (
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors flex items-center gap-1">
+                              <Users className="size-3" />
+                              {cohort.student_count}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-semibold text-sm text-foreground truncate leading-snug w-full group-hover:text-primary transition-colors">
+                          {cohort.name}
+                        </h4>
+                        <p className={cn("text-xs mt-1 line-clamp-2 w-full", cohort.description ? "text-muted-foreground" : "italic text-muted-foreground/60")}>
+                          {cohort.description ?? "No description"}
+                        </p>
+                      </Link>
+                    )}
+                  </Card>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-48">
+                  <ContextMenuItem onClick={() => router.push(`/cohorts/${cohort.id}`)}>
+                    Open Cohort
+                  </ContextMenuItem>
+                  {/* Additional actions like Edit or Delete can be added here if needed */}
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}
