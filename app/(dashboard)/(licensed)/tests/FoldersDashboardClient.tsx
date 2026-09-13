@@ -283,12 +283,16 @@ export function FoldersDashboardClient({
                   onClick={() => {
                     router.push(`/tests/${encodeURIComponent(folder.name)}`)
                   }}
-                  className="flex flex-col items-center justify-center p-6 rounded-xl border bg-card hover:bg-muted/50 hover:border-border transition-all shadow-sm cursor-pointer group h-[120px]"
+                  className="flex flex-col h-[120px] p-4 rounded-xl border border-border/60 bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer group relative text-left focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
-                  <Folder className="size-8 text-primary/80 mb-3 group-hover:scale-110 transition-transform" />
-                  <span className="text-sm font-semibold text-foreground text-center w-full px-2 line-clamp-2" title={folder.name}>
+                  <div className="flex items-start justify-between gap-2 mb-3 w-full">
+                    <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+                      <Folder className="size-4 text-primary" />
+                    </div>
+                  </div>
+                  <h4 className="font-semibold text-sm text-foreground truncate leading-snug w-full group-hover:text-primary transition-colors mt-auto" title={folder.name}>
                     {folder.name}
-                  </span>
+                  </h4>
                 </button>
               </ContextMenuTrigger>
               <ContextMenuContent className="w-48">
