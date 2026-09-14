@@ -35,19 +35,8 @@ export async function POST(req: Request) {
     }
 
     const statusData = await statusRes.json();
-    const submissions = statusData?.submissions || [];
+    let submissions = statusData?.submissions || [];
 
-    // Check if all submissions have finished (status.id > 2)
-    const finishedSubmissions = submissions.filter((s: any) => s.status && s.status.id > 2);
-    if (finishedSubmissions.length < tokens.length) {
-      return NextResponse.json({
-        completed: false,
-        finished_count: finishedSubmissions.length,
-        total_count: tokens.length,
-      });
-    }
-
-    // All test cases finished! Now evaluate and record to DB
     const problemData = (await getCachedProblemExecutionData(problem_id)) as any;
     let testCases: any[] = problemData?.test_cases || [];
     if (typeof testCases === "string") {
@@ -58,6 +47,51 @@ export async function POST(req: Request) {
       if (!str) return "";
       try { return Buffer.from(str, "base64").toString("utf-8"); } catch { return str; }
     };
+
+    let driverCodes: any = problemData?.driver_codes || {};
+    if (typeof driverCodes === "string") {
+      try { driverCodes = JSON.parse(driverCodes); } catch { driverCodes = {}; }
+    }
+    const langKey = String(language_id);
+    const driverCode = driverCodes[langKey] || "";
+    const isV2 = driverCode.includes("@@@LOGICLAB_BATCH_V2@@@");
+
+    if (isV2 && submissions.length === 1) {
+      const sub = submissions[0];
+      if (sub.status?.id <= 2) {
+        return NextResponse.json({
+          completed: false,
+          finished_count: 0,
+          total_count: testCases.length,
+        });
+      }
+
+      const fullStdout = decode(sub.stdout);
+      const outputs = fullStdout.split("@@@LOGICLAB_TC_SEP@@@").map(s => s.trim());
+      
+      submissions = testCases.map((tc: any, i: number) => {
+        let outputBlock = outputs[i] || "";
+        let tcData = { ...sub };
+        tcData.stdout = Buffer.from(outputBlock).toString("base64");
+        
+        if (sub.status?.id !== 3 && outputBlock.includes("@@@LOGICLAB_ERR_START@@@")) {
+          tcData.status = sub.status;
+        } else if (sub.status?.id !== 3) {
+          tcData.status = sub.status; 
+        }
+        
+        return tcData;
+      });
+    } else {
+      const finishedSubmissions = submissions.filter((s: any) => s.status && s.status.id > 2);
+      if (finishedSubmissions.length < tokens.length) {
+        return NextResponse.json({
+          completed: false,
+          finished_count: finishedSubmissions.length,
+          total_count: tokens.length,
+        });
+      }
+    }
 
     let passedCount = 0;
     let maxRuntime = 0;

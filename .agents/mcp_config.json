@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "serverUrl": "http://127.0.0.1:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NzkzNDQwODIsImV4cCI6MTkzNzAyNDA4Mn0.tW7rKtUSLvBBp6y5qF1A2X8XuftcgTEZfqgfnwk80Tg",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NzkzNDQwODIsImV4cCI6MTkzNzAyNDA4Mn0.tW7rKtUSLvBBp6y5qF1A2X8XuftcgTEZfqgfnwk80Tg"
+      }
+    }
+  }
+}

@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { QrCode, Loader2, CheckCircle2, UserCheck } from "lucide-react"
+import { QrCode, Loader2, CheckCircle2, UserCheck, AlertCircle } from "lucide-react"
 import { markAttendanceAction } from "../actions"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
@@ -79,7 +79,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
   const ticketsRef = useRef(tickets)
   const onCheckInRef = useRef(onCheckIn)
 
-  const [lastCheckedInName, setLastCheckedInName] = useState<string | null>(null)
+  const [lastScanResult, setLastScanResult] = useState<{ name: string, status: 'success' | 'already_present' | 'error' } | null>(null)
 
   useEffect(() => {
     ticketsRef.current = tickets
@@ -116,8 +116,9 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
     const ticket = ticketsRef.current.find((t) => t.id === ticketId)
 
     if (ticket && ticket.attendance_status === "Present") {
-      toast.error(`${ticket.candidate_name || 'Attendee'} is already checked in!`)
-      setLastCheckedInName(ticket.candidate_name || 'Unknown Attendee')
+      const name = ticket.candidate_name || 'Unknown Attendee'
+      toast.error(`${name} is already checked in!`)
+      setLastScanResult({ name, status: 'already_present' })
       setShowAlreadyPresentOverlay(true)
       setTimeout(() => { 
         setShowAlreadyPresentOverlay(false)
@@ -135,17 +136,19 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
         
         const name = result.candidateName || ticket?.candidate_name || "Unknown Attendee"
         toast.success(`${name} checked in!`)
-        setLastCheckedInName(name)
+        setLastScanResult({ name, status: 'success' })
         setShowSuccessOverlay(true)
         onCheckInRef.current(ticketId)
         
       } catch (err: any) {
         const msg = err.message || "Failed to check in on server."
         if (msg.includes("already been checked in") || msg.includes("already")) {
-          setLastCheckedInName(ticket?.candidate_name || "Unknown Attendee")
+          const name = ticket?.candidate_name || "Unknown Attendee"
+          setLastScanResult({ name, status: 'already_present' })
           setShowAlreadyPresentOverlay(true)
-          toast.error(`${ticket?.candidate_name || 'Attendee'} is already checked in!`)
+          toast.error(`${name} is already checked in!`)
         } else {
+          setLastScanResult({ name: "Unknown Attendee", status: 'error' })
           toast.error(msg)
         }
       } finally {
@@ -176,7 +179,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
         isScanningBlockedRef.current = false
         lastScannedRef.current = null
         if (clearLastScannedTimeoutRef.current) clearTimeout(clearLastScannedTimeoutRef.current)
-        setLastCheckedInName(null)
+        setLastScanResult(null)
         setCameraError(null)
         setShowSuccessOverlay(false)
         setShowAlreadyPresentOverlay(false)
@@ -228,7 +231,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-emerald-600/90 text-white backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-emerald-400/40 flex items-center gap-2 animate-in fade-in slide-in-from-top-3 duration-200">
                 <CheckCircle2 className="h-4 w-4 text-emerald-200 shrink-0" />
                 <div className="text-xs font-semibold truncate max-w-50">
-                  Present: <span className="font-bold">{lastCheckedInName}</span>
+                  Present: <span className="font-bold">{lastScanResult?.name}</span>
                 </div>
               </div>
             )}
@@ -237,7 +240,7 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-amber-600/90 text-white backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-amber-400/40 flex items-center gap-2 animate-in fade-in slide-in-from-top-3 duration-200">
                 <UserCheck className="h-4 w-4 text-amber-200 shrink-0" />
                 <div className="text-xs font-semibold truncate max-w-50">
-                  Already Present: <span className="font-bold">{lastCheckedInName}</span>
+                  Already Present: <span className="font-bold">{lastScanResult?.name}</span>
                 </div>
               </div>
             )}
@@ -266,15 +269,30 @@ export function QRCheckInScanner({ eventId, onCheckIn, tickets }: QRCheckInScann
 
           {/* Results Bar */}
           <div className="w-full p-4 sm:p-5 min-h-22.5 flex items-center justify-start border-t bg-background shrink-0">
-            {lastCheckedInName ? (
-              <div className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm text-left">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
+            {lastScanResult ? (
+              <div className={cn(
+                "w-full rounded-xl p-3.5 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 shadow-sm text-left border",
+                lastScanResult.status === 'success' ? "bg-emerald-500/10 border-emerald-500/30" :
+                lastScanResult.status === 'already_present' ? "bg-amber-500/10 border-amber-500/30" :
+                "bg-destructive/10 border-destructive/30"
+              )}>
+                {lastScanResult.status === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />}
+                {lastScanResult.status === 'already_present' && <UserCheck className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />}
+                {lastScanResult.status === 'error' && <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />}
+                
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 opacity-80 mb-0.5">
-                    Marked Present
+                  <span className={cn(
+                    "text-[10px] font-bold uppercase tracking-wider opacity-80 mb-0.5",
+                    lastScanResult.status === 'success' ? "text-emerald-700 dark:text-emerald-400" :
+                    lastScanResult.status === 'already_present' ? "text-amber-700 dark:text-amber-400" :
+                    "text-destructive"
+                  )}>
+                    {lastScanResult.status === 'success' ? 'Marked Present' :
+                     lastScanResult.status === 'already_present' ? 'Already Checked In' :
+                     'Scan Failed'}
                   </span>
                   <span className="font-semibold text-sm text-foreground truncate block">
-                    {lastCheckedInName}
+                    {lastScanResult.name}
                   </span>
                 </div>
               </div>

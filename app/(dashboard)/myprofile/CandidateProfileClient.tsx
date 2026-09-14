@@ -2365,7 +2365,14 @@ export function CandidateProfileClient({
                 </div>
 
                 <div className="space-y-3">
+                <div className="flex justify-between items-end mb-2">
                   <Label>Semester SGPA</Label>
+                  {calculatedCgpa !== null && (
+                    <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                      Live CGPA: {calculatedCgpa.toFixed(2)}
+                    </div>
+                  )}
+                </div>
                   {isCourseConfigured ? (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {sgpaValues.map((val, i) => (
@@ -2447,7 +2454,14 @@ export function CandidateProfileClient({
                 </div>
 
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2">Semester SGPA</p>
+                <div className="flex justify-between items-end mb-2">
+                  <p className="text-xs text-muted-foreground">Semester SGPA</p>
+                  {calculatedCgpa !== null && (
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                      CGPA: {calculatedCgpa.toFixed(2)}
+                    </div>
+                  )}
+                </div>
                   {isCourseConfigured ? (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {sgpaValues.map((val, i) => (

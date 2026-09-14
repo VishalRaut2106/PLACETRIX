@@ -611,6 +611,7 @@ export async function runCodeAction(body: {
   let timeLimit = 2.0;
   let memoryLimit = 256000;
   let lineOffset = 0;
+  let driverCode = "";
 
   if (mode === "problem" && problem_id) {
     const problemData = (await getCachedProblemExecutionData(problem_id)) as any;
@@ -624,7 +625,7 @@ export async function runCodeAction(body: {
       try { driverCodes = JSON.parse(driverCodes); } catch { driverCodes = {}; }
     }
     const langKey = String(language_id);
-    const driverCode = driverCodes[langKey] || "";
+    driverCode = driverCodes[langKey] || "";
     if (!driverCode) {
       return { success: false, error: `Execution engine error: Driver code missing for language ${langKey}.` };
     }
@@ -680,72 +681,125 @@ export async function runCodeAction(body: {
     try { return Buffer.from(str, "base64").toString("utf-8"); } catch { return str; }
   };
 
+  const isV2 = driverCode.includes("@@@LOGICLAB_BATCH_V2@@@");
+
   if (mode === "problem" && sampleTestCases.length > 0) {
     let overallSuccess = true;
     let overallStatus = { id: 3, description: "Accepted" };
     let totalTime = 0;
     let maxMemory = 0;
     const results: any[] = [];
-
     const sandboxConfig = getJudge0SandboxConfig(timeLimit, memoryLimit);
-    const batchPayload = {
-      submissions: sampleTestCases.map((tc: any) => ({
-        source_code: encodedSource,
-        language_id,
-        stdin: Buffer.from(tc.input || "").toString("base64"),
-        ...sandboxConfig,
-      }))
-    };
 
     let executedResults: any[] = [];
-    try {
-      const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(batchPayload),
-      });
-
-      if (!batchResponse.ok) throw new Error("Failed to submit batch to Judge0");
-
-      const batchTokens = await batchResponse.json();
-      if (!Array.isArray(batchTokens) || batchTokens.length !== sampleTestCases.length) {
-        throw new Error("Invalid token count returned from Judge0");
+    
+    if (isV2) {
+      let combinedStdin = sampleTestCases.length + "\n";
+      for (const tc of sampleTestCases) {
+        combinedStdin += (tc.input || "") + "\n";
       }
+      
+      console.log("=== V2 BATCH PAYLOAD CREATED ===", { combinedStdin });
+      
+      const payload = {
+        source_code: encodedSource,
+        language_id,
+        stdin: Buffer.from(combinedStdin).toString("base64"),
+        ...sandboxConfig,
+      };
 
-      const tokensStr = batchTokens.map((t: any) => t.token).join(",");
-      const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`;
+      try {
+        const response = await fetch(`${judge0Endpoint}/submissions?wait=true&base64_encoded=true`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      let allDone = false;
-      let attempts = 0;
-      let finalBatchResults: any[] = [];
-      const pollStart = Date.now();
+        if (!response.ok) throw new Error("Failed to submit V2 to Judge0");
+        const data = await response.json();
+        
+        if (data.status?.id <= 2) throw new Error("Judge0 Timeout");
+        if (data.status?.id === 13) throw new Error("Internal Error in Judge0.");
 
-      while (!allDone && Date.now() - pollStart < 30_000) {
-        const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        try {
-          const statusRes = await fetch(batchGetUrl);
-          if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            if (statusData && Array.isArray(statusData.submissions)) {
-              finalBatchResults = statusData.submissions;
-              allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2);
-            }
+        const fullStdout = decode(data.stdout);
+        const outputs = fullStdout.split("@@@LOGICLAB_TC_SEP@@@").map(s => s.trim());
+        
+        executedResults = sampleTestCases.map((tc: any, i: number) => {
+          let outputBlock = outputs[i] || "";
+          let tcData = { ...data };
+          tcData.stdout = Buffer.from(outputBlock).toString("base64");
+          
+          if (data.status?.id !== 3 && outputBlock.includes("@@@LOGICLAB_ERR_START@@@")) {
+             tcData.status = data.status;
+          } else if (data.status?.id !== 3) {
+             tcData.status = data.status; 
           }
-        } catch {}
-        attempts++;
+          
+          return { index: i + 1, tc, data: tcData };
+        });
+      } catch (err: any) {
+        executedResults = sampleTestCases.map((tc: any, i: number) => ({ index: i + 1, tc, error: `V2 execution failed: ${err.message}` }));
       }
+    } else {
+      const batchPayload = {
+        submissions: sampleTestCases.map((tc: any) => ({
+          source_code: encodedSource,
+          language_id,
+          stdin: Buffer.from(tc.input || "").toString("base64"),
+          ...sandboxConfig,
+        }))
+      };
 
-      executedResults = sampleTestCases.map((tc: any, i: number) => {
-        const data = finalBatchResults[i];
-        if (!data) return { index: i + 1, tc, error: "Judge0 service timed out or dropped token." };
-        if (data.status?.id <= 2) return { index: i + 1, tc, error: "Judge0 Timeout: Execution stuck in queue or processing too long." };
-        if (data.status?.id === 13) return { index: i + 1, tc, error: "Internal Error in Judge0." };
-        return { index: i + 1, tc, data };
-      });
-    } catch (err: any) {
-      executedResults = sampleTestCases.map((tc: any, i: number) => ({ index: i + 1, tc, error: `Batch execution failed: ${err.message}` }));
+      try {
+        const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(batchPayload),
+        });
+
+        if (!batchResponse.ok) throw new Error("Failed to submit batch to Judge0");
+
+        const batchTokens = await batchResponse.json();
+        if (!Array.isArray(batchTokens) || batchTokens.length !== sampleTestCases.length) {
+          throw new Error("Invalid token count returned from Judge0");
+        }
+
+        const tokensStr = batchTokens.map((t: any) => t.token).join(",");
+        const batchGetUrl = `${judge0Endpoint}/submissions/batch?tokens=${tokensStr}&base64_encoded=true`;
+
+        let allDone = false;
+        let attempts = 0;
+        let finalBatchResults: any[] = [];
+        const pollStart = Date.now();
+
+        while (!allDone && Date.now() - pollStart < 30_000) {
+          const delay = Math.min(300 * Math.pow(1.5, attempts), 2_000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          try {
+            const statusRes = await fetch(batchGetUrl);
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              if (statusData && Array.isArray(statusData.submissions)) {
+                finalBatchResults = statusData.submissions;
+                allDone = finalBatchResults.every((sub: any) => sub.status && sub.status.id > 2);
+              }
+            }
+          } catch {}
+          attempts++;
+        }
+
+        executedResults = sampleTestCases.map((tc: any, i: number) => {
+          const data = finalBatchResults[i];
+          if (!data) return { index: i + 1, tc, error: "Judge0 service timed out or dropped token." };
+          if (data.status?.id <= 2) return { index: i + 1, tc, error: "Judge0 Timeout: Execution stuck in queue or processing too long." };
+          if (data.status?.id === 13) return { index: i + 1, tc, error: "Internal Error in Judge0." };
+          return { index: i + 1, tc, data };
+        });
+      } catch (err: any) {
+        executedResults = sampleTestCases.map((tc: any, i: number) => ({ index: i + 1, tc, error: `Batch execution failed: ${err.message}` }));
+      }
     }
+    
     executedResults.sort((a, b) => a.index - b.index);
 
     for (const execution of executedResults) {

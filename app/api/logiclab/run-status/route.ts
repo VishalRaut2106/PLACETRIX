@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { tokens, mode, line_offset = 0, sample_cases = [] } = body;
+    const { tokens, mode, line_offset = 0, sample_cases = [], is_v2 } = body;
 
     if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
       return NextResponse.json({ success: false, error: "Missing submission tokens." }, { status: 400 });
@@ -70,15 +70,43 @@ export async function POST(req: Request) {
     }
 
     const statusData = await statusRes.json();
-    const submissions = statusData?.submissions || [];
+    let submissions = statusData?.submissions || [];
 
-    const finished = submissions.filter((s: any) => s.status && s.status.id > 2);
-    if (finished.length < tokens.length) {
-      return NextResponse.json({
-        completed: false,
-        finished_count: finished.length,
-        total_count: tokens.length,
+    if (is_v2 && submissions.length === 1) {
+      const sub = submissions[0];
+      if (sub.status?.id <= 2) {
+        return NextResponse.json({
+          completed: false,
+          finished_count: 0,
+          total_count: sample_cases.length,
+        });
+      }
+
+      const fullStdout = decode(sub.stdout);
+      const outputs = fullStdout.split("@@@LOGICLAB_TC_SEP@@@").map(s => s.trim());
+      
+      submissions = sample_cases.map((tc: any, i: number) => {
+        let outputBlock = outputs[i] || "";
+        let tcData = { ...sub };
+        tcData.stdout = Buffer.from(outputBlock).toString("base64");
+        
+        if (sub.status?.id !== 3 && outputBlock.includes("@@@LOGICLAB_ERR_START@@@")) {
+          tcData.status = sub.status;
+        } else if (sub.status?.id !== 3) {
+          tcData.status = sub.status; 
+        }
+        
+        return tcData;
       });
+    } else {
+      const finished = submissions.filter((s: any) => s.status && s.status.id > 2);
+      if (finished.length < tokens.length) {
+        return NextResponse.json({
+          completed: false,
+          finished_count: finished.length,
+          total_count: tokens.length,
+        });
+      }
     }
 
     let passedCount = 0;

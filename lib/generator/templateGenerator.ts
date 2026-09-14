@@ -475,14 +475,14 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
 `;
 
   const driver = `// === Driver Code (hidden from student) ===
+// @@@LOGICLAB_BATCH_V2@@@
 import java.util.*;
 
-public class Main {
+class Main {
     public static String[] parseJsonArray(String s) {
-        s = s.trim();
-        if (s.length() >= 2 && s.startsWith("[")) {
-            s = s.substring(1, s.length() - 1);
-        }
+        s = s == null ? "" : s.trim();
+        if (s.startsWith("[")) s = s.substring(1);
+        if (s.endsWith("]")) s = s.substring(0, s.length() - 1);
         if (s.isEmpty()) return new String[0];
         List<String> res = new ArrayList<>();
         int depth = 0;
@@ -490,7 +490,7 @@ public class Main {
         int start = 0;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (c == '"' && (i == 0 || s.charAt(i-1) != '\\\\')) inQuotes = !inQuotes;
+            if (c == '"' && (i == 0 || s.charAt(i - 1) != '\\\\')) inQuotes = !inQuotes;
             else if (!inQuotes && (c == '[' || c == '{')) depth++;
             else if (!inQuotes && (c == ']' || c == '}')) depth--;
             else if (!inQuotes && depth == 0 && c == ',') {
@@ -506,13 +506,19 @@ ${usesTreeNode ? treeNodeHelper : ""}
 ${usesGraphNode ? graphNodeHelper : ""}
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
+        if (!sc.hasNextLine()) return;
+        int numTestcases = 0;
+        try { numTestcases = Integer.parseInt(sc.nextLine().trim()); } catch (Exception e) { return; }
+        for (int t = 0; t < numTestcases; t++) {
 ${driverParsing}
-        Solution sol = new Solution();
-        try {
-            ${retType} res = sol.${sig.name}(${argNames.join(", ")});
+            Solution sol = new Solution();
+            try {
+                ${retType} res = sol.${sig.name}(${argNames.join(", ")});
 ${printLogic}
-        } catch (Throwable t) {
-            System.out.println("@@@LOGICLAB_ERR_START@@@" + t.toString() + "@@@LOGICLAB_ERR_END@@@");
+            } catch (Throwable th) {
+                System.out.println("@@@LOGICLAB_ERR_START@@@" + th.toString() + "@@@LOGICLAB_ERR_END@@@");
+            }
+            System.out.println("@@@LOGICLAB_TC_SEP@@@");
         }
     }
 }`;
@@ -817,6 +823,7 @@ string graphNodeToString(Node* node) {
   }
 
   const driver = `// === Driver Code (hidden from student) ===
+// @@@LOGICLAB_BATCH_V2@@@
 #include <iostream>
 #include <vector>
 #include <string>
@@ -833,15 +840,21 @@ ${usesTreeNode ? treeNodeCppHelpers : ""}
 ${usesGraphNode ? graphNodeCppHelpers : ""}
 int main() {
     string line;
+    if (!getline(cin, line)) return 0;
+    int num_testcases = 0;
+    try { num_testcases = stoi(line); } catch(...) { return 0; }
+    for (int t = 0; t < num_testcases; t++) {
 ${driverParsing}
-    Solution sol;
-    try {
-        ${retType} res = sol.${sig.name}(${argNames.join(", ")});
+        Solution sol;
+        try {
+            ${retType} res = sol.${sig.name}(${argNames.join(", ")});
 ${printLogic}
-    } catch (const std::exception& e) {
-        cout << "@@@LOGICLAB_ERR_START@@@" << e.what() << "@@@LOGICLAB_ERR_END@@@" << endl;
-    } catch (...) {
-        cout << "@@@LOGICLAB_ERR_START@@@Unknown Runtime Error@@@LOGICLAB_ERR_END@@@" << endl;
+        } catch (const std::exception& e) {
+            cout << "@@@LOGICLAB_ERR_START@@@" << e.what() << "@@@LOGICLAB_ERR_END@@@" << endl;
+        } catch (...) {
+            cout << "@@@LOGICLAB_ERR_START@@@Unknown Runtime Error@@@LOGICLAB_ERR_END@@@" << endl;
+        }
+        cout << "@@@LOGICLAB_TC_SEP@@@" << endl;
     }
     return 0;
 }`;
@@ -1013,6 +1026,7 @@ def graph_node_to_list(node):
 
   const driver = `
 # === Driver Code (hidden from student) ===
+# @@@LOGICLAB_BATCH_V2@@@
 import sys, json, traceback, collections
 ${usesListNode ? listNodePyHelpers : ""}
 ${usesTreeNode ? treeNodePyHelpers : ""}
@@ -1022,34 +1036,44 @@ if __name__ == "__main__":
     while input_lines and input_lines[-1] == "":
         input_lines.pop()
 
-    expected_args = ${normArgs.length}
-    if len(input_lines) < expected_args:
-        print(f"@@@LOGICLAB_ERR_START@@@Runtime Error: Expected {expected_args} input lines, got {len(input_lines)}@@@LOGICLAB_ERR_END@@@")
+    if not input_lines:
         sys.exit(0)
-
+    
+    num_testcases = int(input_lines.pop(0))
+    expected_args = ${normArgs.length}
     arg_types = ${JSON.stringify(normArgs.map(a => a.type))}
-    parsed_args = []
-    for i in range(expected_args):
-        line = input_lines[i].strip()
-        try:
-            val = json.loads(line)
-        except Exception:
-            val = line
-        
-        ${usesListNode ? `if arg_types[i] == "ListNode":\n            val = parse_list_node(val)` : ""}
-        ${usesTreeNode ? `if arg_types[i] == "TreeNode":\n            val = parse_tree_node(val)` : ""}
-        ${usesGraphNode ? `if arg_types[i] == "Node":\n            val = parse_graph_node(val)` : ""}
-        parsed_args.append(val)
+    
+    idx = 0
+    for t in range(num_testcases):
+        if idx + expected_args > len(input_lines):
+            print(f"@@@LOGICLAB_ERR_START@@@Runtime Error: Missing input for testcase {t+1}@@@LOGICLAB_ERR_END@@@")
+            sys.exit(0)
 
-    sol = Solution()
-    try:
-        result = sol.${sig.name}(*parsed_args)
-        ${normReturnType === "ListNode" ? "result = list_node_to_list(result)" : ""}
-        ${normReturnType === "TreeNode" ? "result = tree_node_to_list(result)" : ""}
-        ${normReturnType === "Node" ? "result = graph_node_to_list(result)" : ""}
-        print("@@@LOGICLAB_RES_START@@@" + json.dumps(result).replace(" ", "") + "@@@LOGICLAB_RES_END@@@")
-    except Exception as e:
-        print("@@@LOGICLAB_ERR_START@@@" + "\\n".join(traceback.format_exception_only(type(e), e)).strip() + "@@@LOGICLAB_ERR_END@@@")
+        parsed_args = []
+        for i in range(expected_args):
+            line = input_lines[idx].strip()
+            idx += 1
+            try:
+                val = json.loads(line)
+            except Exception:
+                val = line
+            
+            ${usesListNode ? `if arg_types[i] == "ListNode":\n                val = parse_list_node(val)` : ""}
+            ${usesTreeNode ? `if arg_types[i] == "TreeNode":\n                val = parse_tree_node(val)` : ""}
+            ${usesGraphNode ? `if arg_types[i] == "Node":\n                val = parse_graph_node(val)` : ""}
+            parsed_args.append(val)
+
+        sol = Solution()
+        try:
+            result = sol.${sig.name}(*parsed_args)
+            ${normReturnType === "ListNode" ? "result = list_node_to_list(result)" : ""}
+            ${normReturnType === "TreeNode" ? "result = tree_node_to_list(result)" : ""}
+            ${normReturnType === "Node" ? "result = graph_node_to_list(result)" : ""}
+            print("@@@LOGICLAB_RES_START@@@" + json.dumps(result).replace(" ", "") + "@@@LOGICLAB_RES_END@@@")
+        except Exception as e:
+            print("@@@LOGICLAB_ERR_START@@@" + "\\n".join(traceback.format_exception_only(type(e), e)).strip() + "@@@LOGICLAB_ERR_END@@@")
+        
+        print("@@@LOGICLAB_TC_SEP@@@")
 `;
 
   return { boilerplate, driver };
@@ -1236,6 +1260,7 @@ function graphNodeToArray(node) {
 `;
 
   const driver = `// === Driver Code (hidden from student) ===
+// @@@LOGICLAB_BATCH_V2@@@
 const fs = require('fs');
 ${usesListNode ? listNodeJsHelpers : ""}
 ${usesTreeNode ? treeNodeJsHelpers : ""}
@@ -1243,37 +1268,51 @@ ${usesGraphNode ? graphNodeJsHelpers : ""}
 function run() {
     const raw = fs.readFileSync(0, 'utf-8');
     const input = raw.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (input.length === 0) return;
+    const numTestcases = parseInt(input.shift(), 10);
     const expectedArgs = ${normArgs.length};
-
-    if (input.length < expectedArgs) {
-        console.log("@@@LOGICLAB_ERR_START@@@Runtime Error: Expected " + expectedArgs + " input lines, got " + input.length + "@@@LOGICLAB_ERR_END@@@");
-        return;
-    }
-
     const argTypes = ${JSON.stringify(normArgs.map(a => a.type))};
-    const parsedArgs = [];
-    for (let i = 0; i < expectedArgs; i++) {
-        let val;
-        try {
-            val = JSON.parse(input[i]);
-        } catch(e) {
-            val = input[i];
-        }
-        ${usesListNode ? `if (argTypes[i] === "ListNode") val = parseListNode(val);` : ""}
-        ${usesTreeNode ? `if (argTypes[i] === "TreeNode") val = parseTreeNode(val);` : ""}
-        ${usesGraphNode ? `if (argTypes[i] === "Node") val = parseGraphNode(val);` : ""}
-        parsedArgs.push(val);
-    }
 
-    const sol = new Solution();
-    try {
-        let result = sol.${sig.name}(...parsedArgs);
-        ${normReturnType === "ListNode" ? "result = listNodeToArray(result);" : ""}
-        ${normReturnType === "TreeNode" ? "result = treeNodeToArray(result);" : ""}
-        ${normReturnType === "Node" ? "result = graphNodeToArray(result);" : ""}
-        console.log("@@@LOGICLAB_RES_START@@@" + JSON.stringify(result) + "@@@LOGICLAB_RES_END@@@");
-    } catch(e) {
-        console.log("@@@LOGICLAB_ERR_START@@@" + (e.stack || e.toString()) + "@@@LOGICLAB_ERR_END@@@");
+    let idx = 0;
+    for (let t = 0; t < numTestcases; t++) {
+        if (idx + expectedArgs > input.length) {
+            console.log("@@@LOGICLAB_ERR_START@@@Runtime Error: Missing input for testcase " + (t+1) + "@@@LOGICLAB_ERR_END@@@");
+            return;
+        }
+
+        const parsedArgs = [];
+        for (let i = 0; i < expectedArgs; i++) {
+            let val;
+            try {
+                val = JSON.parse(input[idx]);
+            } catch(e) {
+                val = input[idx];
+            }
+            ${usesListNode ? `if (argTypes[i] === "ListNode") val = parseListNode(val);` : ""}
+            ${usesTreeNode ? `if (argTypes[i] === "TreeNode") val = parseTreeNode(val);` : ""}
+            ${usesGraphNode ? `if (argTypes[i] === "Node") val = parseGraphNode(val);` : ""}
+            parsedArgs.push(val);
+            idx++;
+        }
+
+        let result;
+        try {
+            if (typeof Solution !== "undefined") {
+                const sol = new Solution();
+                result = sol.${sig.name}(...parsedArgs);
+            } else if (typeof ${sig.name} !== "undefined") {
+                result = ${sig.name}(...parsedArgs);
+            } else {
+                throw new Error("Could not find function '${sig.name}' or 'class Solution'");
+            }
+            ${normReturnType === "ListNode" ? "result = listNodeToArray(result);" : ""}
+            ${normReturnType === "TreeNode" ? "result = treeNodeToArray(result);" : ""}
+            ${normReturnType === "Node" ? "result = graphNodeToArray(result);" : ""}
+            console.log("@@@LOGICLAB_RES_START@@@" + JSON.stringify(result) + "@@@LOGICLAB_RES_END@@@");
+        } catch(e) {
+            console.log("@@@LOGICLAB_ERR_START@@@" + (e.stack || e.toString()) + "@@@LOGICLAB_ERR_END@@@");
+        }
+        console.log("@@@LOGICLAB_TC_SEP@@@");
     }
 }
 run();

@@ -104,7 +104,7 @@ export function useCodeExecution({
         throw new Error(runInit.error || "Execution submission failed.");
       }
 
-      const { tokens: runTokens, line_offset, sample_cases } = runInit;
+      const { tokens: runTokens, line_offset, sample_cases, is_v2 } = runInit;
       let runAttempts = 0;
       let data: any = null;
 
@@ -120,6 +120,7 @@ export function useCodeExecution({
             mode: "problem",
             line_offset,
             sample_cases,
+            is_v2,
           }),
         });
 

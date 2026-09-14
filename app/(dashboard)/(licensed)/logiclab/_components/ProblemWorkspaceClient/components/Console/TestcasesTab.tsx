@@ -318,14 +318,10 @@ export function TestcasesTab({
               className="gap-0 border-border/60 bg-muted/15 shadow-none overflow-hidden transition-colors focus-within:border-border"
             >
               {/* Parameter Card Header */}
-              <CardHeader className="flex flex-row items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/40 text-xs select-none space-y-0">
-                <div className="flex items-center gap-1.5 font-mono">
-                  <span className="text-primary font-bold">$</span>
-                  <span className="font-semibold text-foreground">{paramName}</span>
-                  <Badge variant="outline" className="text-[10px] font-sans uppercase tracking-wider ml-1 py-0 h-4">
-                    Param
-                  </Badge>
-                </div>
+                <CardHeader className="flex flex-row items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/40 text-xs select-none space-y-0">
+                  <div className="flex items-center gap-1.5 font-mono text-muted-foreground">
+                    <span>{paramName} = </span>
+                  </div>
                 <Button
                   variant="ghost"
                   size="xs"
@@ -370,14 +366,10 @@ export function TestcasesTab({
 
         {/* Expected Output Target Card */}
         <Card className="gap-0 border-border/60 bg-muted/15 shadow-none overflow-hidden transition-colors focus-within:border-border">
-          <CardHeader className="flex flex-row items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/40 text-xs select-none space-y-0">
-            <div className="flex items-center gap-1.5 font-mono">
-              <IconTarget className="size-3.5 text-emerald-500 shrink-0" />
-              <span className="font-semibold text-foreground">Expected Output</span>
-              <Badge variant="outline" className="text-[10px] font-sans uppercase tracking-wider ml-1 py-0 h-4">
-                {isCustomCase ? "Optional Target" : "Target"}
-              </Badge>
-            </div>
+            <CardHeader className="flex flex-row items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border/40 text-xs select-none space-y-0">
+              <div className="flex items-center gap-1.5 font-mono text-muted-foreground">
+                <span>Expected Output = </span>
+              </div>
             {currentExpected && (
               <Button
                 variant="ghost"

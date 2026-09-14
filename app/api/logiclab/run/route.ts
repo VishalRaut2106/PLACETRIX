@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"; // HMR trigger
 import { getUserProfile } from "@/lib/supabase/profile";
 import { getCachedProblemExecutionData } from "@/lib/supabase/cached-queries";
 import { rateLimit } from "@/lib/rate-limit";
@@ -143,6 +143,7 @@ export async function POST(req: Request) {
 
     let lineOffset = 0;
     let finalSource = source_code;
+    const isV2 = driverCode.includes("@@@LOGICLAB_BATCH_V2@@@");
     const prelude = getLanguagePrelude(langKey, source_code, driverCode);
 
     if (langKey === "62") {
@@ -187,41 +188,79 @@ export async function POST(req: Request) {
 
     const sandboxConfig = getJudge0SandboxConfig(timeLimit, memoryLimit);
     const encodedSource = Buffer.from(finalSource).toString("base64");
-    const batchPayload = {
-      submissions: sampleTestCases.map((tc: any) => ({
+    
+    if (isV2) {
+      let combinedStdin = sampleTestCases.length + "\n";
+      for (const tc of sampleTestCases) {
+        combinedStdin += (tc.input || "") + "\n";
+      }
+
+      const payload = {
         source_code: encodedSource,
         language_id,
-        stdin: Buffer.from(tc.input || "").toString("base64"),
+        stdin: Buffer.from(combinedStdin).toString("base64"),
         ...sandboxConfig,
-      })),
-    };
+      };
 
-    const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(batchPayload),
-    });
+      const submitRes = await fetch(`${judge0Endpoint}/submissions?base64_encoded=true`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!batchResponse.ok) {
-      return NextResponse.json({ success: false, error: "Failed to submit batch to Judge0." }, { status: 502 });
+      if (!submitRes.ok) {
+        return NextResponse.json({ success: false, error: "Failed to submit V2 to Judge0." }, { status: 502 });
+      }
+
+      const data = await submitRes.json();
+      return NextResponse.json({
+        success: true,
+        mode: "problem",
+        tokens: [data.token],
+        problem_id,
+        language_id,
+        is_v2: true,
+        line_offset: lineOffset,
+        sample_cases: sampleTestCases,
+      });
+    } else {
+      const batchPayload = {
+        submissions: sampleTestCases.map((tc: any) => ({
+          source_code: encodedSource,
+          language_id,
+          stdin: Buffer.from(tc.input || "").toString("base64"),
+          ...sandboxConfig,
+        })),
+      };
+
+      const batchResponse = await fetch(`${judge0Endpoint}/submissions/batch?base64_encoded=true`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(batchPayload),
+      });
+
+      if (!batchResponse.ok) {
+        return NextResponse.json({ success: false, error: "Failed to submit batch to Judge0." }, { status: 502 });
+      }
+
+      const batchTokens = await batchResponse.json();
+      if (!Array.isArray(batchTokens) || batchTokens.length !== sampleTestCases.length) {
+        return NextResponse.json({ success: false, error: "Invalid token count returned from Judge0." }, { status: 502 });
+      }
+
+      const tokens = batchTokens.map((t: any) => t.token);
+
+      return NextResponse.json({
+        success: true,
+        mode: "problem",
+        tokens,
+        problem_id,
+        language_id,
+        is_v2: false,
+        line_offset: lineOffset,
+        sample_cases: sampleTestCases,
+      });
     }
-
-    const batchTokens = await batchResponse.json();
-    if (!Array.isArray(batchTokens) || batchTokens.length !== sampleTestCases.length) {
-      return NextResponse.json({ success: false, error: "Invalid token count returned from Judge0." }, { status: 502 });
-    }
-
-    const tokens = batchTokens.map((t: any) => t.token);
-
-    return NextResponse.json({
-      success: true,
-      mode: "problem",
-      tokens,
-      problem_id,
-      language_id,
-      line_offset: lineOffset,
-      sample_cases: sampleTestCases,
-    });
   } catch (err: any) {
     console.error("[api/logiclab/run] Error:", err);
     return NextResponse.json({ success: false, error: err.message || "Internal server error" }, { status: 500 });
