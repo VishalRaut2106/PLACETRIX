@@ -11,12 +11,14 @@ export type ArgType =
   | "double[]" 
   | "int[][]" 
   | "string[][]" 
+  | "char[][]"
   | "ListNode" 
   | "ListNode[]" 
   | "TreeNode" 
   | "TreeNode[]"
   | "Node"
   | "Node[]"
+  | "void"
   | "String" 
   | "String[]" 
   | "long" 
@@ -67,6 +69,8 @@ const TYPE_MAPS: Record<string, Record<string, string>> = {
     "double[]": "double[]",
     "int[][]": "int[][]",
     "string[][]": "String[][]",
+    "char[][]": "char[][]",
+    "void": "void",
     "ListNode": "ListNode",
     "ListNode[]": "ListNode[]",
     "TreeNode": "TreeNode",
@@ -87,6 +91,8 @@ const TYPE_MAPS: Record<string, Record<string, string>> = {
     "double[]": "vector<double>",
     "int[][]": "vector<vector<int>>",
     "string[][]": "vector<vector<string>>",
+    "char[][]": "vector<vector<char>>",
+    "void": "void",
     "ListNode": "ListNode*",
     "ListNode[]": "vector<ListNode*>",
     "TreeNode": "TreeNode*",
@@ -107,6 +113,8 @@ const TYPE_MAPS: Record<string, Record<string, string>> = {
     "double[]": "List[float]",
     "int[][]": "List[List[int]]",
     "string[][]": "List[List[str]]",
+    "char[][]": "List[List[str]]",
+    "void": "None",
     "ListNode": "Optional[ListNode]",
     "ListNode[]": "List[Optional[ListNode]]",
     "TreeNode": "Optional[TreeNode]",
@@ -151,6 +159,8 @@ const DUMMY_RETURNS: Record<string, Record<string, string>> = {
     "double[]": "return new double[0];",
     "int[][]": "return new int[0][0];",
     "string[][]": "return new String[0][0];",
+    "char[][]": "return new char[0][0];",
+    "void": "",
     "ListNode": "return null;",
     "ListNode[]": "return new ListNode[0];",
     "TreeNode": "return null;",
@@ -171,6 +181,8 @@ const DUMMY_RETURNS: Record<string, Record<string, string>> = {
     "double[]": "return {};",
     "int[][]": "return {};",
     "string[][]": "return {};",
+    "char[][]": "return {};",
+    "void": "",
     "ListNode": "return nullptr;",
     "ListNode[]": "return {};",
     "TreeNode": "return nullptr;",
@@ -191,6 +203,8 @@ const DUMMY_RETURNS: Record<string, Record<string, string>> = {
     "double[]": "return []",
     "int[][]": "return []",
     "string[][]": "return []",
+    "char[][]": "return []",
+    "void": "pass",
     "ListNode": "return None",
     "ListNode[]": "return []",
     "TreeNode": "return None",
@@ -211,6 +225,8 @@ const DUMMY_RETURNS: Record<string, Record<string, string>> = {
     "double[]": "return [];",
     "int[][]": "return [];",
     "string[][]": "return [];",
+    "char[][]": "return [];",
+    "void": "",
     "ListNode": "return null;",
     "ListNode[]": "return [];",
     "TreeNode": "return null;",
@@ -245,7 +261,8 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
     boilerplateHeader += `/**\n * Definition for a Node.\n * class Node {\n *     public int val;\n *     public List<Node> neighbors;\n *     public Node() { val = 0; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val) { val = _val; neighbors = new ArrayList<Node>(); }\n *     public Node(int _val, ArrayList<Node> _neighbors) { val = _val; neighbors = _neighbors; }\n * }\n */\n`;
   }
 
-  const boilerplate = `${boilerplateHeader}class Solution {\n    public ${retType} ${sig.name}(${args}) {\n        // Write your code here\n        ${DUMMY_RETURNS.java[normReturnType] || "return null;"}\n    }\n}`;
+  const dummyReturn = normReturnType === "void" ? "" : (DUMMY_RETURNS.java[normReturnType] || "return null;");
+  const boilerplate = `${boilerplateHeader}class Solution {\n    public ${retType} ${sig.name}(${args}) {\n        // Write your code here\n        ${dummyReturn}\n    }\n}`;
 
   let driverParsing = "";
   const argNames: string[] = [];
@@ -278,9 +295,9 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
       driverParsing += `        String[] parts${i} = parseJsonArray(line${i});\n`;
       driverParsing += `        String[] ${argName} = new String[parts${i}.length];\n`;
       driverParsing += `        for (int j = 0; j < parts${i}.length; j++) {\n`;
-      driverParsing += `            String t = parts${i}[j].trim();\n`;
-      driverParsing += `            if (t.startsWith("\\"") && t.endsWith("\\"")) t = t.substring(1, t.length() - 1);\n`;
-      driverParsing += `            ${argName}[j] = t;\n`;
+      driverParsing += `            String sv${i} = parts${i}[j].trim();\n`;
+      driverParsing += `            if (sv${i}.startsWith("\\"") && sv${i}.endsWith("\\"")) sv${i} = sv${i}.substring(1, sv${i}.length() - 1);\n`;
+      driverParsing += `            ${argName}[j] = sv${i};\n`;
       driverParsing += `        }\n`;
     } else if (a.type === "int[][]") {
       driverParsing += `        String[] rows${i} = parseJsonArray(line${i});\n`;
@@ -297,9 +314,21 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
       driverParsing += `            String[] cols = parseJsonArray(rows${i}[r]);\n`;
       driverParsing += `            ${argName}[r] = new String[cols.length];\n`;
       driverParsing += `            for (int c = 0; c < cols.length; c++) {\n`;
-      driverParsing += `                String t = cols[c].trim();\n`;
-      driverParsing += `                if (t.startsWith("\\"") && t.endsWith("\\"")) t = t.substring(1, t.length() - 1);\n`;
-      driverParsing += `                ${argName}[r][c] = t;\n`;
+      driverParsing += `                String sv${i} = cols[c].trim();\n`;
+      driverParsing += `                if (sv${i}.startsWith("\\"") && sv${i}.endsWith("\\"")) sv${i} = sv${i}.substring(1, sv${i}.length() - 1);\n`;
+      driverParsing += `                ${argName}[r][c] = sv${i};\n`;
+      driverParsing += `            }\n`;
+      driverParsing += `        }\n`;
+    } else if (a.type === "char[][]") {
+      driverParsing += `        String[] rows${i} = parseJsonArray(line${i});\n`;
+      driverParsing += `        char[][] ${argName} = new char[rows${i}.length][];\n`;
+      driverParsing += `        for (int r = 0; r < rows${i}.length; r++) {\n`;
+      driverParsing += `            String[] cols = parseJsonArray(rows${i}[r]);\n`;
+      driverParsing += `            ${argName}[r] = new char[cols.length];\n`;
+      driverParsing += `            for (int c = 0; c < cols.length; c++) {\n`;
+      driverParsing += `                String cv${i} = cols[c].trim();\n`;
+      driverParsing += `                if (cv${i}.startsWith("\\"") && cv${i}.endsWith("\\"")) cv${i} = cv${i}.substring(1, cv${i}.length() - 1);\n`;
+      driverParsing += `                ${argName}[r][c] = cv${i}.isEmpty() ? '\\0' : cv${i}.charAt(0);\n`;
       driverParsing += `            }\n`;
       driverParsing += `        }\n`;
     } else if (a.type === "ListNode") {
@@ -515,8 +544,7 @@ ${usesGraphNode ? graphNodeHelper : ""}
 ${driverParsing}
             Solution sol = new Solution();
             try {
-                ${retType} res = sol.${sig.name}(${argNames.join(", ")});
-${printLogic}
+                ${normReturnType === "void" ? `sol.${sig.name}(${argNames.join(", ")});\n                // void: print modified first arg\n                ${argNames.length > 0 ? `System.out.println("@@@LOGICLAB_RES_START@@@" + Arrays.toString(${argNames[0]}).replaceAll(" ", "") + "@@@LOGICLAB_RES_END@@@");` : `System.out.println("@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@");`}` : `${retType} res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
             } catch (Throwable th) {
                 System.out.println("@@@LOGICLAB_ERR_START@@@" + th.toString() + "@@@LOGICLAB_ERR_END@@@");
             }
@@ -790,6 +818,15 @@ string graphNodeToString(Node* node) {
       driverParsing += `        for (const string& c : cols) if (!c.empty()) rowVec.push_back(stoi(c));\n`;
       driverParsing += `        ${argName}.push_back(rowVec);\n`;
       driverParsing += `    }\n`;
+    } else if (a.type === "char[][]") {
+      driverParsing += `    vector<string> rows${i} = parseJsonArray(line);\n`;
+      driverParsing += `    vector<vector<char>> ${argName};\n`;
+      driverParsing += `    for (const string& r : rows${i}) {\n`;
+      driverParsing += `        vector<string> cols = parseJsonArray(r);\n`;
+      driverParsing += `        vector<char> rowVec;\n`;
+      driverParsing += `        for (const string& cc : cols) { string cv = cc; while(!cv.empty()&&cv.front()==' ')cv.erase(cv.begin()); while(!cv.empty()&&cv.back()==' ')cv.pop_back(); if(cv.size()>=2&&cv.front()=='"'&&cv.back()=='"')cv=cv.substr(1,cv.size()-2); if(!cv.empty())rowVec.push_back(cv[0]); }\n`;
+      driverParsing += `        ${argName}.push_back(rowVec);\n`;
+      driverParsing += `    }\n`;
     } else if (a.type === "ListNode") {
       driverParsing += `    ListNode* ${argName} = parseListNode(line);\n`;
     } else if (a.type === "TreeNode") {
@@ -849,8 +886,7 @@ int main() {
 ${driverParsing}
         Solution sol;
         try {
-            ${retType} res = sol.${sig.name}(${argNames.join(", ")});
-${printLogic}
+            ${normReturnType === "void" ? `sol.${sig.name}(${argNames.join(", ")});\n            // void: print modified first arg\n            ${argNames.length > 0 ? `{auto& _r=${argNames[0]}; cout<<"@@@LOGICLAB_RES_START@@@["; for(size_t _i=0;_i<_r.size();_i++) cout<<_r[_i]<<(_i==_r.size()-1?"":","); cout<<"]@@@LOGICLAB_RES_END@@@"<<endl;}` : `cout<<"@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@"<<endl;`}` : `${retType} res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
         } catch (const std::exception& e) {
             cout << "@@@LOGICLAB_ERR_START@@@" << e.what() << "@@@LOGICLAB_ERR_END@@@" << endl;
         } catch (...) {
