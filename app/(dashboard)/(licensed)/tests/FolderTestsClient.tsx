@@ -785,7 +785,7 @@ export function FolderTestsClient({
         </div>
         <div className="hidden sm:flex items-center gap-2 shrink-0">
           {currentFolder && (
-             <ExportFolderParticipantsModal folderId={currentFolder.id} folderName={currentFolder.name} />
+             <ExportFolderParticipantsModal folderId={currentFolder.id} folderName={currentFolder.name} instituteId={instituteId} />
           )}
           <Button onClick={handleCreate} className="gap-2 shrink-0">
             <Plus className="size-4" />
