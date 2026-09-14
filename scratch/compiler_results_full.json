@@ -555,6 +555,12 @@
     {
       "num": 24,
       "title": "Move Zeroes",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 24,
+      "title": "Move Zeroes",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -562,515 +568,2105 @@
       "num": 24,
       "title": "Move Zeroes",
       "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 25,
+      "title": "Valid Anagram",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 25,
+      "title": "Valid Anagram",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 25,
+      "title": "Valid Anagram",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 25,
+      "title": "Valid Anagram",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 26,
+      "title": "Search Insert Position",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 26,
+      "title": "Search Insert Position",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 26,
+      "title": "Search Insert Position",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 26,
+      "title": "Search Insert Position",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 27,
+      "title": "Plus One",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 27,
+      "title": "Plus One",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 27,
+      "title": "Plus One",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 27,
+      "title": "Plus One",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 28,
+      "title": "Two Sum",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 28,
+      "title": "Two Sum",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 28,
+      "title": "Two Sum",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 28,
+      "title": "Two Sum",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 29,
+      "title": "Jump Game",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 29,
+      "title": "Jump Game",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 29,
+      "title": "Jump Game",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 29,
+      "title": "Jump Game",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 30,
+      "title": "Search in Rotated Sorted Array",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 30,
+      "title": "Search in Rotated Sorted Array",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 30,
+      "title": "Search in Rotated Sorted Array",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 30,
+      "title": "Search in Rotated Sorted Array",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 31,
+      "title": "Max Consecutive Ones",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 31,
+      "title": "Max Consecutive Ones",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 31,
+      "title": "Max Consecutive Ones",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 31,
+      "title": "Max Consecutive Ones",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 32,
+      "title": "Palindrome Number",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 32,
+      "title": "Palindrome Number",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 32,
+      "title": "Palindrome Number",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 32,
+      "title": "Palindrome Number",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 33,
+      "title": "3Sum",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 33,
+      "title": "3Sum",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 33,
+      "title": "3Sum",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 33,
+      "title": "3Sum",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 34,
+      "title": "Group Anagrams",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 34,
+      "title": "Group Anagrams",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 34,
+      "title": "Group Anagrams",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 35,
+      "title": "Merge Intervals",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 35,
+      "title": "Merge Intervals",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 35,
+      "title": "Merge Intervals",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 35,
+      "title": "Merge Intervals",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 36,
+      "title": "Reverse Integer",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 36,
+      "title": "Reverse Integer",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 36,
+      "title": "Reverse Integer",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 36,
+      "title": "Reverse Integer",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 37,
+      "title": "Rotate Image",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 37,
+      "title": "Rotate Image",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 37,
+      "title": "Rotate Image",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 38,
+      "title": "Word Search",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 38,
+      "title": "Word Search",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 38,
+      "title": "Word Search",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 38,
+      "title": "Word Search",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 39,
+      "title": "Search a 2D Matrix",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 39,
+      "title": "Search a 2D Matrix",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 39,
+      "title": "Search a 2D Matrix",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 39,
+      "title": "Search a 2D Matrix",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 40,
+      "title": "Number of Islands",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 40,
+      "title": "Number of Islands",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 40,
+      "title": "Number of Islands",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 40,
+      "title": "Number of Islands",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 41,
+      "title": "Roman to Integer",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 41,
+      "title": "Roman to Integer",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 41,
+      "title": "Roman to Integer",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 41,
+      "title": "Roman to Integer",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 42,
+      "title": "Longest Common Prefix",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 42,
+      "title": "Longest Common Prefix",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 42,
+      "title": "Longest Common Prefix",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 42,
+      "title": "Longest Common Prefix",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 43,
+      "title": "Permutations",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 43,
+      "title": "Permutations",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 43,
+      "title": "Permutations",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 43,
+      "title": "Permutations",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 44,
+      "title": "Combination Sum",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 44,
+      "title": "Combination Sum",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 44,
+      "title": "Combination Sum",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 44,
+      "title": "Combination Sum",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 45,
+      "title": "Set Matrix Zeroes",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 45,
+      "title": "Set Matrix Zeroes",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 45,
+      "title": "Set Matrix Zeroes",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 46,
+      "title": "Median of Two Sorted Arrays",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 46,
+      "title": "Median of Two Sorted Arrays",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 46,
+      "title": "Median of Two Sorted Arrays",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 46,
+      "title": "Median of Two Sorted Arrays",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 47,
+      "title": "First Missing Positive",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 47,
+      "title": "First Missing Positive",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 47,
+      "title": "First Missing Positive",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 47,
+      "title": "First Missing Positive",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 48,
+      "title": "Subsets",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 48,
+      "title": "Subsets",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 48,
+      "title": "Subsets",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 48,
+      "title": "Subsets",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 49,
+      "title": "Sort Colors",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 49,
+      "title": "Sort Colors",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 49,
+      "title": "Sort Colors",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 50,
+      "title": "Counting Bits",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 50,
+      "title": "Counting Bits",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 50,
+      "title": "Counting Bits",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 50,
+      "title": "Counting Bits",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 51,
+      "title": "Coin Change",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 51,
+      "title": "Coin Change",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 51,
+      "title": "Coin Change",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 51,
+      "title": "Coin Change",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 52,
+      "title": "Longest Increasing Subsequence",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 52,
+      "title": "Longest Increasing Subsequence",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 52,
+      "title": "Longest Increasing Subsequence",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 52,
+      "title": "Longest Increasing Subsequence",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 53,
+      "title": "Edit Distance",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 53,
+      "title": "Edit Distance",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 53,
+      "title": "Edit Distance",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 53,
+      "title": "Edit Distance",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 54,
+      "title": "Unique Paths",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 54,
+      "title": "Unique Paths",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 54,
+      "title": "Unique Paths",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 54,
+      "title": "Unique Paths",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 55,
+      "title": "Decode Ways",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 55,
+      "title": "Decode Ways",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 55,
+      "title": "Decode Ways",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 55,
+      "title": "Decode Ways",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 56,
+      "title": "Minimum Path Sum",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 56,
+      "title": "Minimum Path Sum",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 56,
+      "title": "Minimum Path Sum",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 56,
+      "title": "Minimum Path Sum",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 57,
+      "title": "House Robber",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 57,
+      "title": "House Robber",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 57,
+      "title": "House Robber",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 57,
+      "title": "House Robber",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 58,
+      "title": "Jump Game II",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 58,
+      "title": "Jump Game II",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 58,
+      "title": "Jump Game II",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 58,
+      "title": "Jump Game II",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 59,
+      "title": "Word Break",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 59,
+      "title": "Word Break",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 59,
+      "title": "Word Break",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 60,
+      "title": "Maximum Product Subarray",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 60,
+      "title": "Maximum Product Subarray",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 60,
+      "title": "Maximum Product Subarray",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 60,
+      "title": "Maximum Product Subarray",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 61,
+      "title": "Kth Largest Element in an Array",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 61,
+      "title": "Kth Largest Element in an Array",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 61,
+      "title": "Kth Largest Element in an Array",
+      "lang": "Python",
       "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 25,
-      "title": "Valid Anagram",
+      "num": 62,
+      "title": "Rotate Array",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 62,
+      "title": "Rotate Array",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 63,
+      "title": "Reverse String",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 63,
+      "title": "Reverse String",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 64,
+      "title": "Remove Duplicates from Sorted Array",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 25,
-      "title": "Valid Anagram",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 25,
-      "title": "Valid Anagram",
+      "num": 64,
+      "title": "Remove Duplicates from Sorted Array",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 25,
-      "title": "Valid Anagram",
+      "num": 64,
+      "title": "Remove Duplicates from Sorted Array",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 26,
-      "title": "Search Insert Position",
+      "num": 65,
+      "title": "Intersection of Two Arrays",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 26,
-      "title": "Search Insert Position",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 26,
-      "title": "Search Insert Position",
+      "num": 65,
+      "title": "Intersection of Two Arrays",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 26,
-      "title": "Search Insert Position",
+      "num": 65,
+      "title": "Intersection of Two Arrays",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 27,
-      "title": "Plus One",
+      "num": 66,
+      "title": "Remove Element",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 27,
-      "title": "Plus One",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 27,
-      "title": "Plus One",
+      "num": 66,
+      "title": "Remove Element",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 27,
-      "title": "Plus One",
+      "num": 66,
+      "title": "Remove Element",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 28,
-      "title": "Two Sum",
+      "num": 67,
+      "title": "Ransom Note",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 28,
-      "title": "Two Sum",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 28,
-      "title": "Two Sum",
+      "num": 67,
+      "title": "Ransom Note",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 28,
-      "title": "Two Sum",
+      "num": 67,
+      "title": "Ransom Note",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 29,
-      "title": "Jump Game",
+      "num": 68,
+      "title": "Sqrt(x)",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 29,
-      "title": "Jump Game",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 29,
-      "title": "Jump Game",
+      "num": 68,
+      "title": "Sqrt(x)",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 29,
-      "title": "Jump Game",
+      "num": 68,
+      "title": "Sqrt(x)",
       "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 69,
+      "title": "Pascal's Triangle",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 69,
+      "title": "Pascal's Triangle",
+      "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 30,
-      "title": "Search in Rotated Sorted Array",
+      "num": 69,
+      "title": "Pascal's Triangle",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 70,
+      "title": "Add Binary",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 30,
-      "title": "Search in Rotated Sorted Array",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 30,
-      "title": "Search in Rotated Sorted Array",
+      "num": 70,
+      "title": "Add Binary",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 30,
-      "title": "Search in Rotated Sorted Array",
+      "num": 70,
+      "title": "Add Binary",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 31,
-      "title": "Max Consecutive Ones",
+      "num": 71,
+      "title": "Isomorphic Strings",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 31,
-      "title": "Max Consecutive Ones",
+      "num": 71,
+      "title": "Isomorphic Strings",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 31,
-      "title": "Max Consecutive Ones",
+      "num": 71,
+      "title": "Isomorphic Strings",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 32,
-      "title": "Palindrome Number",
+      "num": 72,
+      "title": "Contains Duplicate II",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 32,
-      "title": "Palindrome Number",
+      "num": 72,
+      "title": "Contains Duplicate II",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 32,
-      "title": "Palindrome Number",
+      "num": 72,
+      "title": "Contains Duplicate II",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 33,
-      "title": "3Sum",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 33,
-      "title": "3Sum",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 33,
-      "title": "3Sum",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 34,
-      "title": "Group Anagrams",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 34,
-      "title": "Group Anagrams",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 35,
-      "title": "Merge Intervals",
+      "num": 73,
+      "title": "Find the Duplicate Number",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 35,
-      "title": "Merge Intervals",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 35,
-      "title": "Merge Intervals",
+      "num": 73,
+      "title": "Find the Duplicate Number",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 35,
-      "title": "Merge Intervals",
+      "num": 73,
+      "title": "Find the Duplicate Number",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 36,
-      "title": "Reverse Integer",
+      "num": 74,
+      "title": "Power of Two",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 36,
-      "title": "Reverse Integer",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 36,
-      "title": "Reverse Integer",
+      "num": 74,
+      "title": "Power of Two",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 36,
-      "title": "Reverse Integer",
+      "num": 74,
+      "title": "Power of Two",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 37,
-      "title": "Rotate Image",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 37,
-      "title": "Rotate Image",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 38,
-      "title": "Word Search",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 38,
-      "title": "Word Search",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 39,
-      "title": "Search a 2D Matrix",
+      "num": 75,
+      "title": "Valid Palindrome II",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 39,
-      "title": "Search a 2D Matrix",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 39,
-      "title": "Search a 2D Matrix",
+      "num": 75,
+      "title": "Valid Palindrome II",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 39,
-      "title": "Search a 2D Matrix",
+      "num": 75,
+      "title": "Valid Palindrome II",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 40,
-      "title": "Number of Islands",
+      "num": 76,
+      "title": "Valid Sudoku",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 40,
-      "title": "Number of Islands",
+      "num": 76,
+      "title": "Valid Sudoku",
       "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 77,
+      "title": "Squares of a Sorted Array",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 77,
+      "title": "Squares of a Sorted Array",
+      "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 41,
-      "title": "Roman to Integer",
+      "num": 77,
+      "title": "Squares of a Sorted Array",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 78,
+      "title": "First Unique Character in a String",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 41,
-      "title": "Roman to Integer",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 41,
-      "title": "Roman to Integer",
+      "num": 78,
+      "title": "First Unique Character in a String",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 41,
-      "title": "Roman to Integer",
+      "num": 78,
+      "title": "First Unique Character in a String",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 42,
-      "title": "Longest Common Prefix",
+      "num": 79,
+      "title": "Number of 1 Bits",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 42,
-      "title": "Longest Common Prefix",
+      "num": 79,
+      "title": "Number of 1 Bits",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 42,
-      "title": "Longest Common Prefix",
+      "num": 79,
+      "title": "Number of 1 Bits",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 43,
-      "title": "Permutations",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 43,
-      "title": "Permutations",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 43,
-      "title": "Permutations",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 44,
-      "title": "Combination Sum",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 44,
-      "title": "Combination Sum",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 44,
-      "title": "Combination Sum",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 45,
-      "title": "Set Matrix Zeroes",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 45,
-      "title": "Set Matrix Zeroes",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 46,
-      "title": "Median of Two Sorted Arrays",
+      "num": 80,
+      "title": "Word Pattern",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 46,
-      "title": "Median of Two Sorted Arrays",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 46,
-      "title": "Median of Two Sorted Arrays",
+      "num": 80,
+      "title": "Word Pattern",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 46,
-      "title": "Median of Two Sorted Arrays",
+      "num": 80,
+      "title": "Word Pattern",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 47,
-      "title": "First Missing Positive",
+      "num": 81,
+      "title": "Sliding Window Maximum",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 47,
-      "title": "First Missing Positive",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 47,
-      "title": "First Missing Positive",
+      "num": 81,
+      "title": "Sliding Window Maximum",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 47,
-      "title": "First Missing Positive",
+      "num": 81,
+      "title": "Sliding Window Maximum",
       "lang": "Python",
-      "status": "Accepted"
+      "status": "Runtime Error (NZEC)"
     },
     {
-      "num": 48,
-      "title": "Subsets",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 48,
-      "title": "Subsets",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 48,
-      "title": "Subsets",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 49,
-      "title": "Sort Colors",
-      "lang": "JavaScript",
-      "status": "Accepted"
-    },
-    {
-      "num": 49,
-      "title": "Sort Colors",
-      "lang": "Python",
-      "status": "Accepted"
-    },
-    {
-      "num": 50,
-      "title": "Counting Bits",
+      "num": 82,
+      "title": "3Sum Closest",
       "lang": "C++",
       "status": "Accepted"
     },
     {
-      "num": 50,
-      "title": "Counting Bits",
-      "lang": "Java",
-      "status": "Accepted"
-    },
-    {
-      "num": 50,
-      "title": "Counting Bits",
+      "num": 82,
+      "title": "3Sum Closest",
       "lang": "JavaScript",
       "status": "Accepted"
     },
     {
-      "num": 50,
-      "title": "Counting Bits",
+      "num": 82,
+      "title": "3Sum Closest",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 84,
+      "title": "Letter Combinations of a Phone Number",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 84,
+      "title": "Letter Combinations of a Phone Number",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 84,
+      "title": "Letter Combinations of a Phone Number",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 86,
+      "title": "Largest Rectangle in Histogram",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 86,
+      "title": "Largest Rectangle in Histogram",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 86,
+      "title": "Largest Rectangle in Histogram",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 87,
+      "title": "Generate Parentheses",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 87,
+      "title": "Generate Parentheses",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 87,
+      "title": "Generate Parentheses",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 88,
+      "title": "Integer to Roman",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 88,
+      "title": "Integer to Roman",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 88,
+      "title": "Integer to Roman",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 90,
+      "title": "Minimum Window Substring",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 90,
+      "title": "Minimum Window Substring",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 90,
+      "title": "Minimum Window Substring",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 91,
+      "title": "Sudoku Solver",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 91,
+      "title": "Sudoku Solver",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 92,
+      "title": "Multiply Strings",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 92,
+      "title": "Multiply Strings",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 92,
+      "title": "Multiply Strings",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 93,
+      "title": "Spiral Matrix II",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 93,
+      "title": "Spiral Matrix II",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 93,
+      "title": "Spiral Matrix II",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 94,
+      "title": "String to Integer (atoi)",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 94,
+      "title": "String to Integer (atoi)",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 94,
+      "title": "String to Integer (atoi)",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 95,
+      "title": "Longest Valid Parentheses",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 95,
+      "title": "Longest Valid Parentheses",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 95,
+      "title": "Longest Valid Parentheses",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 96,
+      "title": "Zigzag Conversion",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 96,
+      "title": "Zigzag Conversion",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 96,
+      "title": "Zigzag Conversion",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 97,
+      "title": "Longest Palindromic Substring",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 97,
+      "title": "Longest Palindromic Substring",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 97,
+      "title": "Longest Palindromic Substring",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 98,
+      "title": "Reverse Words in a String",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 98,
+      "title": "Reverse Words in a String",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 98,
+      "title": "Reverse Words in a String",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 99,
+      "title": "Find the Index of the First Occurrence in a String",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 99,
+      "title": "Find the Index of the First Occurrence in a String",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 99,
+      "title": "Find the Index of the First Occurrence in a String",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 100,
+      "title": "Count and Say",
+      "lang": "C++",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 100,
+      "title": "Count and Say",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 100,
+      "title": "Count and Say",
+      "lang": "Python",
+      "status": "Runtime Error (NZEC)"
+    },
+    {
+      "num": 101,
+      "title": "The Warehouse Robot",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 101,
+      "title": "The Warehouse Robot",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 101,
+      "title": "The Warehouse Robot",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 101,
+      "title": "The Warehouse Robot",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 102,
+      "title": "The Spy's Caesar Cipher",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 102,
+      "title": "The Spy's Caesar Cipher",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 102,
+      "title": "The Spy's Caesar Cipher",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 102,
+      "title": "The Spy's Caesar Cipher",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 103,
+      "title": "The Spreading Wildfire",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 103,
+      "title": "The Spreading Wildfire",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 103,
+      "title": "The Spreading Wildfire",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 103,
+      "title": "The Spreading Wildfire",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 104,
+      "title": "The Midnight Heist",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 104,
+      "title": "The Midnight Heist",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 104,
+      "title": "The Midnight Heist",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 104,
+      "title": "The Midnight Heist",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 105,
+      "title": "The Election Ballot Scanner",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 105,
+      "title": "The Election Ballot Scanner",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 105,
+      "title": "The Election Ballot Scanner",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 106,
+      "title": "The Summit Trail",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 106,
+      "title": "The Summit Trail",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 106,
+      "title": "The Summit Trail",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 106,
+      "title": "The Summit Trail",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 107,
+      "title": "The Sunset View",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 107,
+      "title": "The Sunset View",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 107,
+      "title": "The Sunset View",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 107,
+      "title": "The Sunset View",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 108,
+      "title": "The Rolling Sales Window",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 108,
+      "title": "The Rolling Sales Window",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 108,
+      "title": "The Rolling Sales Window",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 108,
+      "title": "The Rolling Sales Window",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 109,
+      "title": "The Broken Calculator",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 109,
+      "title": "The Broken Calculator",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 109,
+      "title": "The Broken Calculator",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 109,
+      "title": "The Broken Calculator",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 110,
+      "title": "The Treasure Hunt Grid",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 110,
+      "title": "The Treasure Hunt Grid",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 110,
+      "title": "The Treasure Hunt Grid",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 110,
+      "title": "The Treasure Hunt Grid",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 111,
+      "title": "The Library Book Sorter",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 111,
+      "title": "The Library Book Sorter",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 111,
+      "title": "The Library Book Sorter",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 111,
+      "title": "The Library Book Sorter",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 112,
+      "title": "The Drone Delivery Range",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 112,
+      "title": "The Drone Delivery Range",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 112,
+      "title": "The Drone Delivery Range",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 112,
+      "title": "The Drone Delivery Range",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 113,
+      "title": "The Coffee Shop Queue",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 113,
+      "title": "The Coffee Shop Queue",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 113,
+      "title": "The Coffee Shop Queue",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 113,
+      "title": "The Coffee Shop Queue",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 114,
+      "title": "The Fruit Picker",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 114,
+      "title": "The Fruit Picker",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 114,
+      "title": "The Fruit Picker",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 114,
+      "title": "The Fruit Picker",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 115,
+      "title": "The Rogue Robot",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 115,
+      "title": "The Rogue Robot",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 115,
+      "title": "The Rogue Robot",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 115,
+      "title": "The Rogue Robot",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 116,
+      "title": "The Ticket Booth",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 116,
+      "title": "The Ticket Booth",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 116,
+      "title": "The Ticket Booth",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 116,
+      "title": "The Ticket Booth",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 117,
+      "title": "The Scoreboard Replay",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 117,
+      "title": "The Scoreboard Replay",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 117,
+      "title": "The Scoreboard Replay",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 118,
+      "title": "The House Painter",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 118,
+      "title": "The House Painter",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 118,
+      "title": "The House Painter",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 118,
+      "title": "The House Painter",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 119,
+      "title": "The Maze Navigator",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 119,
+      "title": "The Maze Navigator",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 119,
+      "title": "The Maze Navigator",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 119,
+      "title": "The Maze Navigator",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 120,
+      "title": "The Alien Signal",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 120,
+      "title": "The Alien Signal",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 120,
+      "title": "The Alien Signal",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 120,
+      "title": "The Alien Signal",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 121,
+      "title": "The Coin Collector",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 121,
+      "title": "The Coin Collector",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 121,
+      "title": "The Coin Collector",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 121,
+      "title": "The Coin Collector",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 122,
+      "title": "The Smuggler's Bag",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 122,
+      "title": "The Smuggler's Bag",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 122,
+      "title": "The Smuggler's Bag",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 122,
+      "title": "The Smuggler's Bag",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 123,
+      "title": "The Ancient Inscription",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 123,
+      "title": "The Ancient Inscription",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 123,
+      "title": "The Ancient Inscription",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 123,
+      "title": "The Ancient Inscription",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 124,
+      "title": "The Sequence Decoder",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 124,
+      "title": "The Sequence Decoder",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 124,
+      "title": "The Sequence Decoder",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 124,
+      "title": "The Sequence Decoder",
+      "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 125,
+      "title": "The Space Station",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 125,
+      "title": "The Space Station",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 125,
+      "title": "The Space Station",
+      "lang": "JavaScript",
+      "status": "Accepted"
+    },
+    {
+      "num": 125,
+      "title": "The Space Station",
       "lang": "Python",
       "status": "Accepted"
     }
@@ -1081,1949 +2677,386 @@
       "title": "Move Zeroes",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:87:18: error: variable or field ‘res’ declared void\n   87 |             void res = sol.moveZeroes(arg0);\n      |                  ^~~\nmain.cpp:88:47: error: ‘res’ was not declared in this scope\n   88 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << "
-    },
-    {
-      "num": 24,
-      "title": "Move Zeroes",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:59: error: incompatible types: void cannot be converted to Object\n                Object res = sol.moveZeroes(arg0);\n                                           ^\n1 error\n"
-    },
-    {
-      "num": 31,
-      "title": "Max Consecutive Ones",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 32,
-      "title": "Palindrome Number",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 33,
-      "title": "3Sum",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:87:18: error: variable or field ‘res’ declared void\n   87 |             void res = sol.threeSum(arg0);\n      |                  ^~~\nmain.cpp:88:47: error: ‘res’ was not declared in this scope\n   88 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << \"@"
+      "error": "main.cpp: In member function ‘void Solution::moveZeroes(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
     },
     {
       "num": 34,
       "title": "Group Anagrams",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:87:18: error: variable or field ‘res’ declared void\n   87 |             void res = sol.groupAnagrams(arg0);\n      |                  ^~~\nmain.cpp:88:47: error: ‘res’ was not declared in this scope\n   88 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res "
-    },
-    {
-      "num": 34,
-      "title": "Group Anagrams",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:56: error: variable t is already defined in method main(String[])\n            String t = parts0[j].trim();\n                   ^\n1 error\n"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:94:49: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<std::__cxx11::basic_string<char> > >, std::vector<std::__cxx11::basic_string<char> > >::va"
     },
     {
       "num": 37,
       "title": "Rotate Image",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field ‘res’ declared void\n   91 |             void res = sol.rotate(arg0);\n      |                  ^~~\nmain.cpp:92:47: error: ‘res’ was not declared in this scope\n   92 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << \"@@@"
+      "error": "main.cpp: In member function ‘void Solution::rotate(std::vector<std::vector<int> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: error: no"
     },
     {
-      "num": 37,
-      "title": "Rotate Image",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:62: error: incompatible types: void cannot be converted to Object\n                Object res = sol.rotate(arg0);\n                                       ^\n1 error\n"
-    },
-    {
-      "num": 38,
-      "title": "Word Search",
+      "num": 45,
+      "title": "Set Matrix Zeroes",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:90:34: error: ‘arg0’ was not declared in this scope; did you mean ‘arg1’?\n   90 |             bool res = sol.exist(arg0, arg1);\n      |                                  ^~~~\n      |                                  arg1\n"
+      "error": "main.cpp: In member function ‘void Solution::setZeroes(std::vector<std::vector<int> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: error:"
     },
     {
-      "num": 38,
-      "title": "Word Search",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:64: error: incompatible types: Object cannot be converted to char[][]\n                boolean res = sol.exist(arg0, arg1);\n                                        ^\nNote: Some messages have been simplified; recompile with -Xdiags:verbose to get full output\n1 error\n"
-    },
-    {
-      "num": 40,
-      "title": "Number of Islands",
+      "num": 49,
+      "title": "Sort Colors",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:85:38: error: ‘arg0’ was not declared in this scope\n   85 |             int res = sol.numIslands(arg0);\n      |                                      ^~~~\n"
+      "error": "main.cpp: In member function ‘void Solution::sortColors(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
     },
     {
-      "num": 40,
-      "title": "Number of Islands",
+      "num": 59,
+      "title": "Word Break",
       "lang": "Java",
       "reason": "Compilation Error",
-      "error": "Main.java:57: error: incompatible types: Object cannot be converted to char[][]\n                int res = sol.numIslands(arg0);\n                                         ^\nNote: Some messages have been simplified; recompile with -Xdiags:verbose to get full output\n1 error\n"
+      "error": "Main.java:62: error: variable t is already defined in method main(String[])\n            String t = parts1[j].trim();\n                   ^\nMain.java:69: error: incompatible types: String[] cannot be converted to List<String>\n                boolean res = sol.wordBreak(arg0, arg1);\n                   "
     },
     {
-      "num": 42,
-      "title": "Longest Common Prefix",
+      "num": 61,
+      "title": "Kth Largest Element in an Array",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 62,
+      "title": "Rotate Array",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field ‘res’ declared void\n   91 |             void res = sol.rotate(arg0, arg1);\n      |                  ^~~\nmain.cpp:92:47: error: ‘res’ was not declared in this scope\n   92 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res <"
+    },
+    {
+      "num": 62,
+      "title": "Rotate Array",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:64: error: incompatible types: void cannot be converted to Object\n                Object res = sol.rotate(arg0, arg1);\n                                       ^\n1 error\n"
+    },
+    {
+      "num": 63,
+      "title": "Reverse String",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: variable or field ‘res’ declared void\n   84 |             void res = sol.reverseString(arg0);\n      |                  ^~~\nmain.cpp:84:42: error: ‘arg0’ was not declared in this scope\n   84 |             void res = sol.reverseString(arg0);\n "
+    },
+    {
+      "num": 63,
+      "title": "Reverse String",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:56: error: incompatible types: void cannot be converted to Object\n                Object res = sol.reverseString(arg0);\n                                              ^\n1 error\n"
+    },
+    {
+      "num": 64,
+      "title": "Remove Duplicates from Sorted Array",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 65,
+      "title": "Intersection of Two Arrays",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 66,
+      "title": "Remove Element",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 67,
+      "title": "Ransom Note",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 68,
+      "title": "Sqrt(x)",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 69,
+      "title": "Pascal's Triangle",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:57: error: incompatible types: List<List<Integer>> cannot be converted to int[][]\n                int[][] res = sol.generate(arg0);\n                                          ^\n2 errors\n"
+    },
+    {
+      "num": 70,
+      "title": "Add Binary",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 71,
+      "title": "Isomorphic Strings",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 72,
+      "title": "Contains Duplicate II",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 73,
+      "title": "Find the Duplicate Number",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 74,
+      "title": "Power of Two",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 75,
+      "title": "Valid Palindrome II",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 76,
+      "title": "Valid Sudoku",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In member function ‘bool Solution::isValidSudoku(std::vector<std::vector<char> >&)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:84:42: error: ‘arg0’ was not declared in "
+    },
+    {
+      "num": 76,
+      "title": "Valid Sudoku",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\nMain.java:56: error: incompatible types: Object cannot be converted to char[][]\n                boolean res = sol.isValidSudoku(arg0);\n                                                ^\nNote: Some messages have been simplified; recompile with -"
+    },
+    {
+      "num": 77,
+      "title": "Squares of a Sorted Array",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 78,
+      "title": "First Unique Character in a String",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 79,
+      "title": "Number of 1 Bits",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 80,
+      "title": "Word Pattern",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 81,
+      "title": "Sliding Window Maximum",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 82,
+      "title": "3Sum Closest",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In member function ‘std::vector<std::vector<int> > Solution::fourSum(std::vector<int>&, int)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 84,
+      "title": "Letter Combinations of a Phone Number",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:58: error: incompatible types: List<String> cannot be converted to String[]\n                String[] res = sol.letterCombinations(arg0);\n                                                     ^\n2 errors\n"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In member function ‘std::vector<std::vector<std::__cxx11::basic_string<char> > > Solution::solveNQueens(int)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: v"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 86,
+      "title": "Largest Rectangle in Histogram",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 87,
+      "title": "Generate Parentheses",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:57: error: incompatible types: List<String> cannot be converted to String[]\n                String[] res = sol.generateParenthesis(arg0);\n                                                      ^\n2 errors\n"
+    },
+    {
+      "num": 88,
+      "title": "Integer to Roman",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:86:18: error: variable or field ‘res’ declared void\n   86 |             void res = sol.nextPermutation(arg0);\n      |                  ^~~\nmain.cpp:87:47: error: ‘res’ was not declared in this scope\n   87 |         cout << \"@@@LOGICLAB_RES_START@@@\" << re"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:58: error: incompatible types: void cannot be converted to Object\n                Object res = sol.nextPermutation(arg0);\n                                                ^\n1 error\n"
+    },
+    {
+      "num": 90,
+      "title": "Minimum Window Substring",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 91,
+      "title": "Sudoku Solver",
+      "lang": "C++",
+      "reason": "Compilation Error",
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: variable or field ‘res’ declared void\n   84 |             void res = sol.solveSudoku(arg0);\n      |                  ^~~\nmain.cpp:84:40: error: ‘arg0’ was not declared in this scope\n   84 |             void res = sol.solveSudoku(arg0);\n     "
+    },
+    {
+      "num": 91,
+      "title": "Sudoku Solver",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:56: error: incompatible types: Object cannot be converted to char[][]\n                Object res = sol.solveSudoku(arg0);\n                                             ^\nNote: Some messages have been simplified; recompile with -Xdiags:verbose to get full output\n1 error\n"
+    },
+    {
+      "num": 92,
+      "title": "Multiply Strings",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 93,
+      "title": "Spiral Matrix II",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 94,
+      "title": "String to Integer (atoi)",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 95,
+      "title": "Longest Valid Parentheses",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 96,
+      "title": "Zigzag Conversion",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 97,
+      "title": "Longest Palindromic Substring",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 98,
+      "title": "Reverse Words in a String",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 99,
+      "title": "Find the Index of the First Occurrence in a String",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 100,
+      "title": "Count and Say",
+      "lang": "Java",
+      "reason": "Compilation Error",
+      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+    },
+    {
+      "num": 105,
+      "title": "The Election Ballot Scanner",
       "lang": "Java",
       "reason": "Compilation Error",
       "error": "Main.java:56: error: variable t is already defined in method main(String[])\n            String t = parts0[j].trim();\n                   ^\n1 error\n"
     },
     {
-      "num": 43,
-      "title": "Permutations",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:87:18: error: variable or field ‘res’ declared void\n   87 |             void res = sol.permute(arg0);\n      |                  ^~~\nmain.cpp:88:47: error: ‘res’ was not declared in this scope\n   88 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << \"@@"
-    },
-    {
-      "num": 44,
-      "title": "Combination Sum",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:92:18: error: variable or field ‘res’ declared void\n   92 |             void res = sol.combinationSum(arg0, arg1);\n      |                  ^~~\nmain.cpp:93:47: error: ‘res’ was not declared in this scope\n   93 |         cout << \"@@@LOGICLAB_RES_START@@@\" "
-    },
-    {
-      "num": 45,
-      "title": "Set Matrix Zeroes",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field ‘res’ declared void\n   91 |             void res = sol.setZeroes(arg0);\n      |                  ^~~\nmain.cpp:92:47: error: ‘res’ was not declared in this scope\n   92 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << \""
-    },
-    {
-      "num": 45,
-      "title": "Set Matrix Zeroes",
+      "num": 117,
+      "title": "The Scoreboard Replay",
       "lang": "Java",
       "reason": "Compilation Error",
-      "error": "Main.java:62: error: incompatible types: void cannot be converted to Object\n                Object res = sol.setZeroes(arg0);\n                                          ^\n1 error\n"
-    },
-    {
-      "num": 48,
-      "title": "Subsets",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:87:18: error: variable or field ‘res’ declared void\n   87 |             void res = sol.subsets(arg0);\n      |                  ^~~\nmain.cpp:88:47: error: ‘res’ was not declared in this scope\n   88 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << \"@@"
-    },
-    {
-      "num": 49,
-      "title": "Sort Colors",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:86:18: error: variable or field ‘res’ declared void\n   86 |             void res = sol.sortColors(arg0);\n      |                  ^~~\nmain.cpp:87:47: error: ‘res’ was not declared in this scope\n   87 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res << "
-    },
-    {
-      "num": 49,
-      "title": "Sort Colors",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:58: error: incompatible types: void cannot be converted to Object\n                Object res = sol.sortColors(arg0);\n                                           ^\n1 error\n"
+      "error": "Main.java:56: error: variable t is already defined in method main(String[])\n            String t = parts0[j].trim();\n                   ^\n1 error\n"
     }
   ],
-  "skipped": [
-    {
-      "num": 51,
-      "title": "Coin Change",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 51,
-      "title": "Coin Change",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 51,
-      "title": "Coin Change",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 51,
-      "title": "Coin Change",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 52,
-      "title": "Longest Increasing Subsequence",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 52,
-      "title": "Longest Increasing Subsequence",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 52,
-      "title": "Longest Increasing Subsequence",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 52,
-      "title": "Longest Increasing Subsequence",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 53,
-      "title": "Edit Distance",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 53,
-      "title": "Edit Distance",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 53,
-      "title": "Edit Distance",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 53,
-      "title": "Edit Distance",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 54,
-      "title": "Unique Paths",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 54,
-      "title": "Unique Paths",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 54,
-      "title": "Unique Paths",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 54,
-      "title": "Unique Paths",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 55,
-      "title": "Decode Ways",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 55,
-      "title": "Decode Ways",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 55,
-      "title": "Decode Ways",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 55,
-      "title": "Decode Ways",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 56,
-      "title": "Minimum Path Sum",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 56,
-      "title": "Minimum Path Sum",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 56,
-      "title": "Minimum Path Sum",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 56,
-      "title": "Minimum Path Sum",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 57,
-      "title": "House Robber",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 57,
-      "title": "House Robber",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 57,
-      "title": "House Robber",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 57,
-      "title": "House Robber",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 58,
-      "title": "Jump Game II",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 58,
-      "title": "Jump Game II",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 58,
-      "title": "Jump Game II",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 58,
-      "title": "Jump Game II",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 59,
-      "title": "Word Break",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 59,
-      "title": "Word Break",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 59,
-      "title": "Word Break",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 59,
-      "title": "Word Break",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 60,
-      "title": "Maximum Product Subarray",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 60,
-      "title": "Maximum Product Subarray",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 60,
-      "title": "Maximum Product Subarray",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 60,
-      "title": "Maximum Product Subarray",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 61,
-      "title": "Kth Largest Element in an Array",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 61,
-      "title": "Kth Largest Element in an Array",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 61,
-      "title": "Kth Largest Element in an Array",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 61,
-      "title": "Kth Largest Element in an Array",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 63,
-      "title": "Reverse String",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 63,
-      "title": "Reverse String",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 63,
-      "title": "Reverse String",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 63,
-      "title": "Reverse String",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 64,
-      "title": "Remove Duplicates from Sorted Array",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 64,
-      "title": "Remove Duplicates from Sorted Array",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 64,
-      "title": "Remove Duplicates from Sorted Array",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 64,
-      "title": "Remove Duplicates from Sorted Array",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 65,
-      "title": "Intersection of Two Arrays",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 65,
-      "title": "Intersection of Two Arrays",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 65,
-      "title": "Intersection of Two Arrays",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 65,
-      "title": "Intersection of Two Arrays",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 66,
-      "title": "Remove Element",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 66,
-      "title": "Remove Element",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 66,
-      "title": "Remove Element",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 66,
-      "title": "Remove Element",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 67,
-      "title": "Ransom Note",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 67,
-      "title": "Ransom Note",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 67,
-      "title": "Ransom Note",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 67,
-      "title": "Ransom Note",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 68,
-      "title": "Sqrt(x)",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 68,
-      "title": "Sqrt(x)",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 68,
-      "title": "Sqrt(x)",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 68,
-      "title": "Sqrt(x)",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 69,
-      "title": "Pascal's Triangle",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 69,
-      "title": "Pascal's Triangle",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 69,
-      "title": "Pascal's Triangle",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 69,
-      "title": "Pascal's Triangle",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 70,
-      "title": "Add Binary",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 70,
-      "title": "Add Binary",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 70,
-      "title": "Add Binary",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 70,
-      "title": "Add Binary",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 71,
-      "title": "Isomorphic Strings",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 71,
-      "title": "Isomorphic Strings",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 71,
-      "title": "Isomorphic Strings",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 71,
-      "title": "Isomorphic Strings",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 72,
-      "title": "Contains Duplicate II",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 72,
-      "title": "Contains Duplicate II",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 72,
-      "title": "Contains Duplicate II",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 72,
-      "title": "Contains Duplicate II",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 73,
-      "title": "Find the Duplicate Number",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 73,
-      "title": "Find the Duplicate Number",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 73,
-      "title": "Find the Duplicate Number",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 73,
-      "title": "Find the Duplicate Number",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 74,
-      "title": "Power of Two",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 74,
-      "title": "Power of Two",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 74,
-      "title": "Power of Two",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 74,
-      "title": "Power of Two",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 75,
-      "title": "Valid Palindrome II",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 75,
-      "title": "Valid Palindrome II",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 75,
-      "title": "Valid Palindrome II",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 75,
-      "title": "Valid Palindrome II",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 77,
-      "title": "Squares of a Sorted Array",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 77,
-      "title": "Squares of a Sorted Array",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 77,
-      "title": "Squares of a Sorted Array",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 77,
-      "title": "Squares of a Sorted Array",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 78,
-      "title": "First Unique Character in a String",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 78,
-      "title": "First Unique Character in a String",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 78,
-      "title": "First Unique Character in a String",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 78,
-      "title": "First Unique Character in a String",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 79,
-      "title": "Number of 1 Bits",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 79,
-      "title": "Number of 1 Bits",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 79,
-      "title": "Number of 1 Bits",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 79,
-      "title": "Number of 1 Bits",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 80,
-      "title": "Word Pattern",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 80,
-      "title": "Word Pattern",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 80,
-      "title": "Word Pattern",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 80,
-      "title": "Word Pattern",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 81,
-      "title": "Sliding Window Maximum",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 81,
-      "title": "Sliding Window Maximum",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 81,
-      "title": "Sliding Window Maximum",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 81,
-      "title": "Sliding Window Maximum",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 82,
-      "title": "3Sum Closest",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 82,
-      "title": "3Sum Closest",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 82,
-      "title": "3Sum Closest",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 82,
-      "title": "3Sum Closest",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 84,
-      "title": "Letter Combinations of a Phone Number",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 84,
-      "title": "Letter Combinations of a Phone Number",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 84,
-      "title": "Letter Combinations of a Phone Number",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 84,
-      "title": "Letter Combinations of a Phone Number",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 86,
-      "title": "Largest Rectangle in Histogram",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 86,
-      "title": "Largest Rectangle in Histogram",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 86,
-      "title": "Largest Rectangle in Histogram",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 86,
-      "title": "Largest Rectangle in Histogram",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 87,
-      "title": "Generate Parentheses",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 87,
-      "title": "Generate Parentheses",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 87,
-      "title": "Generate Parentheses",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 87,
-      "title": "Generate Parentheses",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 88,
-      "title": "Integer to Roman",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 88,
-      "title": "Integer to Roman",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 88,
-      "title": "Integer to Roman",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 88,
-      "title": "Integer to Roman",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 90,
-      "title": "Minimum Window Substring",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 90,
-      "title": "Minimum Window Substring",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 90,
-      "title": "Minimum Window Substring",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 90,
-      "title": "Minimum Window Substring",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 91,
-      "title": "Sudoku Solver",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 91,
-      "title": "Sudoku Solver",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 91,
-      "title": "Sudoku Solver",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 91,
-      "title": "Sudoku Solver",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 92,
-      "title": "Multiply Strings",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 92,
-      "title": "Multiply Strings",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 92,
-      "title": "Multiply Strings",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 92,
-      "title": "Multiply Strings",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 93,
-      "title": "Spiral Matrix II",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 93,
-      "title": "Spiral Matrix II",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 93,
-      "title": "Spiral Matrix II",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 93,
-      "title": "Spiral Matrix II",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 94,
-      "title": "String to Integer (atoi)",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 94,
-      "title": "String to Integer (atoi)",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 94,
-      "title": "String to Integer (atoi)",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 94,
-      "title": "String to Integer (atoi)",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 95,
-      "title": "Longest Valid Parentheses",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 95,
-      "title": "Longest Valid Parentheses",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 95,
-      "title": "Longest Valid Parentheses",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 95,
-      "title": "Longest Valid Parentheses",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 96,
-      "title": "Zigzag Conversion",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 96,
-      "title": "Zigzag Conversion",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 96,
-      "title": "Zigzag Conversion",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 96,
-      "title": "Zigzag Conversion",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 97,
-      "title": "Longest Palindromic Substring",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 97,
-      "title": "Longest Palindromic Substring",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 97,
-      "title": "Longest Palindromic Substring",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 97,
-      "title": "Longest Palindromic Substring",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 98,
-      "title": "Reverse Words in a String",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 98,
-      "title": "Reverse Words in a String",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 98,
-      "title": "Reverse Words in a String",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 98,
-      "title": "Reverse Words in a String",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 99,
-      "title": "Find the Index of the First Occurrence in a String",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 99,
-      "title": "Find the Index of the First Occurrence in a String",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 99,
-      "title": "Find the Index of the First Occurrence in a String",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 99,
-      "title": "Find the Index of the First Occurrence in a String",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 100,
-      "title": "Count and Say",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 100,
-      "title": "Count and Say",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 100,
-      "title": "Count and Say",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 100,
-      "title": "Count and Say",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 101,
-      "title": "The Warehouse Robot",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 101,
-      "title": "The Warehouse Robot",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 101,
-      "title": "The Warehouse Robot",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 101,
-      "title": "The Warehouse Robot",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 102,
-      "title": "The Spy's Caesar Cipher",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 102,
-      "title": "The Spy's Caesar Cipher",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 102,
-      "title": "The Spy's Caesar Cipher",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 102,
-      "title": "The Spy's Caesar Cipher",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 103,
-      "title": "The Spreading Wildfire",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 103,
-      "title": "The Spreading Wildfire",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 103,
-      "title": "The Spreading Wildfire",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 103,
-      "title": "The Spreading Wildfire",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 104,
-      "title": "The Midnight Heist",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 104,
-      "title": "The Midnight Heist",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 104,
-      "title": "The Midnight Heist",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 104,
-      "title": "The Midnight Heist",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 105,
-      "title": "The Election Ballot Scanner",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 105,
-      "title": "The Election Ballot Scanner",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 105,
-      "title": "The Election Ballot Scanner",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 105,
-      "title": "The Election Ballot Scanner",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 106,
-      "title": "The Summit Trail",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 106,
-      "title": "The Summit Trail",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 106,
-      "title": "The Summit Trail",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 106,
-      "title": "The Summit Trail",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 107,
-      "title": "The Sunset View",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 107,
-      "title": "The Sunset View",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 107,
-      "title": "The Sunset View",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 107,
-      "title": "The Sunset View",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 108,
-      "title": "The Rolling Sales Window",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 108,
-      "title": "The Rolling Sales Window",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 108,
-      "title": "The Rolling Sales Window",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 108,
-      "title": "The Rolling Sales Window",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 109,
-      "title": "The Broken Calculator",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 109,
-      "title": "The Broken Calculator",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 109,
-      "title": "The Broken Calculator",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 109,
-      "title": "The Broken Calculator",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 110,
-      "title": "The Treasure Hunt Grid",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 110,
-      "title": "The Treasure Hunt Grid",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 110,
-      "title": "The Treasure Hunt Grid",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 110,
-      "title": "The Treasure Hunt Grid",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 111,
-      "title": "The Library Book Sorter",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 111,
-      "title": "The Library Book Sorter",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 111,
-      "title": "The Library Book Sorter",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 111,
-      "title": "The Library Book Sorter",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 112,
-      "title": "The Drone Delivery Range",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 112,
-      "title": "The Drone Delivery Range",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 112,
-      "title": "The Drone Delivery Range",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 112,
-      "title": "The Drone Delivery Range",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 113,
-      "title": "The Coffee Shop Queue",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 113,
-      "title": "The Coffee Shop Queue",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 113,
-      "title": "The Coffee Shop Queue",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 113,
-      "title": "The Coffee Shop Queue",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 114,
-      "title": "The Fruit Picker",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 114,
-      "title": "The Fruit Picker",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 114,
-      "title": "The Fruit Picker",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 114,
-      "title": "The Fruit Picker",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 115,
-      "title": "The Rogue Robot",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 115,
-      "title": "The Rogue Robot",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 115,
-      "title": "The Rogue Robot",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 115,
-      "title": "The Rogue Robot",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 116,
-      "title": "The Ticket Booth",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 116,
-      "title": "The Ticket Booth",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 116,
-      "title": "The Ticket Booth",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 116,
-      "title": "The Ticket Booth",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 117,
-      "title": "The Scoreboard Replay",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 117,
-      "title": "The Scoreboard Replay",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 117,
-      "title": "The Scoreboard Replay",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 117,
-      "title": "The Scoreboard Replay",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 118,
-      "title": "The House Painter",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 118,
-      "title": "The House Painter",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 118,
-      "title": "The House Painter",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 118,
-      "title": "The House Painter",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 119,
-      "title": "The Maze Navigator",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 119,
-      "title": "The Maze Navigator",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 119,
-      "title": "The Maze Navigator",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 119,
-      "title": "The Maze Navigator",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 120,
-      "title": "The Alien Signal",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 120,
-      "title": "The Alien Signal",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 120,
-      "title": "The Alien Signal",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 120,
-      "title": "The Alien Signal",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 121,
-      "title": "The Coin Collector",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 121,
-      "title": "The Coin Collector",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 121,
-      "title": "The Coin Collector",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 121,
-      "title": "The Coin Collector",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 122,
-      "title": "The Smuggler's Bag",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 122,
-      "title": "The Smuggler's Bag",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 122,
-      "title": "The Smuggler's Bag",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 122,
-      "title": "The Smuggler's Bag",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 123,
-      "title": "The Ancient Inscription",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 123,
-      "title": "The Ancient Inscription",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 123,
-      "title": "The Ancient Inscription",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 123,
-      "title": "The Ancient Inscription",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 124,
-      "title": "The Sequence Decoder",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 124,
-      "title": "The Sequence Decoder",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 124,
-      "title": "The Sequence Decoder",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 124,
-      "title": "The Sequence Decoder",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 125,
-      "title": "The Space Station",
-      "lang": "C++",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 125,
-      "title": "The Space Station",
-      "lang": "Java",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 125,
-      "title": "The Space Station",
-      "lang": "JavaScript",
-      "reason": "Exception: fetch failed"
-    },
-    {
-      "num": 125,
-      "title": "The Space Station",
-      "lang": "Python",
-      "reason": "Exception: fetch failed"
-    }
-  ]
+  "skipped": []
 }
