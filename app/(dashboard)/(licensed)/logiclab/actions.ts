@@ -833,8 +833,12 @@ export async function runCodeAction(body: {
 
       if (error) {
         overallSuccess = false;
-        overallStatus = { id: 13, description: "System Error" };
-        results.push({ index, passed: false, input: tc.input, error, actual: error, expected: tc.expected_output, consoleOutput });
+        let errDesc = "System Error"; let errId = 13;
+        if (error.startsWith("Runtime Error")) { errDesc = "Runtime Error"; errId = 11; }
+        else if (error.includes("Time Limit")) { errDesc = "Time Limit Exceeded"; errId = 5; }
+        else if (error.startsWith("Compilation Error")) { errDesc = "Compilation Error"; errId = 6; }
+        overallStatus = { id: errId, description: errDesc };
+        results.push({ index, passed: false, input: tc.input, error, actual: error, expected: tc.expected_output, consoleOutput, status: { id: errId, description: errDesc } });
         continue;
       }
 
@@ -1125,8 +1129,12 @@ export async function submitCodeAction(body: {
     }
 
     if (error) {
-      if (overallStatus === "Accepted") overallStatus = "System Error";
-      const item = { index, passed: false, input: tc.input, expected: tc.expected_output, actual: error, status: { id: 13, description: "System Error" }, time: "0.000", memory: "0", consoleOutput };
+      let errDesc = "System Error"; let errId = 13;
+      if (error.startsWith("Runtime Error")) { errDesc = "Runtime Error"; errId = 11; }
+      else if (error.includes("Time Limit")) { errDesc = "Time Limit Exceeded"; errId = 5; }
+      else if (error.startsWith("Compilation Error")) { errDesc = "Compilation Error"; errId = 6; }
+      if (overallStatus === "Accepted") overallStatus = errDesc;
+      const item = { index, passed: false, input: tc.input, expected: tc.expected_output, actual: error, status: { id: errId, description: errDesc }, time: "0.000", memory: "0", consoleOutput };
       testResults.push(item);
       if (!firstFailedResult) firstFailedResult = item;
       continue;
@@ -1147,7 +1155,7 @@ export async function submitCodeAction(body: {
     if (passed) {
       passedCount++;
     } else if (overallStatus === "Accepted") {
-      overallStatus = data.status?.description || "Wrong Answer";
+      overallStatus = (data.status?.description === "Accepted") ? "Wrong Answer" : (data.status?.description || "Wrong Answer");
     }
 
     const item = {

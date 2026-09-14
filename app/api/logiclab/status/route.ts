@@ -129,8 +129,12 @@ export async function POST(req: Request) {
       }
 
       if (error) {
-        if (overallStatus === "Accepted") overallStatus = "System Error";
-        const item = { index: i + 1, passed: false, input: tc.input, expected: tc.expected_output, actual: error, status: { id: 13, description: "System Error" }, time: "0.000", memory: "0", consoleOutput };
+        let errDesc = "System Error"; let errId = 13;
+        if (error.startsWith("Runtime Error")) { errDesc = "Runtime Error"; errId = 11; }
+        else if (error.includes("Time Limit")) { errDesc = "Time Limit Exceeded"; errId = 5; }
+        else if (error.startsWith("Compilation Error")) { errDesc = "Compilation Error"; errId = 6; }
+        if (overallStatus === "Accepted") overallStatus = errDesc;
+        const item = { index: i + 1, passed: false, input: tc.input, expected: tc.expected_output, actual: error, status: { id: errId, description: errDesc }, time: "0.000", memory: "0", consoleOutput };
         testResults.push(item);
         if (!firstFailedResult) firstFailedResult = item;
         continue;
@@ -151,7 +155,7 @@ export async function POST(req: Request) {
       if (passed) {
         passedCount++;
       } else if (overallStatus === "Accepted") {
-        overallStatus = data.status?.description || "Wrong Answer";
+        overallStatus = (data.status?.description === "Accepted") ? "Wrong Answer" : (data.status?.description || "Wrong Answer");
       }
 
       const item = {
