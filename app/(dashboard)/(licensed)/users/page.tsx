@@ -25,7 +25,7 @@ export default async function UsersPage(props: {
   searchParams: Promise<SearchParams>
 }) {
   const profile = await getUserProfile()
-  if (!profile || profile.account_type !== "institute_primary") {
+  if (!profile || (profile.account_type !== "institute_primary" && profile.account_type !== "institute_placement_officer")) {
     redirect("/home")
   }
 

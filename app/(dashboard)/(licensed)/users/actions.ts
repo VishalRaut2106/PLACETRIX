@@ -11,8 +11,8 @@ export async function createAccount(params: {
   passout_year?: number | null
 }) {
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute_primary") {
-    throw new Error("Unauthorized: Only institute primary accounts can create users.")
+  if (!profile || (profile.account_type !== "institute_primary" && profile.account_type !== "institute_placement_officer")) {
+    throw new Error("Unauthorized: Only institute primary or placement officer accounts can create users.")
   }
 
   const supabase = await createClient()
@@ -38,7 +38,7 @@ export async function createAccount(params: {
 
 export async function getInstituteCourses() {
   const profile = await getUser()
-  if (!profile || profile.account_type !== "institute_primary") {
+  if (!profile || (profile.account_type !== "institute_primary" && profile.account_type !== "institute_placement_officer")) {
     throw new Error("Unauthorized")
   }
 

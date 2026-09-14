@@ -73,6 +73,7 @@ const NAV_MAIN: Record<AccountType, NavItem[]> = {
   ],
   institute_placement_officer: [
     { title: "Home", url: "/home", icon: Home },
+    { title: "Users", url: "/users", icon: Users },
     { title: "Cohorts", url: "/cohorts", icon: FolderKanban },
     { title: "Tests", url: "/tests", icon: ClipboardCheck },
     { title: "Events", url: "/events", icon: Calendar },
