@@ -47,6 +47,8 @@ export function normalizeArgType(rawType: string): string {
   if (t === "long") return "int";
   if (t === "List<Integer>") return "int[]";
   if (t === "List<String>") return "string[]";
+  if (t === "List<List<Integer>>") return "int[][]";
+  if (t === "List<List<String>>") return "string[][]";
   return t;
 }
 

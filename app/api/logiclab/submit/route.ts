@@ -82,7 +82,12 @@ export async function POST(req: Request) {
       const lines = driverCode.split("\n");
       const imports = lines.filter((line: string) => line.trim().startsWith("import "));
       const nonImports = lines.filter((line: string) => !line.trim().startsWith("import "));
-      finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n\n" + code + "\n\n" + nonImports.join("\n");
+      
+      const sourceLines = code.split("\n");
+      const sourceImports = sourceLines.filter((line: string) => line.trim().startsWith("import "));
+      const sourceNonImports = sourceLines.filter((line: string) => !line.trim().startsWith("import "));
+      
+      finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n" + sourceImports.join("\n") + "\n\n" + sourceNonImports.join("\n") + "\n\n" + nonImports.join("\n");
     } else if (langKey === "71") {
       finalSource = "from __future__ import annotations\nimport sys\nimport json\nimport math\nimport collections\nfrom typing import *\n" + code + "\n\n" + driverCode;
     } else if (langKey === "54") {

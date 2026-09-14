@@ -150,8 +150,13 @@ export async function POST(req: Request) {
       const lines = driverCode.split("\n");
       const imports = lines.filter((line: string) => line.trim().startsWith("import "));
       const nonImports = lines.filter((line: string) => !line.trim().startsWith("import "));
-      lineOffset = 2 + imports.length + 2;
-      finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n\n" + prelude + "\n" + source_code + "\n\n" + nonImports.join("\n");
+      
+      const sourceLines = source_code.split("\n");
+      const sourceImports = sourceLines.filter((line: string) => line.trim().startsWith("import "));
+      const sourceNonImports = sourceLines.filter((line: string) => !line.trim().startsWith("import "));
+      
+      lineOffset = 2 + imports.length + sourceImports.length + 2;
+      finalSource = "import java.util.*;\nimport java.io.*;\n" + imports.join("\n") + "\n" + sourceImports.join("\n") + "\n\n" + prelude + "\n" + sourceNonImports.join("\n") + "\n\n" + nonImports.join("\n");
     } else if (langKey === "71") {
       const merged = prelude + "\n" + source_code + "\n\n" + driverCode;
       lineOffset = 6;
