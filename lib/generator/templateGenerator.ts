@@ -581,7 +581,8 @@ function generateCpp(sig: FunctionSignature): { boilerplate: string, driver: str
     boilerplateHeader += `/**\n * Definition for a Node.\n * class Node {\n * public:\n *     int val;\n *     vector<Node*> neighbors;\n *     Node() { val = 0; neighbors = vector<Node*>(); }\n *     Node(int _val) { val = _val; neighbors = vector<Node*>(); }\n *     Node(int _val, vector<Node*> _neighbors) { val = _val; neighbors = _neighbors; }\n * };\n */\n`;
   }
 
-  const boilerplate = `${boilerplateHeader}#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    ${retType} ${sig.name}(${args}) {\n        // Write your code here\n        ${DUMMY_RETURNS.cpp[normReturnType] || "return {};"}\n    }\n};`;
+  const cppDummyReturn = normReturnType === "void" ? "" : (DUMMY_RETURNS.cpp[normReturnType] ?? "return {};");
+  const boilerplate = `${boilerplateHeader}#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    ${retType} ${sig.name}(${args}) {\n        // Write your code here\n        ${cppDummyReturn}\n    }\n};`;
 
   const parseVectorInt = `
 vector<string> parseJsonArray(string s) {
@@ -850,6 +851,14 @@ string graphNodeToString(Node* node) {
     printLogic += `        for(size_t r=0; r<res.size(); r++) {\n`;
     printLogic += `            cout << "[";\n`;
     printLogic += `            for(size_t c=0; c<res[r].size(); c++) cout << res[r][c] << (c==res[r].size()-1 ? "" : ",");\n`;
+    printLogic += `            cout << "]" << (r==res.size()-1 ? "" : ",");\n`;
+    printLogic += `        }\n`;
+    printLogic += `        cout << "]@@@LOGICLAB_RES_END@@@" << endl;\n`;
+  } else if (normReturnType === "string[][]" || normReturnType === "char[][]") {
+    printLogic = `        cout << "@@@LOGICLAB_RES_START@@@[";\n`;
+    printLogic += `        for(size_t r=0; r<res.size(); r++) {\n`;
+    printLogic += `            cout << "[";\n`;
+    printLogic += `            for(size_t c=0; c<res[r].size(); c++) cout << "\\""+res[r][c]+"\\"" << (c==res[r].size()-1 ? "" : ",");\n`;
     printLogic += `            cout << "]" << (r==res.size()-1 ? "" : ",");\n`;
     printLogic += `        }\n`;
     printLogic += `        cout << "]@@@LOGICLAB_RES_END@@@" << endl;\n`;

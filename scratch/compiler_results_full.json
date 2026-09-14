@@ -1371,6 +1371,12 @@
     {
       "num": 59,
       "title": "Word Break",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 59,
+      "title": "Word Break",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1413,6 +1419,12 @@
     {
       "num": 61,
       "title": "Kth Largest Element in an Array",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 61,
+      "title": "Kth Largest Element in an Array",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1420,7 +1432,13 @@
       "num": 61,
       "title": "Kth Largest Element in an Array",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 62,
+      "title": "Rotate Array",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 62,
@@ -1432,6 +1450,12 @@
       "num": 62,
       "title": "Rotate Array",
       "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 63,
+      "title": "Reverse String",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1455,6 +1479,12 @@
     {
       "num": 64,
       "title": "Remove Duplicates from Sorted Array",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 64,
+      "title": "Remove Duplicates from Sorted Array",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1462,12 +1492,18 @@
       "num": 64,
       "title": "Remove Duplicates from Sorted Array",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 65,
       "title": "Intersection of Two Arrays",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 65,
+      "title": "Intersection of Two Arrays",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1480,7 +1516,7 @@
       "num": 65,
       "title": "Intersection of Two Arrays",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 66,
@@ -1491,6 +1527,12 @@
     {
       "num": 66,
       "title": "Remove Element",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 66,
+      "title": "Remove Element",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1498,12 +1540,18 @@
       "num": 66,
       "title": "Remove Element",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 67,
       "title": "Ransom Note",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 67,
+      "title": "Ransom Note",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1516,7 +1564,7 @@
       "num": 67,
       "title": "Ransom Note",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 68,
@@ -1527,6 +1575,12 @@
     {
       "num": 68,
       "title": "Sqrt(x)",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 68,
+      "title": "Sqrt(x)",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1534,13 +1588,19 @@
       "num": 68,
       "title": "Sqrt(x)",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 69,
       "title": "Pascal's Triangle",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 69,
+      "title": "Pascal's Triangle",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 69,
@@ -1552,7 +1612,7 @@
       "num": 69,
       "title": "Pascal's Triangle",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 70,
@@ -1563,6 +1623,12 @@
     {
       "num": 70,
       "title": "Add Binary",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 70,
+      "title": "Add Binary",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1570,12 +1636,18 @@
       "num": 70,
       "title": "Add Binary",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 71,
       "title": "Isomorphic Strings",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 71,
+      "title": "Isomorphic Strings",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1588,7 +1660,7 @@
       "num": 71,
       "title": "Isomorphic Strings",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 72,
@@ -1599,6 +1671,12 @@
     {
       "num": 72,
       "title": "Contains Duplicate II",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 72,
+      "title": "Contains Duplicate II",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1606,12 +1684,18 @@
       "num": 72,
       "title": "Contains Duplicate II",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 73,
       "title": "Find the Duplicate Number",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 73,
+      "title": "Find the Duplicate Number",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1624,12 +1708,18 @@
       "num": 73,
       "title": "Find the Duplicate Number",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 74,
       "title": "Power of Two",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 74,
+      "title": "Power of Two",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1642,12 +1732,18 @@
       "num": 74,
       "title": "Power of Two",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 75,
       "title": "Valid Palindrome II",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 75,
+      "title": "Valid Palindrome II",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1660,7 +1756,19 @@
       "num": 75,
       "title": "Valid Palindrome II",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 76,
+      "title": "Valid Sudoku",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 76,
+      "title": "Valid Sudoku",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 76,
@@ -1672,13 +1780,19 @@
       "num": 76,
       "title": "Valid Sudoku",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 77,
       "title": "Squares of a Sorted Array",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 77,
+      "title": "Squares of a Sorted Array",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 77,
@@ -1690,7 +1804,7 @@
       "num": 77,
       "title": "Squares of a Sorted Array",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 78,
@@ -1701,6 +1815,12 @@
     {
       "num": 78,
       "title": "First Unique Character in a String",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 78,
+      "title": "First Unique Character in a String",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1708,12 +1828,18 @@
       "num": 78,
       "title": "First Unique Character in a String",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 79,
       "title": "Number of 1 Bits",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 79,
+      "title": "Number of 1 Bits",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1726,7 +1852,7 @@
       "num": 79,
       "title": "Number of 1 Bits",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 80,
@@ -1737,6 +1863,12 @@
     {
       "num": 80,
       "title": "Word Pattern",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 80,
+      "title": "Word Pattern",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1744,12 +1876,18 @@
       "num": 80,
       "title": "Word Pattern",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 81,
       "title": "Sliding Window Maximum",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 81,
+      "title": "Sliding Window Maximum",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1762,12 +1900,18 @@
       "num": 81,
       "title": "Sliding Window Maximum",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 82,
       "title": "3Sum Closest",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 82,
+      "title": "3Sum Closest",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1780,7 +1924,19 @@
       "num": 82,
       "title": "3Sum Closest",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 83,
+      "title": "4Sum",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 83,
@@ -1792,13 +1948,19 @@
       "num": 83,
       "title": "4Sum",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 84,
       "title": "Letter Combinations of a Phone Number",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 84,
+      "title": "Letter Combinations of a Phone Number",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 84,
@@ -1810,7 +1972,13 @@
       "num": 84,
       "title": "Letter Combinations of a Phone Number",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 85,
@@ -1822,12 +1990,18 @@
       "num": 85,
       "title": "N-Queens",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 86,
       "title": "Largest Rectangle in Histogram",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 86,
+      "title": "Largest Rectangle in Histogram",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1840,13 +2014,19 @@
       "num": 86,
       "title": "Largest Rectangle in Histogram",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 87,
       "title": "Generate Parentheses",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 87,
+      "title": "Generate Parentheses",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 87,
@@ -1858,13 +2038,19 @@
       "num": 87,
       "title": "Generate Parentheses",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 88,
       "title": "Integer to Roman",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 88,
+      "title": "Integer to Roman",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 88,
@@ -1876,7 +2062,13 @@
       "num": 88,
       "title": "Integer to Roman",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 89,
@@ -1899,6 +2091,12 @@
     {
       "num": 90,
       "title": "Minimum Window Substring",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 90,
+      "title": "Minimum Window Substring",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1906,7 +2104,13 @@
       "num": 90,
       "title": "Minimum Window Substring",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 91,
+      "title": "Sudoku Solver",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 91,
@@ -1929,6 +2133,12 @@
     {
       "num": 92,
       "title": "Multiply Strings",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 92,
+      "title": "Multiply Strings",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1936,13 +2146,19 @@
       "num": 92,
       "title": "Multiply Strings",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 93,
       "title": "Spiral Matrix II",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 93,
+      "title": "Spiral Matrix II",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 93,
@@ -1954,7 +2170,7 @@
       "num": 93,
       "title": "Spiral Matrix II",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 94,
@@ -1965,6 +2181,12 @@
     {
       "num": 94,
       "title": "String to Integer (atoi)",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 94,
+      "title": "String to Integer (atoi)",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -1972,12 +2194,18 @@
       "num": 94,
       "title": "String to Integer (atoi)",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 95,
       "title": "Longest Valid Parentheses",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 95,
+      "title": "Longest Valid Parentheses",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -1990,7 +2218,7 @@
       "num": 95,
       "title": "Longest Valid Parentheses",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 96,
@@ -2001,6 +2229,12 @@
     {
       "num": 96,
       "title": "Zigzag Conversion",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 96,
+      "title": "Zigzag Conversion",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -2008,13 +2242,19 @@
       "num": 96,
       "title": "Zigzag Conversion",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 97,
       "title": "Longest Palindromic Substring",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 97,
+      "title": "Longest Palindromic Substring",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 97,
@@ -2026,13 +2266,19 @@
       "num": 97,
       "title": "Longest Palindromic Substring",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 98,
       "title": "Reverse Words in a String",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 98,
+      "title": "Reverse Words in a String",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 98,
@@ -2044,7 +2290,7 @@
       "num": 98,
       "title": "Reverse Words in a String",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 99,
@@ -2055,6 +2301,12 @@
     {
       "num": 99,
       "title": "Find the Index of the First Occurrence in a String",
+      "lang": "Java",
+      "status": "Accepted"
+    },
+    {
+      "num": 99,
+      "title": "Find the Index of the First Occurrence in a String",
       "lang": "JavaScript",
       "status": "Accepted"
     },
@@ -2062,13 +2314,19 @@
       "num": 99,
       "title": "Find the Index of the First Occurrence in a String",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 100,
       "title": "Count and Say",
       "lang": "C++",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
+    },
+    {
+      "num": 100,
+      "title": "Count and Say",
+      "lang": "Java",
+      "status": "Accepted"
     },
     {
       "num": 100,
@@ -2080,7 +2338,7 @@
       "num": 100,
       "title": "Count and Say",
       "lang": "Python",
-      "status": "Runtime Error (NZEC)"
+      "status": "Accepted"
     },
     {
       "num": 101,
@@ -2182,6 +2440,12 @@
       "num": 105,
       "title": "The Election Ballot Scanner",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 105,
+      "title": "The Election Ballot Scanner",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -2464,6 +2728,12 @@
       "num": 117,
       "title": "The Scoreboard Replay",
       "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 117,
+      "title": "The Scoreboard Replay",
+      "lang": "Java",
       "status": "Accepted"
     },
     {
@@ -2708,354 +2978,39 @@
       "error": "main.cpp: In member function ‘void Solution::sortColors(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
     },
     {
-      "num": 59,
-      "title": "Word Break",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:62: error: variable t is already defined in method main(String[])\n            String t = parts1[j].trim();\n                   ^\nMain.java:69: error: incompatible types: String[] cannot be converted to List<String>\n                boolean res = sol.wordBreak(arg0, arg1);\n                   "
-    },
-    {
-      "num": 61,
-      "title": "Kth Largest Element in an Array",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
       "num": 62,
       "title": "Rotate Array",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field ‘res’ declared void\n   91 |             void res = sol.rotate(arg0, arg1);\n      |                  ^~~\nmain.cpp:92:47: error: ‘res’ was not declared in this scope\n   92 |         cout << \"@@@LOGICLAB_RES_START@@@\" << res <"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:64: error: incompatible types: void cannot be converted to Object\n                Object res = sol.rotate(arg0, arg1);\n                                       ^\n1 error\n"
+      "error": "main.cpp: In member function ‘void Solution::rotate(std::vector<int>&, int)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
     },
     {
       "num": 63,
       "title": "Reverse String",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: variable or field ‘res’ declared void\n   84 |             void res = sol.reverseString(arg0);\n      |                  ^~~\nmain.cpp:84:42: error: ‘arg0’ was not declared in this scope\n   84 |             void res = sol.reverseString(arg0);\n "
-    },
-    {
-      "num": 63,
-      "title": "Reverse String",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:56: error: incompatible types: void cannot be converted to Object\n                Object res = sol.reverseString(arg0);\n                                              ^\n1 error\n"
-    },
-    {
-      "num": 64,
-      "title": "Remove Duplicates from Sorted Array",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 65,
-      "title": "Intersection of Two Arrays",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 66,
-      "title": "Remove Element",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 67,
-      "title": "Ransom Note",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 68,
-      "title": "Sqrt(x)",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 69,
-      "title": "Pascal's Triangle",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:57: error: incompatible types: List<List<Integer>> cannot be converted to int[][]\n                int[][] res = sol.generate(arg0);\n                                          ^\n2 errors\n"
-    },
-    {
-      "num": 70,
-      "title": "Add Binary",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 71,
-      "title": "Isomorphic Strings",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 72,
-      "title": "Contains Duplicate II",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 73,
-      "title": "Find the Duplicate Number",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 74,
-      "title": "Power of Two",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 75,
-      "title": "Valid Palindrome II",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘bool Solution::isValidSudoku(std::vector<std::vector<char> >&)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:84:42: error: ‘arg0’ was not declared in "
-    },
-    {
-      "num": 76,
-      "title": "Valid Sudoku",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\nMain.java:56: error: incompatible types: Object cannot be converted to char[][]\n                boolean res = sol.isValidSudoku(arg0);\n                                                ^\nNote: Some messages have been simplified; recompile with -"
-    },
-    {
-      "num": 77,
-      "title": "Squares of a Sorted Array",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 78,
-      "title": "First Unique Character in a String",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 79,
-      "title": "Number of 1 Bits",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 80,
-      "title": "Word Pattern",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 81,
-      "title": "Sliding Window Maximum",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 82,
-      "title": "3Sum Closest",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘std::vector<std::vector<int> > Solution::fourSum(std::vector<int>&, int)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:91:18: error: variable or field"
-    },
-    {
-      "num": 83,
-      "title": "4Sum",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 84,
-      "title": "Letter Combinations of a Phone Number",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:58: error: incompatible types: List<String> cannot be converted to String[]\n                String[] res = sol.letterCombinations(arg0);\n                                                     ^\n2 errors\n"
+      "error": "main.cpp: In member function ‘void Solution::reverseString(std::vector<char>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:90:31: error: ‘arg0’ wa"
     },
     {
       "num": 85,
       "title": "N-Queens",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘std::vector<std::vector<std::__cxx11::basic_string<char> > > Solution::solveNQueens(int)’:\nmain.cpp:30:5: warning: no return statement in function returning non-void [-Wreturn-type]\n   30 |     }\n      |     ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: v"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 86,
-      "title": "Largest Rectangle in Histogram",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 87,
-      "title": "Generate Parentheses",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:10: error: missing return statement\n    }\n    ^\nMain.java:57: error: incompatible types: List<String> cannot be converted to String[]\n                String[] res = sol.generateParenthesis(arg0);\n                                                      ^\n2 errors\n"
-    },
-    {
-      "num": 88,
-      "title": "Integer to Roman",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:92:49: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<std::__cxx11::basic_string<char> > >, std::vector<std::__cxx11::basic_string<char> > >::va"
     },
     {
       "num": 89,
       "title": "Next Permutation",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:86:18: error: variable or field ‘res’ declared void\n   86 |             void res = sol.nextPermutation(arg0);\n      |                  ^~~\nmain.cpp:87:47: error: ‘res’ was not declared in this scope\n   87 |         cout << \"@@@LOGICLAB_RES_START@@@\" << re"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:58: error: incompatible types: void cannot be converted to Object\n                Object res = sol.nextPermutation(arg0);\n                                                ^\n1 error\n"
-    },
-    {
-      "num": 90,
-      "title": "Minimum Window Substring",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
+      "error": "main.cpp: In member function ‘void Solution::nextPermutation(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
     },
     {
       "num": 91,
       "title": "Sudoku Solver",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:84:18: error: variable or field ‘res’ declared void\n   84 |             void res = sol.solveSudoku(arg0);\n      |                  ^~~\nmain.cpp:84:40: error: ‘arg0’ was not declared in this scope\n   84 |             void res = sol.solveSudoku(arg0);\n     "
-    },
-    {
-      "num": 91,
-      "title": "Sudoku Solver",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:56: error: incompatible types: Object cannot be converted to char[][]\n                Object res = sol.solveSudoku(arg0);\n                                             ^\nNote: Some messages have been simplified; recompile with -Xdiags:verbose to get full output\n1 error\n"
-    },
-    {
-      "num": 92,
-      "title": "Multiply Strings",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 93,
-      "title": "Spiral Matrix II",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 94,
-      "title": "String to Integer (atoi)",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 95,
-      "title": "Longest Valid Parentheses",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 96,
-      "title": "Zigzag Conversion",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 97,
-      "title": "Longest Palindromic Substring",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 98,
-      "title": "Reverse Words in a String",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 99,
-      "title": "Find the Index of the First Occurrence in a String",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 100,
-      "title": "Count and Say",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:9: error: missing return statement\n    }\n    ^\n1 error\n"
-    },
-    {
-      "num": 105,
-      "title": "The Election Ballot Scanner",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:56: error: variable t is already defined in method main(String[])\n            String t = parts0[j].trim();\n                   ^\n1 error\n"
-    },
-    {
-      "num": 117,
-      "title": "The Scoreboard Replay",
-      "lang": "Java",
-      "reason": "Compilation Error",
-      "error": "Main.java:56: error: variable t is already defined in method main(String[])\n            String t = parts0[j].trim();\n                   ^\n1 error\n"
+      "error": "main.cpp: In member function ‘void Solution::solveSudoku(std::vector<std::vector<char> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: err"
     }
   ],
   "skipped": []
