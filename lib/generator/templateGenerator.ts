@@ -351,10 +351,10 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
     printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + graphNodeToString(res) + "@@@LOGICLAB_RES_END@@@");\n`;
   } else if (normReturnType === "int[][]" || normReturnType === "string[][]" || normReturnType === "char[][]") {
     // Use deepToString for arrays; toString handles List<List<>> automatically
-    printLogic = `        String _resStr = (res instanceof Object[][]) ? Arrays.deepToString((Object[][])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
+    printLogic = `        String _resStr = (res instanceof Object[]) ? Arrays.deepToString((Object[])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
   } else if (normReturnType.endsWith("[]")) {
     // Arrays.toString for 1D arrays; toString for List<> types
-    printLogic = `        String _resStr = (res instanceof Object[]) ? Arrays.toString((Object[])res).replaceAll(" ", "") : (res instanceof int[]) ? Arrays.toString((int[])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
+    printLogic = `        String _resStr = (res instanceof int[]) ? Arrays.toString((int[])res).replaceAll(" ", "") : (res instanceof char[]) ? Arrays.toString((char[])res).replaceAll(" ", "") : (res instanceof Object[]) ? Arrays.toString((Object[])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
   } else {
     printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + res + "@@@LOGICLAB_RES_END@@@");\n`;
   }
