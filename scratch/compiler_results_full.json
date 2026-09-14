@@ -555,6 +555,12 @@
     {
       "num": 24,
       "title": "Move Zeroes",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 24,
+      "title": "Move Zeroes",
       "lang": "Java",
       "status": "Accepted"
     },
@@ -789,6 +795,12 @@
     {
       "num": 34,
       "title": "Group Anagrams",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 34,
+      "title": "Group Anagrams",
       "lang": "Java",
       "status": "Accepted"
     },
@@ -1131,6 +1143,12 @@
     {
       "num": 49,
       "title": "Sort Colors",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 49,
+      "title": "Sort Colors",
       "lang": "Java",
       "status": "Accepted"
     },
@@ -1437,6 +1455,12 @@
     {
       "num": 62,
       "title": "Rotate Array",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 62,
+      "title": "Rotate Array",
       "lang": "Java",
       "status": "Accepted"
     },
@@ -1977,6 +2001,12 @@
     {
       "num": 85,
       "title": "N-Queens",
+      "lang": "C++",
+      "status": "Accepted"
+    },
+    {
+      "num": 85,
+      "title": "N-Queens",
       "lang": "Java",
       "status": "Accepted"
     },
@@ -2062,6 +2092,12 @@
       "num": 88,
       "title": "Integer to Roman",
       "lang": "Python",
+      "status": "Accepted"
+    },
+    {
+      "num": 89,
+      "title": "Next Permutation",
+      "lang": "C++",
       "status": "Accepted"
     },
     {
@@ -2943,74 +2979,32 @@
   ],
   "failed": [
     {
-      "num": 24,
-      "title": "Move Zeroes",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::moveZeroes(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
-    },
-    {
-      "num": 34,
-      "title": "Group Anagrams",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:94:49: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<std::__cxx11::basic_string<char> > >, std::vector<std::__cxx11::basic_string<char> > >::va"
-    },
-    {
       "num": 37,
       "title": "Rotate Image",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::rotate(std::vector<std::vector<int> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: error: no"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:99:103: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<int> >, std::vector<int> >::value_type’ {aka ‘std::vector<int>’})\n   99 |             {au"
     },
     {
       "num": 45,
       "title": "Set Matrix Zeroes",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::setZeroes(std::vector<std::vector<int> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: error:"
-    },
-    {
-      "num": 49,
-      "title": "Sort Colors",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::sortColors(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
-    },
-    {
-      "num": 62,
-      "title": "Rotate Array",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::rotate(std::vector<int>&, int)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:99:103: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<int> >, std::vector<int> >::value_type’ {aka ‘std::vector<int>’})\n   99 |             {au"
     },
     {
       "num": 63,
       "title": "Reverse String",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::reverseString(std::vector<char>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:90:31: error: ‘arg0’ wa"
-    },
-    {
-      "num": 85,
-      "title": "N-Queens",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:92:49: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<std::__cxx11::basic_string<char> > >, std::vector<std::__cxx11::basic_string<char> > >::va"
-    },
-    {
-      "num": 89,
-      "title": "Next Permutation",
-      "lang": "C++",
-      "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::nextPermutation(std::vector<int>&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\n"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:90:31: error: ‘arg0’ was not declared in this scope\n   90 |             sol.reverseString(arg0);\n      |                               ^~~~\nmain.cpp:92:23: error: unable to deduce ‘auto&’ from ‘arg0’\n   92 |             {auto& _r=arg0; cout<<\"@@@LOGICLAB_"
     },
     {
       "num": 91,
       "title": "Sudoku Solver",
       "lang": "C++",
       "reason": "Compilation Error",
-      "error": "main.cpp: In member function ‘void Solution::solveSudoku(std::vector<std::vector<char> >&)’:\nmain.cpp:35:17: error: return-statement with a value, in function returning ‘void’ [-fpermissive]\n   35 |         return {};\n      |                 ^\nmain.cpp: In function ‘int main()’:\nmain.cpp:99:103: err"
+      "error": "main.cpp: In function ‘int main()’:\nmain.cpp:99:103: error: no match for ‘operator<<’ (operand types are ‘std::ostream’ {aka ‘std::basic_ostream<char>’} and ‘__gnu_cxx::__alloc_traits<std::allocator<std::vector<char> >, std::vector<char> >::value_type’ {aka ‘std::vector<char>’})\n   99 |             "
     }
   ],
   "skipped": []

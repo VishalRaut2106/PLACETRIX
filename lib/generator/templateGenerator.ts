@@ -349,10 +349,12 @@ function generateJava(sig: FunctionSignature): { boilerplate: string, driver: st
     printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + treeNodeToString(res) + "@@@LOGICLAB_RES_END@@@");\n`;
   } else if (normReturnType === "Node") {
     printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + graphNodeToString(res) + "@@@LOGICLAB_RES_END@@@");\n`;
-  } else if (normReturnType === "int[][]" || normReturnType === "string[][]") {
-    printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + Arrays.deepToString(res).replaceAll(" ", "") + "@@@LOGICLAB_RES_END@@@");\n`;
+  } else if (normReturnType === "int[][]" || normReturnType === "string[][]" || normReturnType === "char[][]") {
+    // Use deepToString for arrays; toString handles List<List<>> automatically
+    printLogic = `        String _resStr = (res instanceof Object[][]) ? Arrays.deepToString((Object[][])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
   } else if (normReturnType.endsWith("[]")) {
-    printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + Arrays.toString(res).replaceAll(" ", "") + "@@@LOGICLAB_RES_END@@@");\n`;
+    // Arrays.toString for 1D arrays; toString for List<> types
+    printLogic = `        String _resStr = (res instanceof Object[]) ? Arrays.toString((Object[])res).replaceAll(" ", "") : (res instanceof int[]) ? Arrays.toString((int[])res).replaceAll(" ", "") : res.toString().replaceAll(" ", "");\n        System.out.println("@@@LOGICLAB_RES_START@@@" + _resStr + "@@@LOGICLAB_RES_END@@@");\n`;
   } else {
     printLogic = `        System.out.println("@@@LOGICLAB_RES_START@@@" + res + "@@@LOGICLAB_RES_END@@@");\n`;
   }
@@ -544,7 +546,7 @@ ${usesGraphNode ? graphNodeHelper : ""}
 ${driverParsing}
             Solution sol = new Solution();
             try {
-                ${normReturnType === "void" ? `sol.${sig.name}(${argNames.join(", ")});\n                // void: print modified first arg\n                ${argNames.length > 0 ? `System.out.println("@@@LOGICLAB_RES_START@@@" + Arrays.toString(${argNames[0]}).replaceAll(" ", "") + "@@@LOGICLAB_RES_END@@@");` : `System.out.println("@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@");`}` : `${retType} res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
+                ${normReturnType === "void" ? `sol.${sig.name}(${argNames.join(", ")});\n                // void: print modified first arg\n                ${argNames.length > 0 ? `System.out.println("@@@LOGICLAB_RES_START@@@" + Arrays.toString(${argNames[0]}).replaceAll(" ", "") + "@@@LOGICLAB_RES_END@@@");` : `System.out.println("@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@");`}` : `var res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
             } catch (Throwable th) {
                 System.out.println("@@@LOGICLAB_ERR_START@@@" + th.toString() + "@@@LOGICLAB_ERR_END@@@");
             }
@@ -895,7 +897,18 @@ int main() {
 ${driverParsing}
         Solution sol;
         try {
-            ${normReturnType === "void" ? `sol.${sig.name}(${argNames.join(", ")});\n            // void: print modified first arg\n            ${argNames.length > 0 ? `{auto& _r=${argNames[0]}; cout<<"@@@LOGICLAB_RES_START@@@["; for(size_t _i=0;_i<_r.size();_i++) cout<<_r[_i]<<(_i==_r.size()-1?"":","); cout<<"]@@@LOGICLAB_RES_END@@@"<<endl;}` : `cout<<"@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@"<<endl;`}` : `${retType} res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
+            ${normReturnType === "void" ? (() => {
+              if (argNames.length === 0) return `cout<<"@@@LOGICLAB_RES_START@@@null@@@LOGICLAB_RES_END@@@"<<endl;`;
+              const firstArgType = normArgs[0]?.type || "";
+              const callLine = `sol.${sig.name}(${argNames.join(", ")});`;
+              if (firstArgType === "int[][]" || firstArgType === "char[][]" || firstArgType === "string[][]") {
+                // 2D: print as nested JSON array
+                return `${callLine}\n            {auto& _r=${argNames[0]}; cout<<"@@@LOGICLAB_RES_START@@@["; for(size_t _ri=0;_ri<_r.size();_ri++){cout<<"["; for(size_t _ci=0;_ci<_r[_ri].size();_ci++) cout<<_r[_ri][_ci]<<(_ci==_r[_ri].size()-1?"":","); cout<<"]"<<(_ri==_r.size()-1?"":",");} cout<<"]@@@LOGICLAB_RES_END@@@"<<endl;}`;
+              } else {
+                // 1D: flat array
+                return `${callLine}\n            {auto& _r=${argNames[0]}; cout<<"@@@LOGICLAB_RES_START@@@["; for(size_t _i=0;_i<_r.size();_i++) cout<<_r[_i]<<(_i==_r.size()-1?"":","); cout<<"]@@@LOGICLAB_RES_END@@@"<<endl;}`;
+              }
+            })() : `${retType} res = sol.${sig.name}(${argNames.join(", ")});\n${printLogic}`}
         } catch (const std::exception& e) {
             cout << "@@@LOGICLAB_ERR_START@@@" << e.what() << "@@@LOGICLAB_ERR_END@@@" << endl;
         } catch (...) {
