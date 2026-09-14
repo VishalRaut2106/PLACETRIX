@@ -69,17 +69,18 @@ export async function getTicketAction(ticketId: string) {
     query = query.eq("user_id", userId);
   }
   
-  const { data: ticket, error: ticketError } = await query.maybeSingle();
+  const [{ data: ticket, error: ticketError }, { data: messages, error: messagesError }] = await Promise.all([
+    query.maybeSingle(),
+    supabase
+      .from("ticket_messages")
+      .select("*, profiles(avatar_path, full_name, email)")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: true })
+  ]);
 
   if (ticketError || !ticket) {
     return null;
   }
-
-  const { data: messages, error: messagesError } = await supabase
-    .from("ticket_messages")
-    .select("*, profiles(avatar_path, full_name, email)")
-    .eq("ticket_id", ticketId)
-    .order("created_at", { ascending: true });
 
   if (messagesError) {
     throw new Error(messagesError.message);

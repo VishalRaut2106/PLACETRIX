@@ -381,8 +381,13 @@ export async function fetchProblemsInfinite({
         filteredProblems = filteredProblems.filter((p: any) => !solvedIds.has(p.id));
       }
     } else if (tab === "attempted") {
-      const { data: submissions } = await supabase.from('logiclab_problem_submissions').select('problem_id').eq('user_id', userId);
-      const { data: solved } = await supabase.from('logiclab_user_solved_problems').select('problem_id').eq('user_id', userId);
+      const [
+        { data: submissions },
+        { data: solved }
+      ] = await Promise.all([
+        supabase.from('logiclab_problem_submissions').select('problem_id').eq('user_id', userId),
+        supabase.from('logiclab_user_solved_problems').select('problem_id').eq('user_id', userId)
+      ]);
       
       const attemptedIds = new Set(submissions?.map((s: any) => s.problem_id) || []);
       const solvedIds = new Set(solved?.map((s: any) => s.problem_id) || []);

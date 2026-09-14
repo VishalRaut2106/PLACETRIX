@@ -38,10 +38,10 @@ export default async function MyProfilePage() {
       allInstitutes
     ] = await Promise.all([
       (supabase as any).from("candidate_academic_details").select("course_id, passout_year, university_prn, course:institute_courses(course_name)").eq("profile_id", profile.id).maybeSingle(),
-      (supabase as any).from("candidate_education").select("*").eq("profile_id", profile.id).order("passout_year", { ascending: false }),
-      (supabase as any).from("candidate_experiences").select("*").eq("profile_id", profile.id).order("start_date", { ascending: false }),
-      (supabase as any).from("candidate_projects").select("*").eq("profile_id", profile.id).order("start_date", { ascending: false }),
-      (supabase as any).from("candidate_certifications").select("*").eq("profile_id", profile.id).order("issue_date", { ascending: false }),
+      (supabase as any).from("candidate_education").select("id, type, course_or_stream, institution_name, passout_year, grade_or_percentage").eq("profile_id", profile.id).order("passout_year", { ascending: false }),
+      (supabase as any).from("candidate_experiences").select("id, title, company_name, location, start_date, end_date, is_current, description").eq("profile_id", profile.id).order("start_date", { ascending: false }),
+      (supabase as any).from("candidate_projects").select("id, title, description, start_date, end_date, is_current, project_url").eq("profile_id", profile.id).order("start_date", { ascending: false }),
+      (supabase as any).from("candidate_certifications").select("id, title, issuer, issue_date, credential_url").eq("profile_id", profile.id).order("issue_date", { ascending: false }),
       (supabase as any)
         .from("event_tickets")
         .select(`
