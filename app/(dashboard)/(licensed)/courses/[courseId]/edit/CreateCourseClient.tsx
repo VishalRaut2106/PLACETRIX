@@ -84,9 +84,11 @@ function extractAttachmentPaths(text: string): string[] {
   return paths
 }
 
+const EMPTY_MODULES: AdminModuleInput[] = []
+
 // ── Main Component ──────────────────────────────────────────────────────────────
 
-export function CreateCourseClient({ initialCourse, initialModules = [], adminProfile }: Props) {
+export function CreateCourseClient({ initialCourse, initialModules = EMPTY_MODULES, adminProfile }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 

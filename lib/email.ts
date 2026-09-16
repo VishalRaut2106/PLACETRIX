@@ -789,3 +789,55 @@ export async function sendTicketCreatorConfirmation(ticket: {
     return { success: false, error: err.message || "Internal error in sendTicketCreatorConfirmation" }
   }
 }
+
+export async function sendAccountInviteEmail(email: string, inviteLink: string, role: string): Promise<{ success: boolean; error?: string; mock?: boolean }> {
+  try {
+    const smtpHost = process.env.SMTP_HOST
+    const smtpPort = process.env.SMTP_PORT
+    const smtpUser = process.env.SMTP_USER
+    const smtpPass = process.env.SMTP_PASS
+    const smtpSenderName = process.env.SMTP_SENDER_NAME || "PlaceTrix"
+    const smtpSenderEmail = process.env.SMTP_ADMIN_EMAIL || "noreply@placetrix.app"
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+      console.warn("⚠️ [EMAIL SERVICE] SMTP configuration is incomplete. Skipping invite email.")
+      console.log("[MOCK] Account Invite:")
+      console.log(`  To: ${email}`)
+      console.log(`  Invite Link: ${inviteLink}`)
+      return { success: true, mock: true }
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(smtpPort, 10),
+      secure: parseInt(smtpPort, 10) === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+      tls: { rejectUnauthorized: false },
+    })
+
+    const subject = "You've been invited to PlaceTrix"
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <h2 style="color: #333;">Welcome to PlaceTrix!</h2>
+        <p>You have been invited to join the platform as a <strong>${role.replace(/_/g, ' ')}</strong>.</p>
+        <p>Please click the button below to accept your invitation and set up your account:</p>
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${inviteLink}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Accept Invitation</a>
+        </div>
+        <p style="font-size: 12px; color: #666;">If the button doesn't work, copy and paste this link into your browser:<br/>${inviteLink}</p>
+      </div>
+    `
+
+    await transporter.sendMail({
+      from: `"${smtpSenderName}" <${smtpSenderEmail}>`,
+      to: email,
+      subject,
+      html,
+    })
+
+    return { success: true }
+  } catch (err: any) {
+    console.error("[EMAIL SERVICE] Failed to send account invite email:", err)
+    return { success: false, error: err.message || "Internal error in sendAccountInviteEmail" }
+  }
+}
