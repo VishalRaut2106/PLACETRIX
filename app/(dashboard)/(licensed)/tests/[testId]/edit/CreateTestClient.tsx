@@ -82,6 +82,7 @@ import {
   replaceBlobUrlsInQuestions,
 } from "@/lib/test-image-upload"
 import { RichText } from "@/components/others/rich-text"
+import { StudentTestPreviewModal } from "@/components/test/StudentTestPreviewModal"
 
 interface Props {
   testId?: string
@@ -312,6 +313,7 @@ export function CreateTestClient({
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
   useEffect(() => {
     const mainEl = containerRef.current?.closest("main") || null
@@ -385,6 +387,17 @@ export function CreateTestClient({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setIsPreviewOpen(true)}
+              disabled={questions.length === 0}
+              title={questions.length === 0 ? "Add at least one question to preview" : "Preview test as student"}
+            >
+              <Eye className="mr-2 size-4 text-primary" />
+              Preview
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               disabled={isSaving || !canSave}
               onClick={handleSaveDraft}
             >
@@ -444,6 +457,17 @@ export function CreateTestClient({
           <span className="sr-only">Scroll up</span>
         </button>
       )}
+
+      {/* ── Student Preview Modal ── */}
+      <StudentTestPreviewModal
+        open={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        testTitle={settings.title}
+        testDescription={settings.description}
+        timeLimitMinutes={settings.time_limit_minutes}
+        sections={sections}
+        questions={questions}
+      />
     </div>
   )
 }
