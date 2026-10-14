@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils"
 import {
   Loader2, Save, Send, AlertCircle, AlertTriangle, BookOpen, CheckCircle2, Circle, Plus, Tag, X,
   PlusCircle, Sparkles, Upload, Trash2, Pencil, ChevronDown, ChevronUp, Info, FileJson, Image,
-  GripVertical, Layers, Check, Eye, Code, Clock
+  GripVertical, Layers, Check, Eye, Code, Clock, ArrowUp
 } from "lucide-react"
 import {
   Combobox,
@@ -310,8 +310,62 @@ export function CreateTestClient({
     }
   }, [testId, settings, questions, sections, onPublish, canSave, titleValid])
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+
+  useEffect(() => {
+    const mainEl = containerRef.current?.closest("main") || null
+
+    const handleScroll = () => {
+      const sectionsCard = document.getElementById("test-content-sections-card")
+      if (sectionsCard) {
+        const cardRect = sectionsCard.getBoundingClientRect()
+        // Show scroll-up button when user has scrolled down into sections
+        setShowScrollTop(cardRect.top < -100)
+      } else {
+        const mainScroll = mainEl ? mainEl.scrollTop : 0
+        const winScroll = window.scrollY || document.documentElement.scrollTop || 0
+        setShowScrollTop(Math.max(mainScroll, winScroll) > 300)
+      }
+    }
+
+    if (mainEl) {
+      mainEl.addEventListener("scroll", handleScroll, { passive: true })
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+
+    handleScroll()
+
+    return () => {
+      if (mainEl) {
+        mainEl.removeEventListener("scroll", handleScroll)
+      }
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    const mainEl = containerRef.current?.closest("main") || null
+    const sectionsCard = document.getElementById("test-content-sections-card")
+
+    if (sectionsCard) {
+      const cardRect = sectionsCard.getBoundingClientRect()
+      // If user has scrolled down into sections, scroll back up to the top of the sections
+      if (cardRect.top < -40) {
+        sectionsCard.scrollIntoView({ behavior: "smooth", block: "start" })
+        return
+      }
+    }
+
+    // If already at or near the sections card, scroll to the top of the page
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: "smooth" })
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [])
+
   return (
-    <div className="min-h-screen w-full">
+    <div ref={containerRef} className="min-h-screen w-full relative">
       <div className="mx-auto space-y-6 px-4 py-6 md:px-6 md:py-8">
 
         {/* ── Page Header ── */}
@@ -376,6 +430,20 @@ export function CreateTestClient({
         />
 
       </div>
+
+      {/* ── Floating Scroll Up Arrow Button ── */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Scroll up to sections"
+          title="Scroll up to sections"
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center size-11 rounded-full border border-border/80 bg-background/95 text-foreground shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-accent hover:border-primary/40 hover:text-primary hover:shadow-xl hover:scale-110 active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring animate-in fade-in slide-in-from-bottom-3"
+        >
+          <ArrowUp className="size-5 text-primary transition-transform group-hover:-translate-y-0.5" />
+          <span className="sr-only">Scroll up</span>
+        </button>
+      )}
     </div>
   )
 }
@@ -890,7 +958,7 @@ function TestContentPanel({
 
   return (
     <>
-      <Card className="py-4">
+      <Card id="test-content-sections-card" className="py-4">
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-0.5">
