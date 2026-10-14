@@ -464,7 +464,13 @@ export function CreateTestClient({
         onClose={() => setIsPreviewOpen(false)}
         testTitle={settings.title}
         testDescription={settings.description}
+        instructions={settings.instructions}
         timeLimitMinutes={settings.time_limit_minutes}
+        passPercentage={settings.pass_percentage}
+        strictMode={settings.strict_mode}
+        shuffleQuestions={settings.shuffle_questions}
+        shuffleOptions={settings.shuffle_options}
+        availableUntil={settings.available_until}
         sections={sections}
         questions={questions}
       />
