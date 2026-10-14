@@ -169,9 +169,10 @@ export function CreateTestClient({
         ...s,
         time_limit_minutes: s.time_limit_minutes || "30",
         pass_percentage: s.pass_percentage || "50",
+        section_total_marks: s.section_total_marks || "",
       }))
     }
-    return [{ id: crypto.randomUUID(), name: "Section A", description: "", order_index: 1, time_limit_minutes: "30", pass_percentage: "50" }]
+    return [{ id: crypto.randomUUID(), name: "Section A", description: "", order_index: 1, time_limit_minutes: "30", pass_percentage: "50", section_total_marks: "" }]
   })
 
   const [questions, setQuestions] = useState<LocalQuestion[]>(() => {
@@ -190,6 +191,7 @@ export function CreateTestClient({
         order_index: 1,
         time_limit_minutes: "30",
         pass_percentage: "50",
+        section_total_marks: "",
       }
       setSections([defaultSec])
       setQuestions((prev) => prev.map((q) => ({ ...q, section_id: defaultSecId })))
@@ -696,12 +698,18 @@ function TestContentPanel({
 
   function handleAiImport(forms: QuestionForm[], sectionId: string) {
     const finalSecId = sectionId || sections[0]?.id || crypto.randomUUID()
+    // Divide section_total_marks evenly across all AI-generated questions if marks not provided
+    const targetSection = sections.find((s) => s.id === finalSecId)
+    const totalMarks = parseFloat(targetSection?.section_total_marks || "0")
+    const sectionMarksPerQ = totalMarks > 0 && forms.length > 0
+      ? Math.round((totalMarks / forms.length) * 100) / 100
+      : 1
 
     const newLocals: LocalQuestion[] = forms.map((form, i) => ({
       id: crypto.randomUUID(),
       question_text: form.question_text,
       question_type: form.question_type,
-      marks: form.marks || 1,
+      marks: form.marks && form.marks > 0 ? form.marks : sectionMarksPerQ,
       order_index: questions.length + i + 1,
       explanation: form.explanation,
       tag_names: form.tag_names.map((t) => normalizeTag(t, availableTags)),
@@ -748,6 +756,7 @@ function TestContentPanel({
       order_index: sections.length + 1,
       time_limit_minutes: "30",
       pass_percentage: "50",
+      section_total_marks: "",
     }
     setSections((prev) => [...prev, newSec])
     toast.success(`Created "${newName}"`)
@@ -776,6 +785,18 @@ function TestContentPanel({
   function handleUpdateSectionPassPercentage(sectionId: string, pass_percentage: string) {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? { ...s, pass_percentage } : s))
+    )
+  }
+
+  function handleUpdateSectionTotalMarks(sectionId: string, section_total_marks: string) {
+    setSections((prev) =>
+      prev.map((s) => (s.id === sectionId ? { ...s, section_total_marks } : s))
+    )
+  }
+
+  function handleDistributeMarks(sectionId: string, marksPerQuestion: number) {
+    setQuestions((prev) =>
+      prev.map((q) => q.section_id === sectionId ? { ...q, marks: marksPerQuestion } : q)
     )
   }
 
@@ -924,9 +945,11 @@ function TestContentPanel({
                       onUpdateDescription={(newDesc) => handleUpdateSectionDescription(sec.id, newDesc)}
                       onUpdateTime={(newTime) => handleUpdateSectionTime(sec.id, newTime)}
                       onUpdatePassPercentage={(newPct) => handleUpdateSectionPassPercentage(sec.id, newPct)}
+                      onUpdateMarksPerQuestion={(marks) => handleUpdateSectionTotalMarks(sec.id, marks)}
                       onDelete={() => handleDeleteSection(sec.id)}
                       onAddQuestion={() => openAddQuestion(sec.id)}
                       onAiGenerate={() => openAiGenerate(sec.id)}
+                      onDistributeMarks={(perQ) => handleDistributeMarks(sec.id, perQ)}
                       onEditQuestion={openEditQuestion}
                       onDeleteQuestion={handleDeleteQuestion}
                     />
@@ -1019,9 +1042,11 @@ interface SortableSectionCardProps {
   onUpdateDescription: (newDesc: string) => void
   onUpdateTime: (newTime: string) => void
   onUpdatePassPercentage: (newPct: string) => void
+  onUpdateMarksPerQuestion: (marks: string) => void
   onDelete: () => void
   onAddQuestion: () => void
   onAiGenerate: () => void
+  onDistributeMarks: (totalMarks: number) => void
   onEditQuestion: (q: LocalQuestion) => void
   onDeleteQuestion: (id: string) => void
 }
@@ -1036,9 +1061,11 @@ function SortableSectionCard({
   onUpdateDescription,
   onUpdateTime,
   onUpdatePassPercentage,
+  onUpdateMarksPerQuestion,
   onDelete,
   onAddQuestion,
   onAiGenerate,
+  onDistributeMarks,
   onEditQuestion,
   onDeleteQuestion,
 }: SortableSectionCardProps) {
@@ -1060,6 +1087,8 @@ function SortableSectionCard({
   const [nameInput, setNameInput] = useState(section.name)
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [descInput, setDescInput] = useState(section.description ?? "")
+  const [isDistributing, setIsDistributing] = useState(false)
+  const [distributeInput, setDistributeInput] = useState("")
 
   const sectionMarks = questions.reduce((sum, q) => sum + q.marks, 0)
 
@@ -1075,6 +1104,21 @@ function SortableSectionCard({
   function handleDescCommit() {
     setIsEditingDesc(false)
     onUpdateDescription(descInput.trim())
+  }
+
+  function handleDistributeConfirm() {
+    const total = parseFloat(distributeInput)
+    if (!isNaN(total) && total > 0 && questions.length > 0) {
+      const perQ = Math.round((total / questions.length) * 100) / 100
+      onDistributeMarks(perQ)
+      toast.success(`${total} marks split equally: ${perQ} marks × ${questions.length} questions`)
+    } else if (questions.length === 0) {
+      toast.error("Add questions first before distributing marks.")
+    } else {
+      toast.error("Enter a valid total marks value.")
+    }
+    setIsDistributing(false)
+    setDistributeInput("")
   }
 
   return (
@@ -1193,12 +1237,71 @@ function SortableSectionCard({
             )}
           </div>
 
-          <Badge variant="secondary" className="ml-2 text-[11px] font-normal shrink-0">
-            {section.time_limit_minutes || 0}m · Pass {section.pass_percentage || 0}% · {questions.length} Q{questions.length !== 1 ? "s" : ""} · {sectionMarks} M
+          <Badge
+            variant="secondary"
+            className="ml-2 text-[11px] font-normal shrink-0 select-none"
+          >
+            {section.time_limit_minutes || 0}m
+            {" · "}Pass {section.pass_percentage || 0}%
+            {" · "}{questions.length} Q{questions.length !== 1 ? "s" : ""}
+            {" · "}
+            <span
+              className="cursor-pointer font-semibold hover:text-primary underline-offset-2 hover:underline"
+              onClick={() => { setDistributeInput(String(sectionMarks)); setIsDistributing(true) }}
+              title="Click to set total marks — divides equally across all questions"
+            >
+              {sectionMarks} M ✎
+            </span>
           </Badge>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {isDistributing ? (
+            <span className="flex items-center gap-1">
+              <input
+                autoFocus
+                type="number"
+                min={1}
+                step={1}
+                className="h-7 w-20 text-xs px-2 text-center font-semibold bg-background border border-primary/50 rounded-md outline-none focus:ring-1 focus:ring-primary"
+                value={distributeInput}
+                onChange={(e) => setDistributeInput(e.target.value)}
+                placeholder="Total marks"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleDistributeConfirm()
+                  if (e.key === "Escape") { setIsDistributing(false); setDistributeInput("") }
+                }}
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs px-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleDistributeConfirm}
+                title="Divide total marks equally across all questions in this section"
+              >
+                <Check className="mr-1 size-3" /> Apply
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs px-1.5"
+                onClick={() => { setIsDistributing(false); setDistributeInput("") }}
+              >
+                <X className="size-3" />
+              </Button>
+            </span>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs px-2 text-violet-600 border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+              onClick={() => { setDistributeInput(String(sectionMarks)); setIsDistributing(true) }}
+              title="Enter total marks for this section and divide equally across all questions"
+            >
+              <Layers className="mr-1 size-3.5" />
+              Set Marks
+            </Button>
+          )}
+
           <Button
             size="sm"
             variant="ghost"
@@ -1271,11 +1374,16 @@ function SortableSectionCard({
               <span className="text-muted-foreground text-[11px]">%</span>
             </div>
           </div>
+
+
         </div>
 
         <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
           <span className="inline-block size-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span>Cutoff: candidate must score ≥ {section.pass_percentage || 50}% in this section</span>
+          {section.section_total_marks
+            ? <span>Cutoff: ≥ {section.pass_percentage || 50}% · AI will split <strong>{section.section_total_marks} marks</strong> equally across generated questions</span>
+            : <span>Cutoff: ≥ {section.pass_percentage || 50}% · Click the <strong>M</strong> in the section badge to set a marks target for AI Generate</span>
+          }
         </div>
       </div>
 
@@ -2318,6 +2426,7 @@ const AI_EMPTY: AiGenerateForm = {
   count: "5",
   difficulty: "medium",
   question_type: "single_correct",
+  marks_per_question: "1",
 }
 
 const AI_DEFAULT_COUNT = "5"
@@ -2352,6 +2461,14 @@ function AiGenerateSheet({
 
   const setField = <K extends keyof AiGenerateForm>(k: K, v: AiGenerateForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }))
+
+  const handleMarksChange = (val: string) => {
+    setField("marks_per_question", val)
+    const m = parseFloat(val)
+    if (!isNaN(m) && m > 0) {
+      setGenerated((prev) => prev.map((q) => ({ ...q, marks: m })))
+    }
+  }
 
   const handleGenerate = () => {
     const count = Number(form.count)
@@ -2393,10 +2510,12 @@ function AiGenerateSheet({
           return
         }
 
+        const assignedMarks = parseFloat(form.marks_per_question || "1") || 1
         setGeneratedWith(result.generatedWith || null)
         setGenerated(
           (result.questions || []).map((q) => ({
             ...q,
+            marks: assignedMarks > 0 ? assignedMarks : (q.marks || 1),
             _selected: true,
             _previewId: crypto.randomUUID(),
             _warnings: [],
@@ -2419,9 +2538,13 @@ function AiGenerateSheet({
     }
 
     const finalSecId = targetSectionId || sections[0]?.id || ""
+    const markVal = parseFloat(form.marks_per_question || "1") || 1
 
     onImport(
-      selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => q),
+      selected.map(({ _selected, _previewId, _warnings, _showExplanation, ...q }) => ({
+        ...q,
+        marks: markVal > 0 ? markVal : (q.marks || 1),
+      })),
       finalSecId
     )
 
@@ -2517,7 +2640,7 @@ function AiGenerateSheet({
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1.5">
               <Label>Count</Label>
               <Input
@@ -2541,6 +2664,23 @@ function AiGenerateSheet({
                   {countFieldError}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Marks</Label>
+              <Input
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={form.marks_per_question ?? "1"}
+                onChange={(e) => handleMarksChange(e.target.value)}
+                onBlur={() => {
+                  if (!form.marks_per_question?.trim()) handleMarksChange("1")
+                }}
+                className="text-sm"
+                placeholder="1"
+                disabled={isPending}
+              />
             </div>
 
             <div className="space-y-1.5">
