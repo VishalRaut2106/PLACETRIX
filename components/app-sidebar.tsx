@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Heart,
   Lock,
+  ArrowRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -26,6 +27,16 @@ import type { AccountType, UserProfile } from "@/lib/supabase/profile"
 import { Logo } from "@/components/logo"
 import { Badge } from "@/components/ui/badge"
 import { version } from "@/package.json"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
@@ -111,9 +122,17 @@ interface NavItemButtonProps {
   isLocked?: boolean
   lockReason?: string
   isProfileLocked?: boolean
+  onLockClick?: () => void
 }
 
-function NavItemButton({ item, isActive, isLocked, lockReason, isProfileLocked }: NavItemButtonProps) {
+function NavItemButton({
+  item,
+  isActive,
+  isLocked,
+  lockReason,
+  isProfileLocked,
+  onLockClick,
+}: NavItemButtonProps) {
   const router = useRouter()
   const Icon = isLocked ? Lock : item.icon
 
@@ -144,16 +163,13 @@ function NavItemButton({ item, isActive, isLocked, lockReason, isProfileLocked }
   if (isLocked) {
     return (
       <button
-        className={cn("w-full text-left block", focusClasses)}
+        type="button"
+        className={cn("w-full text-left block cursor-pointer", focusClasses)}
         onClick={() => {
-          if (isProfileLocked) {
-            toast.error("Profile Incomplete", {
-              description: "Please complete your profile first to unlock this feature.",
-              action: {
-                label: "Complete Profile",
-                onClick: () => router.push("/myprofile?incomplete=true"),
-              },
-            })
+          if (onLockClick) {
+            onLockClick()
+          } else if (isProfileLocked) {
+            router.push("/myprofile?incomplete=true")
           } else {
             toast.error("Feature Locked", { description: lockReason })
           }
@@ -184,8 +200,16 @@ interface AppSidebarNavProps {
 }
 
 export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNavProps) {
+  const router = useRouter()
   const pathname = usePathname()
   const { isActive: isLicenseActive, isAdmin, user: licenseUser } = useLicense()
+
+  const [lockedModal, setLockedModal] = React.useState<{
+    isOpen: boolean
+    title: string
+    isProfileLocked: boolean
+    lockReason?: string
+  } | null>(null)
 
   const accountType = safeAccountType(user?.account_type)
   const mainNav = user ? NAV_MAIN[accountType] : []
@@ -278,6 +302,14 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
                 isLocked={isLocked}
                 lockReason={lockReason}
                 isProfileLocked={isProfileLocked}
+                onLockClick={() => {
+                  setLockedModal({
+                    isOpen: true,
+                    title: item.title,
+                    isProfileLocked: Boolean(isProfileLocked),
+                    lockReason,
+                  })
+                }}
               />
             )
           })}
@@ -310,6 +342,53 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
           })}
         </div>
       </nav>
+
+      {/* ── Profile Incomplete / Feature Locked Dialog (shadcn/ui) ── */}
+      <AlertDialog
+        open={Boolean(lockedModal?.isOpen)}
+        onOpenChange={(open) => {
+          if (!open) setLockedModal(null)
+        }}
+      >
+        <AlertDialogContent className="max-w-md rounded-2xl p-6 sm:p-7">
+          <AlertDialogHeader className="sm:text-left">
+            <div className="mx-auto sm:mx-0 size-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 border border-amber-500/20">
+              <Lock className="size-6" />
+            </div>
+            <AlertDialogTitle className="text-xl font-bold tracking-tight text-foreground">
+              {lockedModal?.isProfileLocked
+                ? "Complete Your Profile First"
+                : "Feature Locked"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground pt-1.5">
+              {lockedModal?.isProfileLocked ? (
+                <>
+                  Access to <span className="font-semibold text-foreground">{lockedModal?.title}</span> and other core features is locked until your student profile is completed. Please complete your profile to unlock full access.
+                </>
+              ) : (
+                lockedModal?.lockReason || "Your institution does not have an active license for this feature."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-5 gap-2 sm:gap-2 sm:justify-end">
+            <AlertDialogCancel className="cursor-pointer rounded-xl font-medium">
+              Maybe Later
+            </AlertDialogCancel>
+            {lockedModal?.isProfileLocked && (
+              <AlertDialogAction
+                className="cursor-pointer rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-2 shadow-xs"
+                onClick={() => {
+                  setLockedModal(null)
+                  router.push("/myprofile?incomplete=true")
+                }}
+              >
+                Complete Profile
+                <ArrowRight className="size-4" />
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
