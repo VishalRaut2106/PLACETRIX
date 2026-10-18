@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Home,
   Terminal,
@@ -110,9 +110,11 @@ interface NavItemButtonProps {
   isActive: boolean
   isLocked?: boolean
   lockReason?: string
+  isProfileLocked?: boolean
 }
 
-function NavItemButton({ item, isActive, isLocked, lockReason }: NavItemButtonProps) {
+function NavItemButton({ item, isActive, isLocked, lockReason, isProfileLocked }: NavItemButtonProps) {
+  const router = useRouter()
   const Icon = isLocked ? Lock : item.icon
 
   const inner = (
@@ -144,7 +146,17 @@ function NavItemButton({ item, isActive, isLocked, lockReason }: NavItemButtonPr
       <button
         className={cn("w-full text-left block", focusClasses)}
         onClick={() => {
-          toast.error("Feature Locked", { description: lockReason })
+          if (isProfileLocked) {
+            toast.error("Profile Incomplete", {
+              description: "Please complete your profile first to unlock this feature.",
+              action: {
+                label: "Complete Profile",
+                onClick: () => router.push("/myprofile?incomplete=true"),
+              },
+            })
+          } else {
+            toast.error("Feature Locked", { description: lockReason })
+          }
         }}
       >
         {inner}
@@ -265,6 +277,7 @@ export function AppSidebarNav({ user, mobileOpen, onMobileClose }: AppSidebarNav
                 isActive={isActive}
                 isLocked={isLocked}
                 lockReason={lockReason}
+                isProfileLocked={isProfileLocked}
               />
             )
           })}

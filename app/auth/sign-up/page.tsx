@@ -75,6 +75,7 @@ function SignUpContent() {
 
   const [pageState, setPageState] = useState<PageState>("register-form");
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -131,11 +132,14 @@ function SignUpContent() {
         localStorage.setItem(LAST_EMAIL_KEY, cleanEmail);
       } catch {}
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=/home`,
+          data: {
+            full_name: fullName.trim() || undefined,
+          },
         },
       });
 
@@ -149,6 +153,11 @@ function SignUpContent() {
           return;
         }
         throw error;
+      }
+
+      if (data?.session) {
+        router.push("/home");
+        return;
       }
 
       setPageState("otp-entry");
@@ -408,6 +417,15 @@ function SignUpContent() {
 
                 <Input
                   autoFocus
+                  placeholder="Full Name (e.g. Ashwini Raut)"
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isBusy}
+                />
+
+                <Input
                   placeholder="your.email@example.com"
                   type="email"
                   autoComplete="email"
