@@ -486,18 +486,20 @@ function SignUpContent() {
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: [0, -6, 6, -4, 4, 0] }}
                     transition={{ duration: 0.3 }}
-                    clclassName={cn('text-sm', 'text-destructive', 'rounded-md', 'bg-destructive/10', 'px-3', 'py-2')}                  >
+                    className={cn('text-sm', 'text-destructive', 'rounded-md', 'bg-destructive/10', 'px-3', 'py-2')}
+                  >
                     {error}
                   </motion.p>
                 )}
 
                 <Button
-                  clclassName={cn('w-full', 'cursor-pointer')}                  type="submit"
+                  className={cn('w-full', 'cursor-pointer')}
+                  type="submit"
                   disabled={isBusy}
                 >
                   {isLoading ? (
                     <>
-                      <Loader2Icon clclassName={cn('mr-2', 'h-4', 'w-4', 'animate-spin')}>
+                      <Loader2Icon className={cn('mr-2', 'h-4', 'w-4', 'animate-spin')} />
                       Creating account…
                     </>
                   ) : (
@@ -506,7 +508,7 @@ function SignUpContent() {
                 </Button>
               </form>
 
-              <p clclassName={cn('text-center', 'text-sm', 'text-muted-foreground', 'pt-2')}
+              <p className={cn('text-center', 'text-sm', 'text-muted-foreground', 'pt-2')}>
                 Already have an account?{" "}
                 <Link
                   href={isBusy ? "#" : "/auth/login"}
@@ -517,17 +519,19 @@ function SignUpContent() {
                   Sign in
                 </Link>
               </p>
-              <p clclassName={cn('text-muted-foreground', 'text-xs', 'text-center', 'pt-1')}
+              <p className={cn('text-muted-foreground', 'text-xs', 'text-center', 'pt-1')}>
                 By creating an account, you agree to our{" "}
                 <Link
                   href="/terms-of-service"
-                  clclassName={cn('underline', 'underline-offset-4', 'hover:text-primary')}                >
+                  className={cn('underline', 'underline-offset-4', 'hover:text-primary')}
+                >
                   Terms
                 </Link>{" "}
                 and{" "}
                 <Link
                   href="/privacy-policy"
-                  clclassName={cn('underline', 'underline-offset-4', 'hover:text-primary')}                >
+                  className={cn('underline', 'underline-offset-4', 'hover:text-primary')}
+                >
                   Privacy Policy
                 </Link>
                 .
